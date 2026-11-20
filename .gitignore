@@ -1,10 +1,11 @@
-# Python-generated files
+# Python-generated files & packaged desktop build artifacts
 __pycache__/
 *.py[oc]
 build/
 dist/
 wheels/
 *.egg-info
+packaging/icons/
 
 # Virtual environments
 .venv

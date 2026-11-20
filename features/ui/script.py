@@ -23,17 +23,41 @@ let selectedTag = null, isActiveView = false, activeController = null, chunksCol
 const PROVIDER_DEFAULTS = { ollama: "qwen3:8b", openai: "gpt-4o-mini", kimi: "kimi-k3.1-pro", deepseek: "deepseek-chat", gemini: "gemini-3.8-flash", anthropic: "claude-sonnet-5-5", xai: "grok-4", mistral: "mistral-small-latest" };
 const NON_CHAT_RE = /^(nomic-embed|mxbai-embed|bge-|all-minilm|text-embedding|mistral-embed|whisper|phonon|kokoro|piper|tts-)|embed/i;
 const SPARKLE_SVG = "<svg aria-hidden='true' class='w-4 h-4 shrink-0' viewBox='0 0 24 24' fill='currentColor'><path d='M12 2L14.6 9.4L22 12L14.6 14.6L12 22L9.4 14.6L2 12L9.4 9.4L12 2Z'/></svg>";
+const PROVIDER_LABELS = { ollama: "Ollama (Local)", openai: "OpenAI", gemini: "Gemini", anthropic: "Anthropic", kimi: "Kimi", deepseek: "DeepSeek", xai: "xAI", mistral: "Mistral" };
+const PROVIDER_ORDER = ["ollama", "openai", "gemini", "anthropic", "kimi", "deepseek", "xai", "mistral"];
 let appKeyStatus = {};
 function getApiKey() { return apiKeyEl.value.trim(); }
 function hasSavedKey(provider) { return Boolean(appKeyStatus[provider] && appKeyStatus[provider].configured); }
+function renderProviderPills() {
+  const locked = localOnly(), active = providerEl.value;
+  for (const barId of ["saved-keys-bar", "onboarding-keys-bar"]) {
+    const bar = document.getElementById(barId); if (!bar) { continue; }
+    bar.innerHTML = PROVIDER_ORDER.map(function (prov) {
+      const saved = prov === "ollama" || hasSavedKey(prov), isAct = prov === active, disabled = locked && prov !== "ollama";
+      const cls = isAct ? "border-[#4BB8E8] bg-[#4BB8E8]/15 text-[#EEF2F8]" : (saved ? "border-[#38D399]/40 bg-[#04060F] text-[#EEF2F8]" : "border-[rgba(238,242,248,0.12)] bg-[#04060F] text-[#738196]");
+      const badge = prov === "ollama" ? "" : (saved ? " ✓" : "");
+      return "<button type='button' data-pick-provider='" + prov + "' " + (disabled ? "disabled " : "") + "class='px-2.5 py-1 rounded-full border text-xs transition " + cls + (disabled ? " opacity-40 cursor-not-allowed" : " hover:border-[#4BB8E8]") + "'>" + escapeHtml(PROVIDER_LABELS[prov] + badge) + "</button>";
+    }).join("");
+    bar.querySelectorAll("[data-pick-provider]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const picked = btn.getAttribute("data-pick-provider"); if (!picked || (localOnly() && picked !== "ollama")) { return; }
+        providerEl.value = picked; document.getElementById("onboarding-provider").value = picked;
+        apiKeyEl.value = ""; syncProviderPrivacyUI(picked, "settings-privacy-notice", "settings-api-key-group");
+        syncProviderPrivacyUI(picked, "onboarding-privacy-notice", "onboarding-api-key-group");
+        syncKeyStatusUI(); loadModels();
+      });
+    });
+  }
+}
 function syncKeyStatusUI() {
   const prov = providerEl.value, info = appKeyStatus[prov], el = document.getElementById("api-key-status");
+  renderProviderPills();
   if (!el) { return; }
   if (info && info.configured) {
-    el.textContent = (info.source === "env" ? "Loaded from environment" : "Saved in app (./data/secrets.json)") + (info.hint ? " (" + info.hint + ")" : "") + " · works across all browsers";
+    el.textContent = (info.source === "env" ? "Loaded from environment" : "Saved securely on this computer") + (info.hint ? " (" + info.hint + ")" : "") + " · persists across restarts";
     apiKeyEl.placeholder = "Key saved (" + (info.hint || "configured") + ") — enter to replace";
   } else {
-    el.textContent = "Not configured yet. Keys save locally to ./data/secrets.json (0600, ignored by Git).";
+    el.textContent = "Not saved yet. Paste your key and click Save Key — you can save keys for multiple providers.";
     apiKeyEl.placeholder = "Enter cloud provider API key";
   }
 }
@@ -115,15 +139,59 @@ async function toggleDictation() {
   rec.onend = rec.onerror = function () { activeRecognition = null; micBtn.setAttribute("aria-pressed", "false"); micBtn.className = "w-9 h-9 rounded-full text-[#A0B0C8] hover:text-[#EEF2F8] hover:bg-[#EEF2F8]/10 flex items-center justify-center shrink-0 transition"; };
   rec.start();
 }
+function syncModelMirrors() {
+  for (const id of ["settings-model", "onboarding-model"]) {
+    const mirror = document.getElementById(id); if (!mirror) { continue; }
+    mirror.innerHTML = modelEl.innerHTML;
+    if (modelEl.selectedIndex >= 0) { mirror.selectedIndex = modelEl.selectedIndex; }
+    mirror.disabled = modelEl.disabled;
+  }
+}
+function selectActiveModel(value, optProvider) {
+  if (!value) { return; }
+  if (optProvider && optProvider !== providerEl.value && (!localOnly() || optProvider === "ollama")) {
+    providerEl.value = optProvider; document.getElementById("onboarding-provider").value = optProvider;
+    syncProviderPrivacyUI(optProvider, "settings-privacy-notice", "settings-api-key-group");
+    syncProviderPrivacyUI(optProvider, "onboarding-privacy-notice", "onboarding-api-key-group");
+    syncKeyStatusUI();
+  }
+  modelEl.value = value;
+  if (providerEl.value === "ollama") { localStorage.setItem("preferred_local_model", value); }
+  syncModelMirrors();
+}
+async function fetchProviderChatModels(provider) {
+  const apiKey = provider === providerEl.value ? getApiKey() : "";
+  const res = await areaFetch("/api/models?provider=" + encodeURIComponent(provider), { headers: apiKey ? { "x-api-key": apiKey } : {} });
+  if (!res.ok) { return []; }
+  const data = await res.json();
+  return (data.chat_models || data.models || []).filter(function (m) { return !NON_CHAT_RE.test(m) && (!localOnly() || !/cloud/i.test(m)); });
+}
 async function loadModels() {
-  const provider = providerEl.value, apiKey = getApiKey(), prevModel = modelEl.value;
-  const data = await (await areaFetch("/api/models?provider=" + encodeURIComponent(provider), { headers: apiKey ? { "x-api-key": apiKey } : {} })).json();
+  const activeProv = providerEl.value, prevModel = modelEl.value;
+  const providers = localOnly() ? ["ollama"] : PROVIDER_ORDER.filter(function (p) { return p === "ollama" || p === activeProv || hasSavedKey(p); });
+  const lists = await Promise.all(providers.map(function (p) { return fetchProviderChatModels(p).catch(function () { return []; }); }));
   modelEl.innerHTML = "";
-  const chatModels = (data.chat_models || data.models || []).filter(function (m) { return !NON_CHAT_RE.test(m) && (!localOnly() || !/cloud/i.test(m)); });
-  for (const model of chatModels) { const opt = document.createElement("option"); opt.value = model; opt.textContent = model; opt.className = "bg-[#0B1020] text-[#EEF2F8]"; modelEl.appendChild(opt); }
-  const preferred = provider === "ollama" ? localStorage.getItem("preferred_local_model") : null;
-  const recommended = chatModels.find(function (m) { return m.toLowerCase().startsWith("qwen3:") || m.toLowerCase().startsWith("qwen2.5:"); });
-  modelEl.value = (prevModel && !NON_CHAT_RE.test(prevModel) && chatModels.includes(prevModel)) ? prevModel : ((preferred && chatModels.includes(preferred) ? preferred : null) || recommended || (PROVIDER_DEFAULTS[provider] && chatModels.includes(PROVIDER_DEFAULTS[provider]) ? PROVIDER_DEFAULTS[provider] : (chatModels[0] || "")));
+  const grouped = providers.length > 1;
+  let activeModels = [];
+  providers.forEach(function (prov, idx) {
+    const models = lists[idx] || [];
+    if (prov === activeProv) { activeModels = models; }
+    if (!models.length) { return; }
+    const container = grouped ? document.createElement("optgroup") : modelEl;
+    if (grouped) { container.label = PROVIDER_LABELS[prov] || prov; modelEl.appendChild(container); }
+    for (const model of models) {
+      const opt = document.createElement("option");
+      opt.value = model; opt.textContent = model; opt.dataset.provider = prov; opt.className = "bg-[#0B1020] text-[#EEF2F8]";
+      container.appendChild(opt);
+    }
+  });
+  const pool = activeModels.length ? activeModels : (lists.find(function (l) { return l.length; }) || []);
+  const preferred = activeProv === "ollama" ? localStorage.getItem("preferred_local_model") : null;
+  const recommended = pool.find(function (m) { return m.toLowerCase().startsWith("qwen3:") || m.toLowerCase().startsWith("qwen2.5:"); });
+  const chosen = (prevModel && !NON_CHAT_RE.test(prevModel) && pool.includes(prevModel)) ? prevModel : ((preferred && pool.includes(preferred) ? preferred : null) || recommended || (PROVIDER_DEFAULTS[activeProv] && pool.includes(PROVIDER_DEFAULTS[activeProv]) ? PROVIDER_DEFAULTS[activeProv] : (pool[0] || "")));
+  const match = Array.from(modelEl.options).find(function (o) { return o.value === chosen && o.dataset.provider === activeProv; }) || Array.from(modelEl.options).find(function (o) { return o.value === chosen; });
+  if (match) { modelEl.selectedIndex = match.index; }
+  syncModelMirrors();
 }
 function setActiveTag(tag) { selectedTag = tag; renderLibraryTopics(); }
 function renderResults(results, tutorActive) {
@@ -197,9 +265,15 @@ document.getElementById("tts-model").addEventListener("change", syncTtsVoices); 
 bindRunModes(); bindBudgetControls(); bindSettingsTabs(); bindWorkspaceMenu(); bindBackupControls();
 document.getElementById("download-local-model-btn").addEventListener("click", installRecommendedLocalAI); bindDialogFallbacks(); bindDestination("upload"); bindCardMoveDialog();
 document.getElementById("cfg-anonymize-uploads").addEventListener("change", function () { if (stagedFiles.length) { previewUploads(); } });
-providerEl.addEventListener("change", function () { syncProviderPrivacyUI(providerEl.value, "settings-privacy-notice", "settings-api-key-group"); apiKeyEl.value = ""; syncKeyStatusUI(); loadModels(); });
-document.getElementById("onboarding-provider").addEventListener("change", function (e) { syncProviderPrivacyUI(e.target.value, "onboarding-privacy-notice", "onboarding-api-key-group"); });
+providerEl.addEventListener("change", function () { document.getElementById("onboarding-provider").value = providerEl.value; syncProviderPrivacyUI(providerEl.value, "settings-privacy-notice", "settings-api-key-group"); syncProviderPrivacyUI(providerEl.value, "onboarding-privacy-notice", "onboarding-api-key-group"); apiKeyEl.value = ""; syncKeyStatusUI(); loadModels(); });
+document.getElementById("onboarding-provider").addEventListener("change", function (e) { providerEl.value = e.target.value; syncProviderPrivacyUI(e.target.value, "onboarding-privacy-notice", "onboarding-api-key-group"); syncProviderPrivacyUI(e.target.value, "settings-privacy-notice", "settings-api-key-group"); syncKeyStatusUI(); loadModels(); });
+for (const selId of ["model", "settings-model", "onboarding-model"]) {
+  const sel = document.getElementById(selId);
+  if (sel) { sel.addEventListener("change", function (e) { const opt = e.target.options[e.target.selectedIndex]; selectActiveModel(e.target.value, opt && opt.dataset ? opt.dataset.provider : null); }); }
+}
 document.getElementById("save-api-key-btn").addEventListener("click", async function () { if (await saveAppApiKey(providerEl.value, apiKeyEl.value, apiKeyEl)) { await loadModels(); } });
+document.getElementById("onboarding-save-key-btn").addEventListener("click", async function () { const inp = document.getElementById("onboarding-api-key"); if (await saveAppApiKey(document.getElementById("onboarding-provider").value, inp.value, inp)) { await loadModels(); } });
+document.getElementById("toggle-cloud-access-btn").addEventListener("click", async function () { await setCloudAccess(localOnly()); });
 document.getElementById("save-tts-key-btn").addEventListener("click", async function () { const mVal = document.getElementById("tts-model").value, prov = mVal.startsWith("elevenlabs") ? "elevenlabs" : "openai", el = document.getElementById("tts-api-key"); if (await saveAppApiKey(prov, el.value, el) && currentTurns.length) { renderChatStream(); } });
 document.querySelectorAll(".seed-chip").forEach(function (chip) { chip.addEventListener("click", function () { queryEl.value = chip.getAttribute("data-seed") || ""; askTutor(); }); });
 document.getElementById("sidebar-collapse-btn").addEventListener("click", function () { document.getElementById("sidebar").classList.add("-translate-x-full"); document.getElementById("main-shell").classList.replace("pl-[250px]", "pl-0"); document.getElementById("sidebar-open-btn").classList.replace("hidden", "flex"); }); document.getElementById("sidebar-open-btn").addEventListener("click", function () { document.getElementById("sidebar").classList.remove("-translate-x-full"); document.getElementById("main-shell").classList.replace("pl-0", "pl-[250px]"); document.getElementById("sidebar-open-btn").classList.replace("flex", "hidden"); });

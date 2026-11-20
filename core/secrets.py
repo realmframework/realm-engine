@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from threading import RLock
 
-from core.runtime import data_root
+from core.runtime import bundle_root, data_root, is_frozen
 
 SECRETS_FILE = data_root() / "secrets.json"
 LOCK = RLock()
@@ -23,8 +23,8 @@ ENV_VARS: dict[str, str] = {
 
 def load_dotenv_files(paths: list[Path] | None = None) -> None:
     """Load key=value pairs from optional local .env files without overriding shell env."""
-    repo_root = Path(__file__).resolve().parents[1]
-    candidates = paths if paths is not None else [repo_root / ".env", data_root() / ".env"]
+    defaults = [data_root() / ".env"] if is_frozen() else [bundle_root() / ".env", data_root() / ".env"]
+    candidates = paths if paths is not None else defaults
     for path in candidates:
         if not path.is_file() or path.is_symlink():
             continue

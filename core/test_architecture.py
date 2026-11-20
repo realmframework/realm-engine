@@ -36,7 +36,7 @@ def _feature_imports(tree: ast.Module) -> set[str]:
 
 def test_file_size_ceiling() -> None:
     """Backend sources stay within 150 lines; frontend templates/assets may use 350."""
-    excluded = {".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache"}
+    excluded = {".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", "build", "dist"}
     sources = sorted(p for p in CORE_DIR.parent.rglob("*") if p.suffix in {".py", ".js", ".css"} and not excluded.intersection(p.parts))
     oversized = [f"{p}: limit {line_limit(p)}" for p in sources if len(p.read_text(encoding="utf-8").splitlines()) > line_limit(p)]
     assert oversized == []

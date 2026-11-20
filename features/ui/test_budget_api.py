@@ -82,7 +82,9 @@ def test_app_level_api_keys_persist_across_browsers_and_never_leak_raw_secret(ar
     saved = area_client.post("/api/keys", json={"provider": "openai", "api_key": "sk-test-secret-9876"})
     assert saved.status_code == 200 and "sk-test-secret-9876" not in saved.text
     assert saved.json()["keys"]["openai"] == {"configured": True, "source": "app", "hint": "…9876"}
-    assert (tmp_path / "secrets.json").stat().st_mode & 0o777 == 0o600
+    import os
+    if os.name != "nt":
+        assert (tmp_path / "secrets.json").stat().st_mode & 0o777 == 0o600
     assert secrets.get_api_key("openai") == "sk-test-secret-9876"
 
     # Backup ZIP must never contain secrets.json

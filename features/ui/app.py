@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from core import contracts, secrets
 from core.db import load_chunks, save_chunks
-from core.runtime import app_mode
+from core.runtime import app_mode, bundle_root
 from features.ingestion import converters
 from features.ingestion.anonymizer import anonymize_slug, inspect_anonymization
 from features.ingestion.embedder import (
@@ -47,7 +47,7 @@ from features.ui.startup import area_lifespan
 from features.ui.template import HTML_PAGE
 from features.ui.upload_guard import upload_body_guard
 
-STATIC_DIR = Path(__file__).resolve().parent / "static"
+STATIC_DIR = bundle_root() / "features" / "ui" / "static"
 secrets.load_dotenv_files()
 AUTO_EMBED = os.environ.get("REALM_AUTO_EMBED", "1").strip().lower() not in {"0", "false", "no"}
 WORKSPACE_CONFIG = workspace.load_workspace_config()
@@ -102,7 +102,7 @@ def build_public_app(data_dir: Path | None = None, quota_check: public_rate_limi
 
 
 def _build_local_app() -> FastAPI:
-    local = FastAPI(title="AI Engineering Knowledge Engine", lifespan=area_lifespan(converters.repair_directory_topics))
+    local = FastAPI(title="REALM Engine", lifespan=area_lifespan(converters.repair_directory_topics))
     local.add_middleware(upload_body_guard)
     local.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     cloud_guard = build_guard(lambda: WORKSPACE_CONFIG, budget.check_and_record_budget, budget.estimate_usage)

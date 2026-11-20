@@ -56,9 +56,10 @@ async function loadSystemStatus() {
 async function completeOnboarding(openUploader) {
   if (!await applySelectedMode("onboarding")) { return; }
   localStorage.setItem("onboarded", "1");
-  const obProv = document.getElementById("onboarding-provider").value, obKey = document.getElementById("onboarding-api-key").value.trim(), obTitle = document.getElementById("onboarding-title").value.trim() || "AI Engineering", obFolder = document.getElementById("onboarding-folder").value.trim() || "knowledge_base";
+  const obProv = document.getElementById("onboarding-provider").value, obModel = (document.getElementById("onboarding-model") && document.getElementById("onboarding-model").value) || "", obKey = document.getElementById("onboarding-api-key").value.trim(), obTitle = document.getElementById("onboarding-title").value.trim() || "My Knowledge Base", obFolder = document.getElementById("onboarding-folder").value.trim() || "knowledge_base";
   providerEl.value = obProv; syncProviderPrivacyUI(obProv, "settings-privacy-notice", "settings-api-key-group");
   if (obKey) { await saveAppApiKey(obProv, obKey, document.getElementById("onboarding-api-key")); }
+  if (obModel) { selectActiveModel(obModel); }
   await loadModels();
   if (obTitle !== document.getElementById("cfg-app-title").value || obFolder !== document.getElementById("cfg-knowledge-dir").value) { document.getElementById("cfg-app-title").value = obTitle; document.getElementById("cfg-knowledge-dir").value = obFolder; await saveWorkspace(); }
   document.getElementById("onboarding-modal").close(); if (openUploader) { document.getElementById("upload-modal").showModal(); }

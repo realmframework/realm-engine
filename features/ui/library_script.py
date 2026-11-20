@@ -34,7 +34,7 @@ function renderSeedIdeas() {
 function cycleIdeas() { const pool = buildIdeaPool(); ideaOffset = (ideaOffset + 3) % Math.max(pool.length, 3); renderSeedIdeas(); }
 function syncFolderHelper(dirVal, helperId) {
   const el = document.getElementById(helperId), clean = (dirVal || "knowledge_base").trim() || "knowledge_base";
-  if (el) { el.textContent = "Saved locally at ./data/" + clean + "/ inside this project"; }
+  if (el) { el.textContent = "Saved locally in your library folder (" + clean + "/)"; }
 }
 function applyWorkspacePayload(ws) {
   if (!ws) { return; }
@@ -43,10 +43,12 @@ function applyWorkspacePayload(ws) {
   document.getElementById("daily-cloud-request-limit").value = String(workspaceConfig.daily_cloud_request_limit ?? 50);
   document.getElementById("daily-budget-usd-limit").value = String(workspaceConfig.daily_budget_usd_limit ?? 1);
   const cfg = ws.config || {}, kDir = cfg.knowledge_dir || "knowledge_base", dirs = Array.isArray(ws.available_dirs) && ws.available_dirs.length ? ws.available_dirs : ["knowledge_base"];
-  document.title = cfg.app_title || "AI Engineering";
+  const title = cfg.app_title || "My Knowledge Base";
+  document.title = title;
   document.getElementById("hero-greeting-text").textContent = cfg.hero_greeting || "Where should we start?";
   if (!isActiveView) { queryEl.placeholder = defaultPlaceholder; }
-  document.getElementById("cfg-app-title").value = cfg.app_title || "AI Engineering";
+  document.getElementById("cfg-app-title").value = title;
+  const obTitleEl = document.getElementById("onboarding-title"); if (obTitleEl) { obTitleEl.value = title; }
   document.getElementById("cfg-knowledge-dir").value = kDir; document.getElementById("cfg-anonymize-uploads").checked = cfg.anonymize_uploads !== false;
   for (const selId of ["cfg-folder-select", "onboarding-folder-select"]) {
     const sel = document.getElementById(selId);
@@ -60,7 +62,7 @@ function applyWorkspacePayload(ws) {
 async function loadWorkspace() { const version = areaVersion, response = await areaFetch("/api/workspace"), data = await response.json(); if (response.ok && version === areaVersion) { applyWorkspacePayload(data); } }
 async function saveWorkspace() {
   const statusEl = document.getElementById("workspace-status"); statusEl.textContent = "Re-indexing folder...";
-  const payload = { ...workspaceConfig, app_title: document.getElementById("cfg-app-title").value.trim() || "AI Engineering", hero_greeting: "Where should we start?", search_placeholder: "Ask anything...", knowledge_dir: document.getElementById("cfg-knowledge-dir").value.trim() || "knowledge_base", anonymize_uploads: document.getElementById("cfg-anonymize-uploads").checked, strict_local_only: localOnly() };
+  const payload = { ...workspaceConfig, app_title: document.getElementById("cfg-app-title").value.trim() || "My Knowledge Base", hero_greeting: "Where should we start?", search_placeholder: "Ask anything...", knowledge_dir: document.getElementById("cfg-knowledge-dir").value.trim() || "knowledge_base", anonymize_uploads: document.getElementById("cfg-anonymize-uploads").checked, strict_local_only: localOnly() };
   payload.active_dirs = payload.knowledge_dir === activeKnowledgeArea ? selectedAreas() : [payload.knowledge_dir];
   const res = await areaFetch("/api/workspace", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
   if (!res.ok) { statusEl.textContent = (await res.json()).detail || "Invalid folder path."; return; }

@@ -58,7 +58,7 @@ class TutorConfig(BudgetLimits):
     reasoning_effort: ReasoningEffort | None = None
 
 class WorkspaceConfig(BudgetLimits):
-    app_title: str = "AI Engineering"
+    app_title: str = "My Knowledge Base"
     hero_greeting: str = "Where should we start?"
     search_placeholder: str = "Ask or search guides..."
     knowledge_dir: str = "knowledge_base"

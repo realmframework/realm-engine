@@ -52,14 +52,14 @@ def build_tutor_messages(
     )
     if gap:
         system_content = (
-            "You are an AI Engineering Tutor. A knowledge gap was detected in the retrieved "
+            "You are a helpful Knowledge Assistant. A knowledge gap was detected in the retrieved "
             "context. Respond strictly with valid JSON matching the TutorResponse schema "
             "(answer, cited_titles, knowledge_gap_detected=true, recommended_topics)." + no_trailing
         )
         user_content = f"{history_block}Question: {question}\n\nKnowledge context: {context}\n\nRecommend these topics to study next: {', '.join(GAP_TOPICS)}."
     else:
         system_content = (
-            "You are an AI Engineering Tutor. Answer the question using the provided knowledge "
+            "You are a helpful Knowledge Assistant. Answer the question using the provided knowledge "
             "context and respond strictly with valid JSON matching the TutorResponse schema "
             "(answer, cited_titles, knowledge_gap_detected=false, recommended_topics)." + no_trailing
         )

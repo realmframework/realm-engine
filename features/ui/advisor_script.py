@@ -20,6 +20,7 @@ function syncRunMode() {
     appliedRunMode = mode; syncRagStudioUI();
   }
   modelEl.disabled = mode === "search"; askTutorToggle.disabled = mode === "search";
+  for (const id of ["settings-model", "onboarding-model"]) { const m = document.getElementById(id); if (m) { m.disabled = modelEl.disabled; } }
 }
 async function applySelectedMode(prefix) {
   const radio = document.querySelector('input[name="' + prefix + '_run_mode"]:checked'), mode = radio ? radio.value : "local";
@@ -41,7 +42,7 @@ async function applySelectedMode(prefix) {
     syncProviderPrivacyUI(providerEl.value, "onboarding-privacy-notice", "onboarding-api-key-group");
     await loadModels(); await refreshBudget();
     if (version !== areaVersion) { return false; }
-    status.textContent = mode === "search" ? "Keyword search and redaction are ready. No AI setup needed." : mode === "cloud" ? "Cloud mode enabled. Choose a provider and enter your API key below." : "Local-only lock enabled. Choose an installed Ollama model below.";
+    status.textContent = mode === "search" ? "Keyword search and redaction are ready. No AI setup needed." : mode === "cloud" ? "Local Ollama & Cloud APIs enabled. Click any provider below to save keys and switch models anytime." : "Local-only lock enabled. Choose an installed Ollama model below.";
     return true;
   } catch (error) { if (version === areaVersion) { status.textContent = error.message || "Mode could not be saved."; } return false; }
 }
@@ -49,8 +50,11 @@ function bindRunModes() {
   for (const prefix of ["settings", "onboarding"]) {
     const form = document.getElementById(prefix + "-run-form"); if (!form) { continue; }
     form.addEventListener("submit", async function (event) {
-      event.preventDefault(); const button = event.submitter; button.disabled = true;
-      try { await applySelectedMode(prefix); } finally { button.disabled = false; }
+      event.preventDefault(); const button = event.submitter; if (button) { button.disabled = true; }
+      try { await applySelectedMode(prefix); } finally { if (button) { button.disabled = false; } }
+    });
+    form.querySelectorAll('input[name="' + prefix + '_run_mode"]').forEach(function (radio) {
+      radio.addEventListener("change", function () { applySelectedMode(prefix); });
     });
   }
 }

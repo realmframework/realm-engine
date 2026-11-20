@@ -5,14 +5,14 @@ def mode_cards(prefix: str) -> str:
     return f"""<form id="{prefix}-run-form" action="/api/workspace" method="post" aria-label="Choose how to run" class="flex flex-col gap-3">
   <fieldset class="flex flex-col gap-2"><legend class="text-sm font-medium text-[#EEF2F8] mb-3">How Do You Want to Run?</legend>
     <label for="{prefix}-mode-local" class="run-mode-card"><input id="{prefix}-mode-local" name="{prefix}_run_mode" type="radio" value="local" checked aria-describedby="{prefix}-local-description"/>
-      <span><span class="block text-sm font-medium">100% Local AI (Free &amp; Private)</span>
+      <span><span class="block text-sm font-medium">100% Local AI Only (Strict Privacy)</span>
         <span data-ram-detected class="block text-xs text-[#4BB8E8] mt-1">Checking this computer’s RAM…</span>
-        <span id="{prefix}-local-description" data-ram-advice class="block text-xs text-[#A0B0C8] leading-relaxed mt-1">We’ll suggest a sensible model size for this computer.</span>
+        <span id="{prefix}-local-description" data-ram-advice class="block text-xs text-[#A0B0C8] leading-relaxed mt-1">Uses local Ollama only. All cloud providers stay locked so nothing leaves this computer.</span>
       </span></label>
     <p class="text-xs text-[#738196] px-3">Quick start: <a href="https://ollama.com/download" target="_blank" rel="noopener noreferrer" class="text-[#4BB8E8] hover:underline">install Ollama</a>, then use Download Recommended Local AI in the Setup Wizard. No terminal is needed.</p>
     <label for="{prefix}-mode-cloud" class="run-mode-card"><input id="{prefix}-mode-cloud" name="{prefix}_run_mode" type="radio" value="cloud" aria-describedby="{prefix}-cloud-description"/>
-      <span><span class="block text-sm font-medium">Cloud AI Key (For Laptops Without AI Hardware)</span>
-        <span id="{prefix}-cloud-description" class="block text-xs text-[#A0B0C8] leading-relaxed mt-1">An API key is your pay-as-you-go pass from OpenAI, Gemini or another provider. They run the AI for you. The Daily Budget Cap limits estimated usage; selected passages leave this computer.</span>
+      <span><span class="block text-sm font-medium">Local + Cloud AI (Ollama &amp; API Keys)</span>
+        <span id="{prefix}-cloud-description" class="block text-xs text-[#A0B0C8] leading-relaxed mt-1">Use free local Ollama AND paid cloud APIs (OpenAI, Gemini, Anthropic, Kimi, etc.) side-by-side. Save keys for multiple providers and switch models anytime; Daily Budget Cap protects cloud spend.</span>
       </span></label>
     <label for="{prefix}-mode-search" class="run-mode-card"><input id="{prefix}-mode-search" name="{prefix}_run_mode" type="radio" value="search" aria-describedby="{prefix}-search-description"/>
       <span><span class="block text-sm font-medium">Search &amp; Anonymize Only (Zero AI Setup)</span>

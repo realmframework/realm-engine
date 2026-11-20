@@ -19,7 +19,21 @@ Drop in your own Markdown, PDF, Word (`.docx`), TXT, or HTML files and explore t
 
 ## Quickstart
 
-### 1-Click Desktop App (macOS, Windows & Linux)
+### Download Desktop App (No Coding Required)
+
+Download the installer for your computer from [**GitHub → Releases**](https://github.com/realmframework/realm-engine/releases):
+
+| Computer | Download | Install Steps |
+|---|---|---|
+| **Mac — Apple Silicon (M1 / M2 / M3 / M4, 2020+)** | `REALM-Engine-<ver>-macos-apple-silicon.dmg` | Open the `.dmg`, drag **REALM Engine** into **Applications**, and double-click to launch. |
+| **Mac — Intel (older Macs)** | `REALM-Engine-<ver>-macos-intel.dmg` | Open the `.dmg`, drag **REALM Engine** into **Applications**, and double-click to launch. |
+| **Windows 10 / 11 (64-bit)** | `REALM-Engine-<ver>-windows-x64-setup.exe` *(or `-portable.zip`)* | Run the installer (no Admin needed). If Windows SmartScreen warns on an unsigned build, click **More info → Run anyway**. |
+
+- **Not sure which Mac you have?** Click ** (Apple menu) → About This Mac**. If it says **Chip: Apple M1 / M2 / M3 / M4**, download **Apple Silicon**; if it says **Processor: Intel**, download **Intel**.
+- **Clean lifecycle & private storage:** Closing the app window (or **⌘Q**) stops the local server automatically — no terminal window. Your vaults, chats, and saved API keys live in `~/Library/Application Support/REALM Engine/` (macOS) or `%APPDATA%\REALM Engine\` (Windows).
+- **Verify downloads:** Every release includes a `SHA256SUMS.txt` checksum file. Maintainer build, code-signing, and Apple notarization steps live in [packaging/RELEASING.md](packaging/RELEASING.md).
+
+### Run From Source (macOS, Windows & Linux)
 
 Install [uv](https://docs.astral.sh/uv/), then launch with one click or command:
 
@@ -27,7 +41,7 @@ Install [uv](https://docs.astral.sh/uv/), then launch with one click or command:
 - **Windows:** Double-click `start.bat` (or run `start.bat`)
 - **Linux:** Run `./start.sh`
 
-All three launchers run `uv run python main.py --desktop`, which starts the local FastAPI server on `http://127.0.0.1:8000` and opens a clean tabless desktop window in Chrome, Brave, or Edge (falling back to your default browser). Closing the app window leaves the local server running; press **Ctrl+C** in its terminal to stop it cleanly.
+All three launchers run `uv run python main.py --desktop`, which starts the local FastAPI server on `http://127.0.0.1:8000` and opens a clean tabless desktop window in Chrome, Brave, or Edge (falling back to your default browser). Closing the browser window leaves the local server running; press **Ctrl+C** in its terminal to stop it cleanly. To test the native WebView desktop window from source, run `uv run --group desktop python desktop_app.py`.
 
 ### CLI & Custom Data Directory
 
@@ -59,10 +73,10 @@ Open `http://127.0.0.1:8000` (set `REALM_PORT` to use another host port, or `--b
 
 ## Choose How to Run
 
-Open **Settings → Setup Wizard** to pick one of three explicit modes (nothing changes until you submit):
+Open **Settings → Setup Wizard** (or **Settings → Workspace & AI**) to pick one of three modes:
 
-1. **100% Local AI (Free & Private):** Keeps the local-only lock enabled and uses [Ollama](https://ollama.com/download). Click **Download Recommended Local AI** in the Setup Wizard to pull `qwen2.5:3b` (< 16 GB RAM) or `qwen3:8b` (≥ 16 GB RAM) plus `nomic-embed-text:v1.5` without using a terminal. When Ollama is running with `nomic-embed-text:v1.5`, embeddings are computed incrementally and cached in `index.json` for fast **Hybrid Vector + BM25 RRF** search.
-2. **Cloud AI Key (For Laptops Without Local AI Hardware):** Explicitly permits cloud routes for any of 7 supported providers (**OpenAI**, **Gemini**, **Anthropic**, **Kimi / Moonshot**, **DeepSeek**, **xAI**, **Mistral**). Selected passages are sent to the chosen provider behind the daily budget guard.
+1. **100% Local AI Only (Strict Privacy):** Keeps the local-only lock enabled and uses [Ollama](https://ollama.com/download). Click **Download Recommended Local AI** in the Setup Wizard to pull `qwen2.5:3b` (< 16 GB RAM) or `qwen3:8b` (≥ 16 GB RAM) plus `nomic-embed-text:v1.5` without using a terminal. When Ollama is running with `nomic-embed-text:v1.5`, embeddings are computed incrementally and cached in `index.json` for fast **Hybrid Vector + BM25 RRF** search.
+2. **Local + Cloud AI (Ollama & API Keys):** Unlocks all 7 cloud providers (**OpenAI**, **Gemini**, **Anthropic**, **Kimi / Moonshot**, **DeepSeek**, **xAI**, **Mistral**) **alongside** free local Ollama. Save API keys for as many providers as you want and switch directly between local Ollama and saved cloud models right from the **Model** dropdown (protected by the daily budget guard).
 3. **Search & Anonymize Only (Zero AI Setup):** Enables instant BM25 keyword search, folder organization, Library Reader, 2D Graph, and DSGVO redaction with zero models or API keys required.
 
 ---

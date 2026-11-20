@@ -14,7 +14,7 @@ HTML_PAGE: str = (
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="shell-type" content="web_dashboard" />
-<title>AI Engineering Knowledge Engine</title>
+<title>REALM Engine</title>
 <link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png"><link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png"><link rel="apple-touch-icon" sizes="192x192" href="/static/logo-192.png">
 <style>
 :root {
@@ -70,9 +70,9 @@ select { appearance: none; -webkit-appearance: none; padding-right: 2.25rem !imp
 [data-specialist-only] { display: none !important; }
 #settings-modal [data-everyday-only] { display: none !important; }
 #settings-modal [data-specialist-only] { display: revert !important; }
-#settings-modal[open] { display: flex; flex-direction: column; }
-.settings-body { overflow-y: auto; flex: 1; min-block-size: 0; scrollbar-width: thin; scrollbar-color: #738196 #0B1020; }
-.settings-body::-webkit-scrollbar { display: block; width: 5px; }
+#settings-modal[open] { display: flex; flex-direction: column; block-size: min(44rem, 85vh); block-size: min(44rem, 85dvh); }
+.settings-body { --scrollbar-thumb: #738196; --scrollbar-track: #0B1020; overflow-y: auto; flex: 1 1 auto; min-block-size: 0; padding-inline-end: 0.875rem; overscroll-behavior: contain; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
+@supports not (scrollbar-color: auto) { .settings-body { scrollbar-width: auto; } .settings-body::-webkit-scrollbar { display: block; width: 6px; } .settings-body::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; } .settings-body::-webkit-scrollbar-track { background: var(--scrollbar-track); } }
 .settings-panel[hidden], [role="tabpanel"][hidden] { display: none !important; }
 .settings-tabs { display: flex; flex: none; gap: 1.25rem; overflow-x: auto; border-block-end: 1px solid var(--border-subtle); scrollbar-width: thin; }
 .settings-tabs button { position: relative; flex: none; white-space: nowrap; padding: .75rem .125rem; color: var(--text-muted); font-size: .8125rem; }
@@ -92,7 +92,7 @@ select { appearance: none; -webkit-appearance: none; padding-right: 2.25rem !imp
 .graph-viewport { height: 100vh; height: 100dvh; width: 100%; }
 #upload-modal[open] { display: flex; }
 @media (max-height: 700px) { #upload-modal { padding: 1rem; gap: 0.75rem; } #upload-modal > div:first-child { gap: 0.5rem; } }
-#upload-redaction-inspector { scrollbar-width: thin; scrollbar-color: #738196 #04060F; }
+#upload-redaction-inspector { flex: 1 1 auto; scrollbar-width: thin; scrollbar-color: #738196 #04060F; }
 #upload-redaction-inspector::-webkit-scrollbar { display: block; width: 6px; }
 #upload-redaction-inspector::-webkit-scrollbar-thumb { background: #738196; border-radius: 6px; }
 .visually-hidden { position: absolute; clip-path: inset(50%); overflow: hidden; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; white-space: nowrap; }

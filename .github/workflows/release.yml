@@ -1,0 +1,236 @@
+name: Release Desktop Installers
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      allow_unsigned_macos:
+        description: "Allow unsigned macOS DMG in a manual dry-run (never publishes a public release)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify code & release version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      is_tag: ${{ steps.ver.outputs.is_tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run pyright
+      - run: uv run pytest
+
+      - id: ver
+        name: Validate pyproject.toml version matches Git tag
+        shell: bash
+        run: |
+          VERSION="$(uv run python -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "is_tag=true" >> "$GITHUB_OUTPUT"
+            if [[ "${GITHUB_REF_NAME}" != "v${VERSION}" ]]; then
+              echo "Error: Git tag '${GITHUB_REF_NAME}' does not match pyproject.toml version 'v${VERSION}'." >&2
+              exit 1
+            fi
+          else
+            echo "is_tag=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-macos:
+    name: Build macOS (${{ matrix.arch_label }})
+    needs: verify
+    runs-on: ${{ matrix.runner }}
+    outputs:
+      signed: ${{ steps.sign_check.outputs.signed }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch_label: apple-silicon
+          - runner: macos-15-intel
+            arch_label: intel
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install desktop build dependencies
+        run: uv sync --frozen --group desktop
+
+      - id: sign_check
+        name: Check Apple signing & notarization secrets
+        shell: bash
+        env:
+          CERT_B64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          CERT_PASS: ${{ secrets.MACOS_CERT_PASSWORD }}
+          ASC_KEY_B64: ${{ secrets.APPLE_ASC_KEY_P8_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.APPLE_ASC_KEY_ID }}
+          ASC_ISSUER: ${{ secrets.APPLE_ASC_ISSUER_ID }}
+        run: |
+          if [[ -n "$CERT_B64" && -n "$CERT_PASS" && -n "$ASC_KEY_B64" && -n "$ASC_KEY_ID" && -n "$ASC_ISSUER" ]]; then
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            if [[ "${{ needs.verify.outputs.is_tag }}" == "true" ]]; then
+              echo "::warning::Apple signing/notarization secrets are not configured; release will be created as a DRAFT so unsigned macOS DMGs are never published accidentally."
+            elif [[ "${{ inputs.allow_unsigned_macos }}" != "true" ]]; then
+              echo "::warning::Apple signing secrets not configured; building ad-hoc signed dry-run artifact."
+            fi
+          fi
+
+      - name: Import Developer ID certificate into ephemeral keychain
+        if: steps.sign_check.outputs.signed == 'true'
+        shell: bash
+        env:
+          CERT_B64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          CERT_PASS: ${{ secrets.MACOS_CERT_PASSWORD }}
+          ASC_KEY_B64: ${{ secrets.APPLE_ASC_KEY_P8_BASE64 }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/realm-build.keychain-db"
+          KEYCHAIN_PASS="$(openssl rand -base64 32)"
+          CERT_PATH="$RUNNER_TEMP/developer-id.p12"
+          ASC_KEY_PATH="$RUNNER_TEMP/notary-key.p8"
+
+          echo "$CERT_B64" | base64 --decode > "$CERT_PATH"
+          echo "$ASC_KEY_B64" | base64 --decode > "$ASC_KEY_PATH"
+          chmod 600 "$CERT_PATH" "$ASC_KEY_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$CERT_PASS" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain
+          security default-keychain -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning
+          rm -f "$CERT_PATH"
+
+      - name: Build, sign, notarize, and smoke-test macOS DMG
+        shell: bash
+        env:
+          ASC_KEY_ID: ${{ secrets.APPLE_ASC_KEY_ID }}
+          ASC_ISSUER: ${{ secrets.APPLE_ASC_ISSUER_ID }}
+        run: |
+          chmod +x packaging/build_macos.sh
+          if [[ "${{ steps.sign_check.outputs.signed }}" == "true" ]]; then
+            ./packaging/build_macos.sh \
+              --auto-sign \
+              --require-signed \
+              --notary-key "$RUNNER_TEMP/notary-key.p8" \
+              --notary-key-id "$ASC_KEY_ID" \
+              --notary-issuer "$ASC_ISSUER"
+          else
+            ./packaging/build_macos.sh
+          fi
+
+      - name: Clean up ephemeral keychain and signing key
+        if: always()
+        shell: bash
+        run: |
+          security delete-keychain "$RUNNER_TEMP/realm-build.keychain-db" >/dev/null 2>&1 || true
+          rm -f "$RUNNER_TEMP/developer-id.p12" "$RUNNER_TEMP/notary-key.p8"
+
+      - name: Upload macOS DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch_label }}
+          path: dist/REALM-Engine-*-macos-*.dmg
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows (x64)
+    needs: verify
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install desktop build dependencies
+        run: uv sync --frozen --group desktop
+
+      - name: Build, smoke-test, and package Windows installer & portable ZIP
+        shell: pwsh
+        run: ./packaging/build_windows.ps1
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: |
+            dist/REALM-Engine-*-windows-x64-setup.exe
+            dist/REALM-Engine-*-windows-x64-portable.zip
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    if: needs.verify.outputs.is_tag == 'true'
+    needs: [verify, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate SHA256SUMS.txt
+        working-directory: release-assets
+        run: sha256sum REALM-Engine-* > SHA256SUMS.txt && cat SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.verify.outputs.version }}
+          MACOS_SIGNED: ${{ needs.build-macos.outputs.signed }}
+        run: |
+          DRAFT_FLAG=""
+          SIGN_NOTE="macOS installers are Developer ID signed and Apple-notarized (zero Gatekeeper warnings)."
+          if [[ "$MACOS_SIGNED" != "true" ]]; then
+            DRAFT_FLAG="--draft"
+            SIGN_NOTE="⚠️ **Draft release (unsigned macOS build):** Configure Apple signing secrets in repository settings or upload locally notarized DMGs before publishing."
+          fi
+
+          cat <<EOF > release-notes.md
+          ## REALM Engine v${VERSION}
+
+          ${SIGN_NOTE}
+
+          ### Choose Your Download
+
+          | Computer | File | Notes |
+          |---|---|---|
+          | **Mac — Apple Silicon (M1 / M2 / M3 / M4, 2020 or newer)** | \`REALM-Engine-${VERSION}-macos-apple-silicon.dmg\` | Open DMG and drag **REALM Engine** into **Applications**. |
+          | **Mac — Intel (older Macs)** | \`REALM-Engine-${VERSION}-macos-intel.dmg\` | Open DMG and drag **REALM Engine** into **Applications**. |
+          | **Windows 10 / 11 (64-bit) — Installer** | \`REALM-Engine-${VERSION}-windows-x64-setup.exe\` | Per-user installer (no Admin needed). If SmartScreen warns on an unsigned build, click **More info → Run anyway**. |
+          | **Windows 10 / 11 (64-bit) — Portable ZIP** | \`REALM-Engine-${VERSION}-windows-x64-portable.zip\` | Extract anywhere and run \`REALM Engine.exe\`. |
+
+          Not sure which Mac you have? Click the **Apple menu () → About This Mac** and look at **Chip** (Apple M1/M2/M3/M4 = Apple Silicon) or **Processor** (Intel).
+
+          Verify integrity with \`SHA256SUMS.txt\`.
+          EOF
+
+          gh release create "v${VERSION}" release-assets/* \
+            --title "REALM Engine v${VERSION}" \
+            --notes-file release-notes.md \
+            ${DRAFT_FLAG}

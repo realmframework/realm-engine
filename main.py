@@ -50,7 +50,7 @@ def open_desktop_window(url: str) -> bool:
 def server_ready(url: str) -> bool:
     try:
         with urlopen(url, timeout=0.5) as response:
-            return response.status == 200 and b"AI Engineering Knowledge Engine" in response.read(4096)
+            return response.status == 200 and b"REALM Engine" in response.read(4096)
     except (OSError, URLError):
         return False
 
@@ -101,7 +101,7 @@ def build_indexes(root: Path, area_names: list[str], embed_provider: str = "none
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="AI Engineering Knowledge Engine")
+    parser = argparse.ArgumentParser(description="REALM Engine")
     parser.add_argument("--desktop", action="store_true", help="Open a tabless Chrome/Brave/Edge app window, with browser fallback")
     parser.add_argument("--public", action="store_true", help="Serve the stateless read-only public API mode (REALM_MODE=public)")
     parser.add_argument("--build-index", action="store_true", help="Pre-build index.json for vaults and exit")

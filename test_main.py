@@ -96,5 +96,6 @@ def test_detects_platform_app_browsers(platform: str, expected: str, monkeypatch
     monkeypatch.setattr(launcher.sys, "platform", platform)
     monkeypatch.setenv("PROGRAMFILES", "/programs")
     monkeypatch.setattr(launcher.shutil, "which", lambda name: expected if platform == "linux" and name == "chromium" else None)
-    monkeypatch.setattr(launcher.Path, "is_file", lambda path: str(path) == expected)
-    assert launcher.find_app_browser() == expected
+    monkeypatch.setattr(launcher.Path, "is_file", lambda path: path.as_posix() == expected)
+    found = launcher.find_app_browser()
+    assert found is not None and Path(found).as_posix() == expected

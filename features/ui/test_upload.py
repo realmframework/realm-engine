@@ -36,7 +36,15 @@ def test_post_api_upload_and_audio_endpoints(tmp_path: Path, monkeypatch: pytest
 def test_get_root_returns_search_ui() -> None:
     response = client.get("/")
     assert response.status_code == 200
-    assert "AI Engineering Knowledge Engine" in response.text
+    assert "REALM Engine" in response.text
+    assert 'id="settings-model"' in response.text
+    assert 'id="onboarding-model"' in response.text
+    assert 'id="toggle-cloud-access-btn"' in response.text
+    assert 'id="saved-keys-bar"' in response.text
+    assert "Local + Cloud AI (Ollama &amp; API Keys)" in response.text
+    assert "block-size: min(44rem, 85dvh)" in response.text
+    assert "flex: 1 1 auto;" in response.text
+    assert 'value="My Knowledge Base"' in response.text
     assert "Where should we start?" in response.text
     assert "--background: #04060F" in response.text
     assert "--surface-raised: #0B1020" in response.text
