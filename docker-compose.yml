@@ -1,0 +1,13 @@
+services:
+  engine:
+    build: .
+    image: ${REALM_IMAGE:-realm-engine:local}
+    init: true
+    ports:
+      - "127.0.0.1:${REALM_PORT:-8000}:8000"
+    volumes:
+      - realm-data:/data
+    restart: unless-stopped
+
+volumes:
+  realm-data:

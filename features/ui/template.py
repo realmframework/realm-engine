@@ -1,0 +1,195 @@
+"""HTML template for the AI Engineering Knowledge Engine search UI (Google Stitch design)."""
+
+from features.ui.experience_template import AREA_TEMPLATE_SELECT
+from features.ui.modals import MODALS_HTML
+from features.ui.script import CLIENT_SCRIPT
+from features.ui.sidebar_template import SIDEBAR_HTML
+
+MIC_SVG = '<svg aria-hidden="true" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3m-3 0h6"/></svg>'
+
+HTML_PAGE: str = (
+    """<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="shell-type" content="web_dashboard" />
+<title>AI Engineering Knowledge Engine</title>
+<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png"><link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png"><link rel="apple-touch-icon" sizes="192x192" href="/static/logo-192.png">
+<style>
+:root {
+  color-scheme: dark;
+  --background: #04060F;
+  --surface-raised: #0B1020;
+  --text: #EEF2F8;
+  --text-muted: #A0B0C8;
+  --text-subtle: #738196;
+  --accent: #4BB8E8;
+  --text-on-accent: #04060F;
+  --border: rgba(238, 242, 248, 0.16);
+  --border-subtle: rgba(238, 242, 248, 0.08);
+}
+@layer base { html, body { margin: 0; padding: 0; background: var(--background); color: var(--text); accent-color: var(--accent); } body { overscroll-behavior: none; } }
+::-webkit-scrollbar { display: none; }
+#prompt-container { view-transition-name: search-pill; }
+.prompt-entry { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: .375rem; min-inline-size: 0; }
+.prompt-entry input { flex: 1 1 12ch; inline-size: 0; min-inline-size: min(100%, 12ch); }
+#scope-chip { flex: 0 1 auto; max-inline-size: 14rem; min-inline-size: 0; }
+#scope-chip[hidden] { display: none !important; }
+#scope-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#scope-reset-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#model { max-inline-size: 9rem; }
+dialog:modal { overscroll-behavior: contain; }
+dialog::backdrop { overflow: hidden; overscroll-behavior: contain; background: rgba(4, 6, 15, 0.8); backdrop-filter: blur(4px); }
+select { appearance: none; -webkit-appearance: none; padding-right: 2.25rem !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 0.75rem; }
+.chat-dock { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); background: linear-gradient(to bottom, transparent, #04060F 28%); }
+.library-folders { --folder-indent: 1.25rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-subtle); }
+.folder-nav { overflow-x: auto; padding: 2px; }
+.folder-tree { min-inline-size: 24rem; }
+.folder-branches { margin: 0; padding: 0; border: 0; }
+.folder-branches[hidden] { display: none; }
+.folder-tree-row { display: flex; align-items: center; gap: .25rem; min-block-size: 2.5rem; min-inline-size: calc(22rem + var(--folder-depth, 0) * var(--folder-indent)); padding-inline: calc(var(--folder-depth, 0) * var(--folder-indent)) .25rem; border-radius: .5rem; }
+.folder-tree-row:hover { background: rgba(238,242,248,.04); }
+.folder-tree-row.is-selected { background: rgba(75,184,232,.12); }
+.folder-filter { display: flex; flex: 1; align-items: center; gap: .5rem; min-inline-size: 0; min-block-size: 2.25rem; padding: .25rem .5rem; text-align: start; font-size: .875rem; color: var(--text-muted); border-radius: .5rem; }
+.folder-filter.folder-root { font-weight: 600; color: var(--text); }
+.folder-filter[aria-pressed="true"] { color: var(--accent); font-weight: 500; }
+.folder-file-count { margin-inline-start: auto; padding-inline-start: 1rem; flex-shrink: 0; color: var(--text-subtle); font: .6875rem ui-monospace, monospace; }
+.folder-branch-toggle[aria-expanded="true"] svg { transform: rotate(90deg); }
+.folder-branch-toggle svg { display: block; }
+.folder-row-action { display: inline-flex; align-items: center; justify-content: center; min-width: 1.75rem; height: 1.75rem; border-radius: .5rem; color: var(--text-muted); }
+.folder-row-action:hover:not(:disabled) { background: rgba(238,242,248,.06); color: var(--text); }
+.folder-row-action[data-delete-folder]:hover:not(:disabled) { color: #EF4444; }
+.folder-tree-row button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.folder-child-creator { padding-inline-start: calc(var(--folder-depth, 0) * var(--folder-indent)); max-inline-size: 36rem; }
+.library-empty-state { padding: 2.5rem 1rem; text-align: center; }
+@media (hover: hover) and (pointer: fine) {
+  .folder-row-actions { opacity: 0; pointer-events: none; }
+  .folder-tree-row:hover > .folder-row-actions, .folder-tree-row:focus-within > .folder-row-actions { opacity: 1; pointer-events: auto; }
+}
+[data-specialist-only] { display: none !important; }
+#settings-modal [data-everyday-only] { display: none !important; }
+#settings-modal [data-specialist-only] { display: revert !important; }
+#settings-modal[open] { display: flex; flex-direction: column; }
+.settings-body { overflow-y: auto; flex: 1; min-block-size: 0; scrollbar-width: thin; scrollbar-color: #738196 #0B1020; }
+.settings-body::-webkit-scrollbar { display: block; width: 5px; }
+.settings-panel[hidden], [role="tabpanel"][hidden] { display: none !important; }
+.settings-tabs { display: flex; flex: none; gap: 1.25rem; overflow-x: auto; border-block-end: 1px solid var(--border-subtle); scrollbar-width: thin; }
+.settings-tabs button { position: relative; flex: none; white-space: nowrap; padding: .75rem .125rem; color: var(--text-muted); font-size: .8125rem; }
+.settings-tabs button[aria-selected="true"] { color: var(--accent); }
+.settings-tabs button[aria-selected="true"]::after { content: ""; position: absolute; inset: auto 0 0; border-block-end: 2px solid currentColor; }
+.settings-tabs button:focus-visible, .workspace-menu button:focus-visible, #workspace-switcher-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.workspace-menu nav { max-block-size: min(55vh, 24rem); overflow-y: auto; }
+.workspace-menu { position: fixed; inset: auto; margin: 0; inline-size: min(19rem, calc(100vw - 2rem)); max-block-size: var(--workspace-menu-height, 70vh); overflow-y: auto; }
+.library-topics { display: flex; gap: .5rem; overflow-x: auto; padding-block: .25rem .75rem; margin-block-end: 1rem; scrollbar-width: thin; }
+.library-topics button { flex: none; border-radius: 999px; padding: .375rem .75rem; border: 1px solid var(--border); color: var(--text-muted); font-size: .75rem; white-space: nowrap; }
+.library-topics button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: rgba(75,184,232,.12); }
+.library-topics button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.run-mode-card { display: flex; align-items: flex-start; gap: .75rem; padding: .875rem; border: 1px solid var(--border-subtle); border-radius: .75rem; cursor: pointer; }
+.run-mode-card input { margin-block-start: .2rem; accent-color: var(--accent); }
+.run-mode-card:has(input:checked) { border-color: var(--accent); background: rgba(75,184,232,.06); }
+.run-mode-card:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.graph-viewport { height: 100vh; height: 100dvh; width: 100%; }
+#upload-modal[open] { display: flex; }
+@media (max-height: 700px) { #upload-modal { padding: 1rem; gap: 0.75rem; } #upload-modal > div:first-child { gap: 0.5rem; } }
+#upload-redaction-inspector { scrollbar-width: thin; scrollbar-color: #738196 #04060F; }
+#upload-redaction-inspector::-webkit-scrollbar { display: block; width: 6px; }
+#upload-redaction-inspector::-webkit-scrollbar-thumb { background: #738196; border-radius: 6px; }
+.visually-hidden { position: absolute; clip-path: inset(50%); overflow: hidden; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; white-space: nowrap; }
+.visually-hidden:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 0.5rem; }
+input[type="range"].rag-slider { --slider-track-size: 0.375rem; --slider-thumb-size: 1rem; --slider-track-radius: 999px; --slider-thumb-radius: 50%; --slider-track-color: rgba(238,242,248,0.22); --slider-fill-color: #4BB8E8; --slider-thumb-color: var(--slider-fill-color); --attr-min: attr(min type(<number>), 0); --attr-max: attr(max type(<number>), 100); --control-value: attr(value type(<number>), 50); --slider-progress: calc(progress(var(--control-value), var(--attr-min), var(--attr-max)) * 100%); appearance: none; inline-size: 100%; block-size: 2rem; margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
+@supports not (opacity: progress(1, 0, 100)) { input[type="range"].rag-slider { --slider-progress: calc((var(--control-value) - var(--attr-min)) / (var(--attr-max) - var(--attr-min)) * 100%); } }
+input[type="range"].rag-slider::-webkit-slider-runnable-track { block-size: var(--slider-track-size); border: 0; border-radius: var(--slider-track-radius); background: linear-gradient(to right, var(--slider-fill-color) var(--slider-progress), var(--slider-track-color) var(--slider-progress)); }
+input[type="range"].rag-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; inline-size: var(--slider-thumb-size); block-size: var(--slider-thumb-size); margin-block-start: calc((var(--slider-track-size) - var(--slider-thumb-size)) / 2); border: 0; border-radius: var(--slider-thumb-radius); background: var(--slider-thumb-color); }
+input[type="range"].rag-slider::-moz-range-track { block-size: var(--slider-track-size); border: 0; border-radius: var(--slider-track-radius); background: var(--slider-track-color); }
+input[type="range"].rag-slider::-moz-range-progress { block-size: var(--slider-track-size); border-radius: var(--slider-track-radius); background: var(--slider-fill-color); }
+input[type="range"].rag-slider::-moz-range-thumb { inline-size: var(--slider-thumb-size); block-size: var(--slider-thumb-size); border: 0; border-radius: var(--slider-thumb-radius); background: var(--slider-thumb-color); }
+input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-fill-color); outline-offset: 4px; }
+.md-p { line-height: 1.72; }
+.md-code-inline { padding: .125rem .375rem; border-radius: .375rem; background: #04060F; border: 1px solid rgba(238,242,248,.12); color: #4BB8E8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .875em; }
+.md-pre-wrap { border-radius: .75rem; background: #04060F; border: 1px solid rgba(238,242,248,.12); overflow: hidden; margin-block: .25rem; }
+.md-pre-lang { padding: .375rem .875rem; font: 500 .6875rem ui-monospace, monospace; text-transform: uppercase; letter-spacing: .06em; color: #738196; border-bottom: 1px solid rgba(238,242,248,.08); }
+.md-pre { margin: 0; padding: .875rem 1rem; overflow-x: auto; font: .8125rem/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: #DCE6F5; scrollbar-width: thin; }
+.md-math { padding: .75rem 1rem; border-radius: .75rem; background: rgba(75,184,232,.06); border: 1px solid rgba(75,184,232,.18); text-align: center; overflow-x: auto; font: .875rem/1.5 ui-monospace, monospace; color: #EEF2F8; }
+.md-table-wrap { overflow-x: auto; border-radius: .75rem; border: 1px solid rgba(238,242,248,.12); background: #04060F; margin-block: .25rem; }
+.md-table { width: 100%; border-collapse: collapse; font-size: .875rem; line-height: 1.55; text-align: left; }
+.md-table th { padding: .625rem .875rem; color: #EEF2F8; font-weight: 600; background: rgba(238,242,248,.04); border-bottom: 1px solid rgba(238,242,248,.12); }
+.md-table td { padding: .625rem .875rem; color: #C8D4E6; border-top: 1px solid rgba(238,242,248,.07); vertical-align: top; }
+.md-quote { margin: .25rem 0; padding: .5rem 1rem; border-inline-start: 3px solid #4BB8E8; background: rgba(75,184,232,.06); border-radius: 0 .5rem .5rem 0; color: #C8D4E6; }
+.md-hr { border: 0; border-top: 1px solid rgba(238,242,248,.10); margin-block: .5rem; }
+.md-list { display: flex; flex-direction: column; gap: .4rem; margin-block: .125rem; }
+.md-list-item { display: flex; align-items: flex-start; gap: .625rem; }
+.md-list-marker { color: #4BB8E8; font-family: ui-monospace, monospace; font-size: .75rem; margin-top: .32rem; flex-shrink: 0; }
+.md-link { color: #4BB8E8; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; background: transparent; border: 0; padding: 0; font: inherit; text-align: left; }
+.md-link:hover { color: #74D1FF; }
+@media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
+</style>
+<link rel="stylesheet" href="/static/ui.css" />
+</head>
+<body class="bg-[#04060F] font-sans text-base text-[#EEF2F8] antialiased">
+<button id="sidebar-open-btn" aria-label="Expand rail" type="button" class="hidden fixed left-4 top-4 z-40 h-9 w-9 rounded-full bg-[#0B1020] text-[#A0B0C8] hover:text-[#EEF2F8] shadow-[inset_0_0_0_1px_var(--border)] items-center justify-center transition-colors"><svg aria-hidden="true" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>
+"""
+    + SIDEBAR_HTML
+    + """
+<div id="main-shell" class="pl-[250px] min-h-screen bg-[#04060F] bg-[radial-gradient(circle_at_50%_42%,rgba(75,184,232,0.10),transparent_55%)] flex flex-col transition-all duration-200">
+  <main class="relative w-full flex-1 flex flex-col pt-0">
+    <div id="graph-view" class="graph-viewport hidden w-full relative overflow-hidden bg-[#04060F]"></div>
+"""
+    + """    <div id="workspace-shell" class="flex flex-col w-full flex-1 justify-center items-center px-4 sm:px-6">
+      <div id="active-stream" tabindex="-1" class="hidden w-full max-w-3xl flex-1 pt-8 pb-8 flex-col gap-8 outline-none">
+        <div id="chat-stream" class="flex flex-col gap-8 w-full"></div>
+        <div id="tutor"></div>
+        <div id="stream-divider" class="hidden w-full h-px bg-[rgba(238,242,248,0.08)] my-1"></div>
+        <div id="chunks-header" class="hidden w-full items-center justify-between gap-2"><button id="chunks-toggle-btn" type="button" class="text-sm text-[#A0B0C8] hover:text-[#EEF2F8] transition-colors focus:outline-none"><span id="chunks-title">▸ View 0 source passages from the handbook</span></button><span id="chunks-rag-pill" data-specialist-only class="px-2.5 py-0.5 rounded-full bg-[#0B1020] border border-[rgba(238,242,248,0.10)] text-[11px] font-mono text-[#738196]">mode: hybrid · top-k: 5 · temp: 0.2</span></div>
+        <div id="results" class="flex flex-col gap-4"></div>
+      </div>
+      <div id="search-dock" class="w-full max-w-3xl mx-auto flex flex-col items-center justify-center relative z-30">
+        <div id="hero-heading" class="text-center"><img src="/static/logo-512.png" width="56" height="56" fetchpriority="high" class="w-14 h-14 mx-auto mb-5 drop-shadow-[0_0_18px_rgba(75,184,232,0.35)]" alt="Logo"><h1 id="hero-greeting-text" class="text-4xl font-normal tracking-tight mb-8 text-[#EEF2F8]">Where should we start?</h1></div>
+        <search class="w-full">
+          <form id="search-form" class="w-full">
+            <div id="prompt-container" class="w-full rounded-full bg-[#0B1020] shadow-[inset_0_0_0_1px_rgba(238,242,248,0.16)] focus-within:shadow-[inset_0_0_0_1px_#4BB8E8] flex items-center py-3 px-4 gap-3 transition-all duration-200">
+              <button id="prompt-upload-btn" type="button" title="Add Documents" aria-label="Add Documents" class="bg-[#04060F] hover:bg-[#EEF2F8]/10 text-[#A0B0C8] hover:text-[#EEF2F8] w-9 h-9 rounded-full flex items-center justify-center text-lg leading-none shrink-0 transition">+</button>
+              <div class="prompt-entry">
+                <span id="scope-chip" hidden class="bg-[#4BB8E8]/15 text-[#4BB8E8] text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                  <span id="scope-chip-icon" aria-hidden="true" class="shrink-0"></span><span id="scope-chip-label"></span>
+                  <button id="scope-reset-btn" type="button" aria-label="Clear scope and start a chat across the entire area" title="Clear scope" class="shrink-0 w-5 h-5 rounded-full flex items-center justify-center hover:bg-white/10"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+                </span>
+                <input id="query" name="q" type="text" aria-label="Ask a question" autocomplete="off" spellcheck="false" placeholder="Ask anything..." class="bg-transparent border-0 outline-none text-[#EEF2F8] placeholder:text-[#738196] text-lg leading-none" />
+              </div>
+              <div class="flex items-center gap-2 pl-1 shrink-0">
+                <div class="relative flex items-center"><select id="model" aria-label="Model" class="appearance-none bg-transparent text-[#A0B0C8] hover:text-[#EEF2F8] text-sm font-medium pl-2.5 pr-6 py-1.5 rounded-full hover:bg-white/[0.04] outline-none transition-colors cursor-pointer"></select></div>
+                <button id="mic-btn" type="button" aria-pressed="false" aria-label="Voice dictation" title="Voice dictation" class="w-9 h-9 rounded-full text-[#A0B0C8] hover:text-[#EEF2F8] hover:bg-[#EEF2F8]/10 flex items-center justify-center shrink-0 transition">"""
+    + MIC_SVG
+    + """</button>
+                <button id="prompt-submit-btn" type="submit" aria-label="Submit query" title="Submit query" class="w-9 h-9 rounded-full bg-[#4BB8E8] text-[#04060F] hover:brightness-110 active:scale-95 flex items-center justify-center text-base font-semibold shrink-0 transition">↑</button>
+              </div>
+            </div>
+          </form>
+          <p id="scope-status" role="status" class="visually-hidden"></p>
+        </search>
+        <div id="seed-chips" class="w-full max-w-3xl mt-5 flex flex-col gap-1.5 pl-4">
+          <div id="seed-list" class="flex flex-col gap-1.5">
+            <button class="seed-chip text-left text-[#A0B0C8] hover:text-[#EEF2F8] text-[15px] py-1.5 transition-colors flex items-center gap-2.5 group w-fit" data-seed="Summarize the key points across my documents" type="button"><span class="text-[#738196] group-hover:text-[#4BB8E8] transition-colors">↳</span><span>Summarize the key points across my documents</span></button>
+            <button class="seed-chip text-left text-[#A0B0C8] hover:text-[#EEF2F8] text-[15px] py-1.5 transition-colors flex items-center gap-2.5 group w-fit" data-seed="Extract key action items and important details" type="button"><span class="text-[#738196] group-hover:text-[#4BB8E8] transition-colors">↳</span><span>Extract key action items and important details</span></button>
+            <button class="seed-chip text-left text-[#A0B0C8] hover:text-[#EEF2F8] text-[15px] py-1.5 transition-colors flex items-center gap-2.5 group w-fit" data-seed="What should I focus on next?" type="button"><span class="text-[#738196] group-hover:text-[#4BB8E8] transition-colors">↳</span><span>What should I focus on next?</span></button>
+          </div>
+          <div class="flex flex-wrap items-center gap-5 mt-2 pt-1">
+            <button id="more-ideas-btn" type="button" class="text-xs font-medium text-[#738196] hover:text-[#4BB8E8] transition-colors flex items-center gap-1 focus:outline-none">↻ More ideas</button>
+            <button id="home-browse-btn" type="button" class="text-xs font-medium text-[#738196] hover:text-[#EEF2F8] transition-colors flex items-center gap-1.5 focus:outline-none"><span>Browse all <span id="home-guide-count">40</span> handbook guides →</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+"""
+    + r"""<dialog id="confirm-modal" closedby="any" aria-labelledby="confirm-title" aria-describedby="confirm-message" class="m-auto w-[calc(100%_-_2rem)] max-w-md rounded-2xl bg-[#0B1020] text-[#EEF2F8] border border-white/15 p-6 shadow-2xl"><h2 id="confirm-title" class="text-lg font-medium">Delete item?</h2><p id="confirm-message" class="text-sm text-[#A0B0C8] leading-relaxed mt-3 mb-6 break-words"></p><form method="dialog" class="flex justify-end gap-3"><button id="confirm-cancel-btn" value="cancel" autofocus class="rounded-lg border border-white/15 px-4 py-2 text-sm">Cancel</button><button id="confirm-delete-btn" value="delete" class="rounded-lg bg-[#EF4444] text-white px-4 py-2 text-sm font-medium">Delete</button></form></dialog>
+<dialog id="area-modal" closedby="any" aria-labelledby="area-modal-title" class="m-auto w-[calc(100%_-_2rem)] max-w-md rounded-2xl bg-[#0B1020] text-[#EEF2F8] border border-white/15 p-6 shadow-2xl"><h2 id="area-modal-title" class="text-lg font-medium mb-4"><span data-everyday-only>New Workspace</span><span data-specialist-only>New Knowledge Area</span></h2><form id="new-area-form" class="flex flex-col gap-3"><label for="area-name" class="text-xs text-[#A0B0C8]">Workspace name</label><input id="area-name" name="area" autofocus required maxlength="64" placeholder="e.g. Care Notes" aria-describedby="area-name-help" class="rounded-lg bg-[#04060F] border border-white/15 px-3 py-2 text-sm"/><p id="area-name-help" class="text-xs text-[#738196]">Give it a name, like Care Notes. Each workspace keeps its documents and chats separate.</p>"""
+    + AREA_TEMPLATE_SELECT
+    + """<p id="new-area-status" role="status" class="text-xs text-[#A0B0C8]"></p><div class="flex justify-end gap-3"><button type="submit" formmethod="dialog" formnovalidate value="cancel" class="rounded-lg border border-white/15 px-4 py-2 text-sm">Cancel</button><button id="create-area-btn" type="submit" class="rounded-lg bg-[#4BB8E8] text-[#04060F] px-4 py-2 text-sm">Create Workspace</button></div></form></dialog>"""
+    + '<div id="upload-toast" role="status" aria-live="polite" class="hidden fixed bottom-5 right-5 z-50 max-w-sm rounded-xl border border-white/15 bg-[#0B1020] px-4 py-3 text-sm text-[#EEF2F8] shadow-xl"></div>'
+    + MODALS_HTML
+    + "\n"
+    + CLIENT_SCRIPT
+    + "\n</body>\n</html>\n"
+)

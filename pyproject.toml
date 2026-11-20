@@ -1,0 +1,36 @@
+[project]
+name = "realm-engine"
+version = "0.1.0"
+description = "Local-first Hybrid RAG & Multi-Turn AI Knowledge Engine with optional read-only public API mode."
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Luis Godoy Alvarez" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.163.1",
+    "httpx>=0.28.1",
+    "pydantic>=2.14.3",
+    "pypdf>=7.1.0",
+    "python-multipart>=0.0.33",
+    "uvicorn>=0.54.0",
+]
+
+[project.scripts]
+realm-engine = "realm_engine:main"
+
+[build-system]
+requires = ["uv_build>=0.13.8,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.414",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.5.0",
+    "ruff>=0.17.5",
+]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"

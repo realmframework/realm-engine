@@ -1,0 +1,14 @@
+# Only application sources and dependency locks enter an image build.
+*
+!Dockerfile
+!pyproject.toml
+!uv.lock
+!main.py
+!core/
+!core/*.py
+!features/
+!features/**
+**/__pycache__
+**/*.pyc
+**/test_*.py
+**/conftest.py

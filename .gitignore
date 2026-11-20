@@ -1,0 +1,33 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# IDE, OS, and local agent/pilot metadata (kept locally, not published)
+.idea/
+.DS_Store
+opencode.json
+.agents/
+skills-lock.json
+docs/agent-skills.md
+ROADMAP.md
+
+# Environment files & local API secrets (never commit keys!)
+.env
+.env.*
+!.env.example
+secrets.json
+secrets.json.tmp
+
+# Local runtime vaults, workspace config, chats, and cloud budget ledger
+/data/
+workspace.json
+chats.json
+budget_state.json
+budget_state.json.tmp
