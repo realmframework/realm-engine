@@ -96,6 +96,7 @@ html, body { background-color: var(--background) !important; color: var(--text) 
 #more-ideas-btn, #home-browse-btn { padding: 0.3rem 0.78rem; border-radius: 9999px; background: color-mix(in oklab, var(--surface-raised) 82%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--border-subtle); color: color-mix(in oklab, var(--text) 88%, transparent) !important; transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease; }
 #more-ideas-btn:hover, #home-browse-btn:hover { background: color-mix(in oklab, var(--surface-raised) 90%, transparent); border-color: var(--border); color: var(--text) !important; }
 #sidebar { background-color: var(--surface-raised) !important; box-shadow: 1px 0 0 var(--border-subtle) !important; }
+#sidebar nav button > span:first-child > span, #open-settings-btn > span:first-child > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 #sidebar-backdrop { background: light-dark(rgba(11, 16, 32, 0.34), rgba(4, 6, 15, 0.62)); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
 #sidebar-backdrop[hidden] { display: none !important; }
 @media (max-width: 900px) { #main-shell { padding-left: 0 !important; } }

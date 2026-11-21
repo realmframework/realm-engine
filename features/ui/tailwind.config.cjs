@@ -1,6 +1,17 @@
 module.exports = {
   "darkMode": "class",
   "theme": {
+    "fontSize": {
+      "2xs": ["calc(0.8125rem * var(--ui-scale, 1))", { "lineHeight": "1.45" }],
+      "xs": ["calc(0.875rem * var(--ui-scale, 1))", { "lineHeight": "1.5" }],
+      "sm": ["calc(0.9375rem * var(--ui-scale, 1))", { "lineHeight": "1.55" }],
+      "base": ["calc(1rem * var(--ui-scale, 1))", { "lineHeight": "1.6" }],
+      "lg": ["calc(1.1875rem * var(--ui-scale, 1))", { "lineHeight": "1.45" }],
+      "xl": ["calc(1.375rem * var(--ui-scale, 1))", { "lineHeight": "1.35" }],
+      "2xl": ["calc(1.625rem * var(--ui-scale, 1))", { "lineHeight": "1.3" }],
+      "3xl": ["calc(2rem * var(--ui-scale, 1))", { "lineHeight": "1.2" }],
+      "4xl": ["calc(2.375rem * var(--ui-scale, 1))", { "lineHeight": "1.15" }]
+    },
     "extend": {
       "colors": {
         "background": "#04060F",

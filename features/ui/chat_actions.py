@@ -29,7 +29,7 @@ function chatActionsHeader() {
     ? ("<button id='chat-format-btn' type='button' class='px-2.5 py-1 rounded-full bg-[#4BB8E8]/15 border border-[#4BB8E8]/35 text-xs font-medium text-[#4BB8E8] hover:bg-[#4BB8E8]/20 inline-flex items-center gap-1.5 transition'" + (busy ? " disabled" : "") + ">" + FORMAT_SVG + "<span>" + escapeHtml(t("chat_format_pinned", { name: pinned.name })) + "</span></button>"
       + "<button id='chat-unpin-format-btn' type='button' title='Unpin format' aria-label='Unpin format' class='px-1.5 py-1 rounded-full text-xs text-[#738196] hover:text-[#EEF2F8] hover:bg-white/5'>✕</button>")
     : "";
-  const freeBadge = freeChatMode ? "<span class='px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/10 text-[11px] font-mono text-[#A0B0C8]'>" + escapeHtml(t("free_chat_short")) + "</span>" : "";
+  const freeBadge = freeChatMode ? "<span class='px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/10 text-xs font-mono text-[#A0B0C8]'>" + escapeHtml(t("free_chat_short")) + "</span>" : "";
   const saveBtn = freeChatMode ? "" : "<button id='chat-save-btn' type='button' class='" + style + "'" + (busy ? " disabled" : "") + ">" + escapeHtml(t("chat_save")) + "</button>";
   return "<header class='flex flex-col gap-1.5 pt-3'><h1 class='visually-hidden'>Conversation</h1><div role='toolbar' class='flex items-center justify-between gap-2 flex-wrap' aria-label='Conversation actions'><div class='flex items-center gap-1.5 flex-wrap'>" + fmtBtn + freeBadge + "</div><div class='flex items-center gap-1 flex-wrap'>" + exportMenuHtml("chat", 0, busy, false) + saveBtn + "</div></div><p id='chat-action-status' role='status' class='text-xs text-[#A0B0C8]'></p></header>";
 }

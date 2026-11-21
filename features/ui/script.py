@@ -12,6 +12,7 @@ from features.ui.graph_script import GRAPH_SCRIPT
 from features.ui.i18n_script import I18N_SCRIPT
 from features.ui.install_script import INSTALL_SCRIPT
 from features.ui.interaction_script import INTERACTION_SCRIPT
+from features.ui.keys_script import KEYS_SCRIPT
 from features.ui.library_script import LIBRARY_SCRIPT
 from features.ui.onboarding_script import ONBOARDING_SCRIPT
 from features.ui.privacy_script import PRIVACY_SCRIPT
@@ -40,59 +41,11 @@ function safeStorageSet(k, v) { try { localStorage.setItem(k, v); } catch (_e) {
 function safeStorageRemove(k) { try { localStorage.removeItem(k); } catch (_e) {} }
 function getApiKey() { return apiKeyEl.value.trim(); }
 function hasSavedKey(provider) { return Boolean(appKeyStatus[provider] && appKeyStatus[provider].configured); }
-function renderProviderPills() {
-  const locked = localOnly(), active = providerEl.value;
-  for (const barId of ["saved-keys-bar", "onboarding-keys-bar"]) {
-    const bar = document.getElementById(barId); if (!bar) { continue; }
-    bar.innerHTML = PROVIDER_ORDER.map(function (prov) {
-      const saved = prov === "ollama" || hasSavedKey(prov), isAct = prov === active, disabled = locked && prov !== "ollama";
-      const cls = isAct ? "border-[#4BB8E8] bg-[#4BB8E8]/15 text-[#EEF2F8]" : (saved ? "border-[#38D399]/40 bg-[#04060F] text-[#EEF2F8]" : "border-[rgba(238,242,248,0.12)] bg-[#04060F] text-[#738196]");
-      const badge = prov === "ollama" ? "" : (saved ? " ✓" : "");
-      return "<button type='button' data-pick-provider='" + prov + "' " + (disabled ? "disabled " : "") + "class='px-2.5 py-1 rounded-full border text-xs transition " + cls + (disabled ? " opacity-40 cursor-not-allowed" : " hover:border-[#4BB8E8]") + "'>" + escapeHtml(PROVIDER_LABELS[prov] + badge) + "</button>";
-    }).join("");
-    bar.querySelectorAll("[data-pick-provider]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        const picked = btn.getAttribute("data-pick-provider"); if (!picked || (localOnly() && picked !== "ollama")) { return; }
-        providerEl.value = picked; document.getElementById("onboarding-provider").value = picked;
-        apiKeyEl.value = ""; syncProviderPrivacyUI(picked, "settings-privacy-notice", "settings-api-key-group");
-        syncProviderPrivacyUI(picked, "onboarding-privacy-notice", "onboarding-api-key-group");
-        syncKeyStatusUI(); loadModels();
-      });
-    });
-  }
-}
-function syncKeyStatusUI() {
-  const prov = providerEl.value, info = appKeyStatus[prov], el = document.getElementById("api-key-status");
-  renderProviderPills();
-  if (typeof syncWebSearchUI === "function") { syncWebSearchUI(workspaceConfig); }
-  if (!el) { return; }
-  if (info && info.configured) {
-    el.textContent = (info.source === "env" ? t("api_key_from_env") : t("api_key_saved_local")) + (info.hint ? " (" + info.hint + ")" : "") + " · " + t("api_key_persists");
-    apiKeyEl.placeholder = t("api_key_saved_local") + (info.hint ? " (" + info.hint + ")" : "");
-  } else {
-    el.textContent = t("api_key_not_saved");
-    apiKeyEl.placeholder = t("api_key_enter_ph");
-  }
-}
-async function loadKeyStatus() {
-  try {
-    const res = await areaFetch("/api/keys/status");
-    if (res.ok) { const data = await safeJson(res); appKeyStatus = data.keys || {}; syncKeyStatusUI(); }
-  } catch (_e) {}
-}
-async function saveAppApiKey(provider, rawKey, inputEl) {
-  const key = String(rawKey || "").trim();
-  if (!provider || provider === "ollama" || !key) { return false; }
-  const res = await areaFetch("/api/keys", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider: provider, api_key: key }) });
-  if (!res.ok) { return false; }
-  const data = await safeJson(res); appKeyStatus = data.keys || {};
-  if (inputEl) { inputEl.value = ""; }
-  syncKeyStatusUI(); return true;
-}
 function escapeHtml(value) { return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
 """
     + SETTINGS_SCRIPT
     + I18N_SCRIPT
+    + KEYS_SCRIPT
     + THEME_SCRIPT
     + AMBIENT_SCRIPT
     + ONBOARDING_SCRIPT
@@ -329,11 +282,11 @@ document.getElementById("rag-reset-btn").addEventListener("click", function () {
 document.querySelectorAll("[data-retrieval-mode]").forEach(function (btn) { btn.addEventListener("click", function () { ragConfig.retrieval_mode = btn.getAttribute("data-retrieval-mode") || "hybrid"; syncRagStudioUI(); }); });
 document.getElementById("rag-top-k").addEventListener("input", function (e) { ragConfig.top_k = Number(e.target.value); syncRagStudioUI(); }); document.getElementById("rag-rrf-k").addEventListener("input", function (e) { ragConfig.rrf_k = Number(e.target.value); syncRagStudioUI(); }); document.getElementById("rag-temperature").addEventListener("input", function (e) { ragConfig.temperature = Number(e.target.value); syncRagStudioUI(); });
 document.getElementById("tts-model").addEventListener("change", syncTtsVoices); document.getElementById("tts-test-btn").addEventListener("click", previewVoice); document.getElementById("tts-api-key").addEventListener("input", function () { if (currentTurns.length) { renderChatStream(); } }); micBtn.addEventListener("click", toggleDictation);
-bindRunModes(); bindBudgetControls(); bindSettingsTabs(); bindAmbientBackdrop(); bindLanguageControls(); bindAppearanceControls(); bindAllUXBundles(); bindOnboardingTour(); bindWorkspaceMenu(); bindBackupControls(); bindGlobalDrop(); bindWebSearchControls(); bindStudioControls(); bindAgentControls();
+bindRunModes(); bindBudgetControls(); bindSettingsTabs(); bindAmbientBackdrop(); bindLanguageControls(); bindAppearanceControls(); bindAllUXBundles(); bindOnboardingTour(); bindWorkspaceMenu(); bindBackupControls(); bindGlobalDrop(); bindWebSearchControls(); bindStudioControls(); bindAgentControls(); bindApiKeyControls();
 document.getElementById("download-local-model-btn").addEventListener("click", installRecommendedLocalAI); bindDialogFallbacks(); bindDestination("upload"); bindCardMoveDialog();
 document.getElementById("cfg-anonymize-uploads").addEventListener("change", function () { if (stagedFiles.length) { previewUploads(); } });
-providerEl.addEventListener("change", function () { document.getElementById("onboarding-provider").value = providerEl.value; syncProviderPrivacyUI(providerEl.value, "settings-privacy-notice", "settings-api-key-group"); syncProviderPrivacyUI(providerEl.value, "onboarding-privacy-notice", "onboarding-api-key-group"); apiKeyEl.value = ""; syncKeyStatusUI(); loadModels(); });
-document.getElementById("onboarding-provider").addEventListener("change", function (e) { providerEl.value = e.target.value; syncProviderPrivacyUI(e.target.value, "onboarding-privacy-notice", "onboarding-api-key-group"); syncProviderPrivacyUI(e.target.value, "settings-privacy-notice", "settings-api-key-group"); syncKeyStatusUI(); loadModels(); });
+providerEl.addEventListener("change", function () { document.getElementById("onboarding-provider").value = providerEl.value; keyReplaceMode = false; onboardingReplaceMode = false; syncProviderPrivacyUI(providerEl.value, "settings-privacy-notice", "settings-api-key-group"); syncProviderPrivacyUI(providerEl.value, "onboarding-privacy-notice", "onboarding-api-key-group"); apiKeyEl.value = ""; setSecretVisibility("api-key", "toggle-api-key-visibility", false); syncKeyStatusUI(); loadModels(); });
+document.getElementById("onboarding-provider").addEventListener("change", function (e) { providerEl.value = e.target.value; keyReplaceMode = false; onboardingReplaceMode = false; syncProviderPrivacyUI(e.target.value, "onboarding-privacy-notice", "onboarding-api-key-group"); syncProviderPrivacyUI(e.target.value, "settings-privacy-notice", "settings-api-key-group"); syncKeyStatusUI(); loadModels(); });
 for (const selId of ["model", "settings-model", "onboarding-model"]) {
   const sel = document.getElementById(selId);
   if (sel) { sel.addEventListener("change", function (e) { const opt = e.target.options[e.target.selectedIndex]; selectActiveModel(e.target.value, opt && opt.dataset ? opt.dataset.provider : null); }); }

@@ -19,7 +19,7 @@ function syncSidebarDrawer(moveFocus) {
   openBtn.classList.toggle("flex", !visible);
   openBtn.setAttribute("aria-expanded", String(visible));
   if (narrow) {
-    main.classList.replace("pl-[250px]", "pl-0");
+    main.classList.replace("pl-[268px]", "pl-0");
     if (visible) { sb.setAttribute("role", "dialog"); sb.setAttribute("aria-modal", "true"); }
     else { sb.removeAttribute("role"); sb.removeAttribute("aria-modal"); }
     main.inert = visible;
@@ -28,7 +28,7 @@ function syncSidebarDrawer(moveFocus) {
     sb.removeAttribute("role"); sb.removeAttribute("aria-modal");
     main.inert = false;
     if (bd) { bd.hidden = true; }
-    main.classList.toggle("pl-[250px]", visible);
+    main.classList.toggle("pl-[268px]", visible);
     main.classList.toggle("pl-0", !visible);
   }
   if (moveFocus === "open" && colBtn && visible) { colBtn.focus({ preventScroll: true }); }

@@ -6,12 +6,12 @@ GUIDE_STYLES_CSS: str = r"""<style>
 #guide-modal-body { flex: 1 1 auto; min-block-size: 14rem; max-block-size: 56vh; overflow-y: auto; display: flex; flex-direction: column; gap: 0.9rem; padding-inline-end: 0.25rem; padding-block-start: 0.5rem; }
 .guide-stack { display: flex; flex-direction: column; gap: 0.85rem; }
 .guide-card { border-radius: 0.95rem; background: var(--background); border: 1px solid var(--border-subtle); padding: 1rem 1.15rem; display: flex; flex-direction: column; gap: 0.55rem; }
-.guide-card-title { font-size: 0.95rem; font-weight: 600; color: var(--text); }
-.guide-row { display: flex; align-items: baseline; justify-content: space-between; gap: 0.85rem; font-size: 0.875rem; color: var(--text-muted); line-height: 1.5; }
-.guide-kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; padding: 0.15rem 0.5rem; border-radius: 0.4rem; border: 1px solid var(--border); background: var(--surface-raised); color: var(--accent); white-space: nowrap; flex-shrink: 0; }
-.guide-note { font-size: 0.875rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
+.guide-card-title { font-size: calc(1rem * var(--ui-scale, 1)); font-weight: 600; color: var(--text); }
+.guide-row { display: flex; align-items: baseline; justify-content: flex-start; gap: 1rem; font-size: calc(0.9375rem * var(--ui-scale, 1)); color: var(--text-muted); line-height: 1.55; }
+.guide-kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: calc(0.875rem * var(--ui-scale, 1)); padding: 0.15rem 0.55rem; min-inline-size: 7.75rem; text-align: center; border-radius: 0.4rem; border: 1px solid var(--border); background: var(--surface-raised); color: var(--accent); white-space: nowrap; flex-shrink: 0; }
+.guide-note { font-size: calc(0.9375rem * var(--ui-scale, 1)); color: var(--text-muted); line-height: 1.6; margin: 0; }
 .guide-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; border-top: 1px solid var(--border-subtle); padding-block-start: 0.85rem; }
-.guide-jump-btn { padding: 0.4rem 0.8rem; border-radius: 0.7rem; border: 1px solid var(--border); background: var(--background); color: var(--text-muted); font-size: 0.8125rem; cursor: pointer; transition: border-color 140ms ease, color 140ms ease; }
+.guide-jump-btn { padding: 0.45rem 0.85rem; border-radius: 0.7rem; border: 1px solid var(--border); background: var(--background); color: var(--text-muted); font-size: calc(0.875rem * var(--ui-scale, 1)); cursor: pointer; transition: border-color 140ms ease, color 140ms ease; }
 .guide-jump-btn:hover { border-color: var(--accent); color: var(--text); }
 </style>"""
 

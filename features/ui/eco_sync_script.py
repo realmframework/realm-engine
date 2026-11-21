@@ -9,7 +9,7 @@ function syncEcoModeUI(cfg) {
   if (toggle) { toggle.checked = on; }
   if (badge) {
     badge.textContent = on ? "ON" : "OFF";
-    badge.className = "text-[11px] font-mono " + (on ? "text-[#38D399]" : "text-[#738196]");
+    badge.className = "text-xs font-mono " + (on ? "text-[#38D399]" : "text-[#738196]");
   }
 }
 

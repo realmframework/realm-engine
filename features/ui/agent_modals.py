@@ -32,8 +32,8 @@ AGENT_MODAL_HTML: str = r"""<dialog id="agent-studio-modal" closedby="any" aria-
     <div class="flex items-center justify-between gap-2 flex-wrap">
       <span id="agent-editor-heading" data-i18n="agents_new_heading" class="text-xs font-mono uppercase tracking-wider text-[#4BB8E8]">New Custom Agent</span>
       <div role="group" aria-label="Editor mode" class="inline-flex bg-[#04060F] p-0.5 rounded-lg border border-white/10 gap-1">
-        <button id="agent-mode-guided-btn" type="button" aria-pressed="true" data-i18n="agents_mode_guided" class="px-2.5 py-1 rounded-md text-[11px] font-medium bg-[#4BB8E8] text-[#04060F] transition">Guided</button>
-        <button id="agent-mode-raw-btn" type="button" aria-pressed="false" data-i18n="agents_mode_raw" class="px-2.5 py-1 rounded-md text-[11px] font-medium text-[#A0B0C8] hover:text-[#EEF2F8] transition">Raw persona.md</button>
+        <button id="agent-mode-guided-btn" type="button" aria-pressed="true" data-i18n="agents_mode_guided" class="px-2.5 py-1 rounded-md text-xs font-medium bg-[#4BB8E8] text-[#04060F] transition">Guided</button>
+        <button id="agent-mode-raw-btn" type="button" aria-pressed="false" data-i18n="agents_mode_raw" class="px-2.5 py-1 rounded-md text-xs font-medium text-[#A0B0C8] hover:text-[#EEF2F8] transition">Raw persona.md</button>
       </div>
     </div>
     <div id="agent-guided-pane" class="flex flex-col gap-3">
@@ -52,7 +52,7 @@ AGENT_MODAL_HTML: str = r"""<dialog id="agent-studio-modal" closedby="any" aria-
           <label class="flex flex-col gap-1"><span data-i18n="agents_ed_provider" class="text-xs text-[#A0B0C8]">Pinned Provider (Optional)</span><select id="agent-ed-provider" class="w-full rounded-xl bg-[#0B1020] border border-white/15 px-3 py-2 text-sm"></select></label>
           <label class="flex flex-col gap-1"><span data-i18n="agents_ed_model" class="text-xs text-[#A0B0C8]">Pinned Model (Optional)</span><select id="agent-ed-model" disabled class="w-full rounded-xl bg-[#0B1020] border border-white/15 px-3 py-2 text-sm disabled:opacity-50"></select></label>
         </div>
-        <p data-i18n="agents_ed_model_hint" class="text-[11px] text-[#738196]">Leave on default to follow the prompt bar. Mixing 1 local Ollama model + cloud models uses zero extra RAM; switching between two local models auto-unloads the previous one.</p>
+        <p data-i18n="agents_ed_model_hint" class="text-xs text-[#738196]">Leave on default to follow the prompt bar. Mixing 1 local Ollama model + cloud models uses zero extra RAM; switching between two local models auto-unloads the previous one.</p>
       </div>
       <label class="flex flex-col gap-1"><span data-i18n="agents_ed_body" class="text-xs text-[#A0B0C8]">Analytical Lens, Signature Moves, Style &amp; Boundaries</span><textarea id="agent-ed-instructions" rows="7" maxlength="3000" placeholder="## Analytical Lens&#10;What this agent checks, questions, and prioritizes.&#10;&#10;## Signature Moves&#10;- Specific habits (e.g., flag contradictions, end with 2 sharp questions).&#10;&#10;## Communication Style&#10;Tone, cadence, and structure.&#10;&#10;## Boundaries&#10;What this agent never does." class="w-full rounded-xl bg-[#04060F] border border-white/15 px-3 py-2 text-sm font-mono text-[#EEF2F8] outline-none focus:border-[#4BB8E8]"></textarea></label>
     </div>

@@ -26,8 +26,9 @@ HTML_PAGE: str = (
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="text-scale" content="scale" />
 <meta name="color-scheme" content="light dark" />
-<script>try{var m=localStorage.getItem("color-scheme");if(m==="dark"||m==="light"){document.querySelector('meta[name="color-scheme"]').content=m;}var a=localStorage.getItem("realm_theme_accent"),g=localStorage.getItem("realm_theme_glow"),r=document.documentElement;if(a&&/^#[0-9a-f]{6}$/i.test(a)){r.style.setProperty("--accent-seed",a);}if(g&&/^#[0-9a-f]{6}$/i.test(g)){r.style.setProperty("--accent-glow",g);}var rf=localStorage.getItem("realm_reading_font"),rs=localStorage.getItem("realm_reading_size"),rw=localStorage.getItem("realm_reading_width");if(rf==="legible")r.classList.add("realm-legible");if(rf==="dyslexic")r.classList.add("realm-dyslexic");if(rs==="sm")r.style.setProperty("--reading-size","0.875rem");else if(rs==="lg")r.style.setProperty("--reading-size","1.15rem");else if(rs==="xl")r.style.setProperty("--reading-size","1.3rem");if(rw==="narrow")r.style.setProperty("--reading-width","40rem");else if(rw==="wide")r.style.setProperty("--reading-width","62rem");if(localStorage.getItem("realm_hc_focus")==="1")r.classList.add("realm-hc-focus");if(localStorage.getItem("realm_reduce_motion")==="1")r.classList.add("realm-reduce-motion");}catch(e){}</script>
+<script>try{var m=localStorage.getItem("color-scheme");if(m==="dark"||m==="light"){document.querySelector('meta[name="color-scheme"]').content=m;}var a=localStorage.getItem("realm_theme_accent"),g=localStorage.getItem("realm_theme_glow"),r=document.documentElement;if(a&&/^#[0-9a-f]{6}$/i.test(a)){r.style.setProperty("--accent-seed",a);}if(g&&/^#[0-9a-f]{6}$/i.test(g)){r.style.setProperty("--accent-glow",g);}var rf=localStorage.getItem("realm_reading_font"),rs=localStorage.getItem("realm_reading_size"),rw=localStorage.getItem("realm_reading_width");if(rf==="legible")r.classList.add("realm-legible");if(rf==="dyslexic")r.classList.add("realm-dyslexic");var sc=rs==="sm"?"0.9375":rs==="lg"?"1.125":rs==="xl"?"1.25":"1";r.style.setProperty("--ui-scale",sc);r.style.setProperty("--reading-size","calc(1rem * "+sc+")");if(rw==="narrow")r.style.setProperty("--reading-width","40rem");else if(rw==="wide")r.style.setProperty("--reading-width","62rem");if(localStorage.getItem("realm_hc_focus")==="1")r.classList.add("realm-hc-focus");if(localStorage.getItem("realm_reduce_motion")==="1")r.classList.add("realm-reduce-motion");}catch(e){}</script>
 <meta name="shell-type" content="web_dashboard" />
 <title>REALM Engine</title>
 <link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png"><link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png"><link rel="apple-touch-icon" sizes="192x192" href="/static/logo-192.png">
@@ -66,10 +67,10 @@ select { appearance: none; -webkit-appearance: none; padding-right: 2.25rem !imp
 .folder-tree-row { display: flex; align-items: center; gap: .25rem; min-block-size: 2.5rem; min-inline-size: calc(22rem + var(--folder-depth, 0) * var(--folder-indent)); padding-inline: calc(var(--folder-depth, 0) * var(--folder-indent)) .25rem; border-radius: .5rem; }
 .folder-tree-row:hover { background: rgba(238,242,248,.04); }
 .folder-tree-row.is-selected { background: rgba(75,184,232,.12); }
-.folder-filter { display: flex; flex: 1; align-items: center; gap: .5rem; min-inline-size: 0; min-block-size: 2.25rem; padding: .25rem .5rem; text-align: start; font-size: .875rem; color: var(--text-muted); border-radius: .5rem; }
+.folder-filter { display: flex; flex: 1; align-items: center; gap: .5rem; min-inline-size: 0; min-block-size: 2.4rem; padding: .3rem .55rem; text-align: start; font-size: calc(.9375rem * var(--ui-scale, 1)); color: var(--text-muted); border-radius: .5rem; }
 .folder-filter.folder-root { font-weight: 600; color: var(--text); }
 .folder-filter[aria-pressed="true"] { color: var(--accent); font-weight: 500; }
-.folder-file-count { margin-inline-start: auto; padding-inline-start: 1rem; flex-shrink: 0; color: var(--text-subtle); font: .6875rem ui-monospace, monospace; }
+.folder-file-count { margin-inline-start: auto; padding-inline-start: 1rem; flex-shrink: 0; color: var(--text-subtle); font-family: ui-monospace, monospace; font-size: calc(.8125rem * var(--ui-scale, 1)); }
 .folder-branch-toggle[aria-expanded="true"] svg { transform: rotate(90deg); }
 .folder-branch-toggle svg { display: block; }
 .folder-row-action { display: inline-flex; align-items: center; justify-content: center; min-width: 1.75rem; height: 1.75rem; border-radius: .5rem; color: var(--text-muted); }
@@ -87,17 +88,19 @@ select { appearance: none; -webkit-appearance: none; padding-right: 2.25rem !imp
 #settings-modal [data-specialist-only] { display: revert !important; }
 #settings-modal[open] { display: flex; flex-direction: column; block-size: min(44rem, 85vh); block-size: min(44rem, 85dvh); }
 .settings-body { --scrollbar-thumb: #738196; --scrollbar-track: #0B1020; overflow-y: auto; flex: 1 1 auto; min-block-size: 0; padding-inline-end: 0.875rem; overscroll-behavior: contain; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
-@supports not (scrollbar-color: auto) { .settings-body { scrollbar-width: auto; } .settings-body::-webkit-scrollbar { display: block; width: 6px; } .settings-body::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; } .settings-body::-webkit-scrollbar-track { background: var(--scrollbar-track); } }
+.settings-body::-webkit-scrollbar { display: block; width: 6px; }
+.settings-body::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; }
+.settings-body::-webkit-scrollbar-track { background: transparent; }
 .settings-panel[hidden], [role="tabpanel"][hidden] { display: none !important; }
 .settings-tabs { display: flex; flex: none; gap: 1.25rem; overflow-x: auto; border-block-end: 1px solid var(--border-subtle); scrollbar-width: thin; }
-.settings-tabs button { position: relative; flex: none; white-space: nowrap; padding: .75rem .125rem; color: var(--text-muted); font-size: .8125rem; }
+.settings-tabs button { position: relative; flex: none; white-space: nowrap; padding: .75rem .125rem; color: var(--text-muted); font-size: calc(.9375rem * var(--ui-scale, 1)); }
 .settings-tabs button[aria-selected="true"] { color: var(--accent); }
 .settings-tabs button[aria-selected="true"]::after { content: ""; position: absolute; inset: auto 0 0; border-block-end: 2px solid currentColor; }
 .settings-tabs button:focus-visible, .workspace-menu button:focus-visible, #workspace-switcher-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .workspace-menu nav { max-block-size: min(55vh, 24rem); overflow-y: auto; }
 .workspace-menu { position: fixed; inset: auto; margin: 0; inline-size: min(22rem, calc(100vw - 2rem)); max-block-size: var(--workspace-menu-height, 70vh); overflow-y: auto; }
 .library-topics { display: flex; gap: .5rem; overflow-x: auto; padding-block: .25rem .75rem; margin-block-end: 1rem; scrollbar-width: thin; }
-.library-topics button { flex: none; border-radius: 999px; padding: .375rem .75rem; border: 1px solid var(--border); color: var(--text-muted); font-size: .75rem; white-space: nowrap; }
+.library-topics button { flex: none; border-radius: 999px; padding: .4rem .85rem; border: 1px solid var(--border); color: var(--text-muted); font-size: calc(.875rem * var(--ui-scale, 1)); white-space: nowrap; }
 .library-topics button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: rgba(75,184,232,.12); }
 .library-topics button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .run-mode-card { display: flex; align-items: flex-start; gap: .75rem; padding: .875rem; border: 1px solid var(--border-subtle); border-radius: .75rem; cursor: pointer; }
@@ -125,18 +128,18 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
 .md-p { line-height: 1.72; }
 .md-code-inline { padding: .125rem .375rem; border-radius: .375rem; background: #04060F; border: 1px solid rgba(238,242,248,.12); color: #4BB8E8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .875em; }
 .md-pre-wrap { border-radius: .75rem; background: #04060F; border: 1px solid rgba(238,242,248,.12); overflow: hidden; margin-block: .25rem; }
-.md-pre-lang { padding: .375rem .875rem; font: 500 .6875rem ui-monospace, monospace; text-transform: uppercase; letter-spacing: .06em; color: #738196; border-bottom: 1px solid rgba(238,242,248,.08); }
-.md-pre { margin: 0; padding: .875rem 1rem; overflow-x: auto; font: .8125rem/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: #DCE6F5; scrollbar-width: thin; }
-.md-math { padding: .75rem 1rem; border-radius: .75rem; background: rgba(75,184,232,.06); border: 1px solid rgba(75,184,232,.18); text-align: center; overflow-x: auto; font: .875rem/1.5 ui-monospace, monospace; color: #EEF2F8; }
+.md-pre-lang { padding: .375rem .875rem; font-family: ui-monospace, monospace; font-weight: 500; font-size: calc(.8125rem * var(--ui-scale, 1)); text-transform: uppercase; letter-spacing: .06em; color: #738196; border-bottom: 1px solid rgba(238,242,248,.08); }
+.md-pre { margin: 0; padding: .875rem 1rem; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: calc(.875rem * var(--ui-scale, 1)); line-height: 1.6; color: #DCE6F5; scrollbar-width: thin; }
+.md-math { padding: .75rem 1rem; border-radius: .75rem; background: rgba(75,184,232,.06); border: 1px solid rgba(75,184,232,.18); text-align: center; overflow-x: auto; font-family: ui-monospace, monospace; font-size: calc(.9375rem * var(--ui-scale, 1)); line-height: 1.5; color: #EEF2F8; }
 .md-table-wrap { overflow-x: auto; border-radius: .75rem; border: 1px solid rgba(238,242,248,.12); background: #04060F; margin-block: .25rem; }
-.md-table { width: 100%; border-collapse: collapse; font-size: .875rem; line-height: 1.55; text-align: left; }
+.md-table { width: 100%; border-collapse: collapse; font-size: calc(.9375rem * var(--ui-scale, 1)); line-height: 1.55; text-align: left; }
 .md-table th { padding: .625rem .875rem; color: #EEF2F8; font-weight: 600; background: rgba(238,242,248,.04); border-bottom: 1px solid rgba(238,242,248,.12); }
 .md-table td { padding: .625rem .875rem; color: #C8D4E6; border-top: 1px solid rgba(238,242,248,.07); vertical-align: top; }
 .md-quote { margin: .25rem 0; padding: .5rem 1rem; border-inline-start: 3px solid #4BB8E8; background: rgba(75,184,232,.06); border-radius: 0 .5rem .5rem 0; color: #C8D4E6; }
 .md-hr { border: 0; border-top: 1px solid rgba(238,242,248,.10); margin-block: .5rem; }
 .md-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: .4rem; margin-block: .125rem; }
 .md-list-item { display: flex; align-items: flex-start; gap: .625rem; }
-.md-list-marker { color: #4BB8E8; font-family: ui-monospace, monospace; font-size: .75rem; margin-top: .32rem; flex-shrink: 0; }
+.md-list-marker { color: #4BB8E8; font-family: ui-monospace, monospace; font-size: calc(.875rem * var(--ui-scale, 1)); margin-top: .28rem; flex-shrink: 0; }
 .md-link { color: #4BB8E8; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; background: transparent; border: 0; padding: 0; font: inherit; text-align: left; }
 .md-link:hover { color: #74D1FF; }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
@@ -160,7 +163,7 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
 """
     + SIDEBAR_HTML
     + """
-<div id="main-shell" class="relative pl-[250px] min-h-screen bg-[#04060F] flex flex-col transition-all duration-200">
+<div id="main-shell" class="relative pl-[268px] min-h-screen bg-[#04060F] flex flex-col transition-all duration-200">
   <div id="ambient-stage" aria-hidden="true" class="ambient-stage"><canvas id="ambient-aurora-canvas" class="supernova-beam"></canvas><canvas id="ambient-dots-canvas"></canvas></div>
   <main id="main-content" tabindex="-1" class="relative z-10 w-full flex-1 flex flex-col pt-0 outline-none">
     <div id="graph-view" class="graph-viewport hidden w-full relative overflow-hidden bg-[#04060F]"></div>
@@ -170,7 +173,7 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
         <div id="chat-stream" class="flex flex-col gap-8 w-full max-w-3xl"></div>
         <div id="tutor" class="w-full max-w-3xl"></div>
         <div id="stream-divider" class="hidden w-full max-w-3xl h-px bg-[rgba(238,242,248,0.08)] my-1"></div>
-        <div id="chunks-header" class="hidden w-full max-w-3xl items-center justify-between gap-2"><button id="chunks-toggle-btn" type="button" class="text-sm text-[#A0B0C8] hover:text-[#EEF2F8] transition-colors"><span id="chunks-title" data-i18n="chunks_zero_hint">▸ View 0 source passages</span></button><span id="chunks-rag-pill" data-specialist-only class="px-2.5 py-0.5 rounded-full bg-[#0B1020] border border-[rgba(238,242,248,0.10)] text-[11px] font-mono text-[#738196]">mode: hybrid · top-k: 5 · temp: 0.2</span></div>
+        <div id="chunks-header" class="hidden w-full max-w-3xl items-center justify-between gap-2"><button id="chunks-toggle-btn" type="button" class="text-sm text-[#A0B0C8] hover:text-[#EEF2F8] transition-colors"><span id="chunks-title" data-i18n="chunks_zero_hint">▸ View 0 source passages</span></button><span id="chunks-rag-pill" data-specialist-only class="px-2.5 py-0.5 rounded-full bg-[#0B1020] border border-[rgba(238,242,248,0.10)] text-2xs font-mono text-[#738196]">mode: hybrid · top-k: 5 · temp: 0.2</span></div>
         <div id="results" class="flex flex-col gap-4 w-full max-w-3xl"></div>
       </div>
       <div id="search-dock" class="w-full max-w-3xl mx-auto flex flex-col items-center justify-center relative z-30">
@@ -206,9 +209,9 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
         </search>
         <div id="seed-chips" class="w-full max-w-3xl mt-5 flex flex-col gap-1.5 pl-4">
           <div id="seed-list" class="flex flex-col gap-1.5">
-            <button class="seed-chip text-left text-[#A0B0C8] hover:text-[#EEF2F8] text-[15px] py-1.5 transition-colors flex items-center gap-2.5 group w-fit" data-seed="Summarize the key points across my documents" type="button"><span class="text-[#738196] group-hover:text-[#4BB8E8] transition-colors">↳</span><span>Summarize the key points across my documents</span></button>
-            <button class="seed-chip text-left text-[#A0B0C8] hover:text-[#EEF2F8] text-[15px] py-1.5 transition-colors flex items-center gap-2.5 group w-fit" data-seed="Extract key action items and important details" type="button"><span class="text-[#738196] group-hover:text-[#4BB8E8] transition-colors">↳</span><span>Extract key action items and important details</span></button>
-            <button class="seed-chip text-left text-[#A0B0C8] hover:text-[#EEF2F8] text-[15px] py-1.5 transition-colors flex items-center gap-2.5 group w-fit" data-seed="What should I focus on next?" type="button"><span class="text-[#738196] group-hover:text-[#4BB8E8] transition-colors">↳</span><span>What should I focus on next?</span></button>
+            <button class="seed-chip text-left text-[#A0B0C8] hover:text-[#EEF2F8] text-sm py-1.5 transition-colors flex items-center gap-2.5 group w-fit" data-seed="Summarize the key points across my documents" type="button"><span class="text-[#738196] group-hover:text-[#4BB8E8] transition-colors">↳</span><span>Summarize the key points across my documents</span></button>
+            <button class="seed-chip text-left text-[#A0B0C8] hover:text-[#EEF2F8] text-sm py-1.5 transition-colors flex items-center gap-2.5 group w-fit" data-seed="Extract key action items and important details" type="button"><span class="text-[#738196] group-hover:text-[#4BB8E8] transition-colors">↳</span><span>Extract key action items and important details</span></button>
+            <button class="seed-chip text-left text-[#A0B0C8] hover:text-[#EEF2F8] text-sm py-1.5 transition-colors flex items-center gap-2.5 group w-fit" data-seed="What should I focus on next?" type="button"><span class="text-[#738196] group-hover:text-[#4BB8E8] transition-colors">↳</span><span>What should I focus on next?</span></button>
           </div>
           <div class="flex flex-wrap items-center gap-5 mt-2 pt-1">
             <button id="more-ideas-btn" type="button" data-i18n="more_ideas" class="text-xs font-medium text-[#738196] hover:text-[#4BB8E8] transition-colors flex items-center gap-1">↻ More ideas</button>

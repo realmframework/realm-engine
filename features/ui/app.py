@@ -19,7 +19,7 @@ from features.ingestion.embedder import embed_text
 from features.ingestion.service import ingest_directory
 from features.search.router import route_query_intent
 from features.search.service import hybrid_search
-from features.tutor_agent import budget
+from features.tutor_agent import budget, key_verify
 from features.tutor_agent.models_discovery import discover_models
 from features.tutor_agent.providers import list_provider_models
 from features.tutor_agent.service import ask_tutor as run_tutor
@@ -128,7 +128,7 @@ def _build_local_app() -> FastAPI:
         area_routes.build_router(lambda: WORKSPACE_CONFIG, activate_workspace, get_index, ingest_directory),
         query_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, route_query_intent, hybrid_search, build_embedder(lambda *a, **kw: embed_text(*a, **kw), cloud_guard), lambda *args, **kwargs: run_tutor(*args, **kwargs), stream_tutor_events),
         compliance_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, _reindex, inspect_anonymization, hybrid_search),
-        budget_routes.build_router(lambda: WORKSPACE_CONFIG, budget.budget_snapshot, budget.reset_budget),
+        budget_routes.build_router(lambda: WORKSPACE_CONFIG, budget.budget_snapshot, budget.reset_budget, key_verify.verify_provider_key),
         power_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, _reindex),
         study_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, stream_messages_events),
     ):

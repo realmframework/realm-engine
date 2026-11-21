@@ -21,8 +21,8 @@ function openCrossExamineModal(tIdx) {
     return "<button type='button' data-cx-agent='" + escapeHtml(ag.id) + "' class='w-full text-left p-3 rounded-xl bg-[#04060F] border border-white/10 hover:border-[#4BB8E8] transition flex items-start gap-3'>"
       + "<span aria-hidden='true' class='w-2.5 h-2.5 rounded-full mt-1.5 shrink-0' style='background:" + col + "'></span>"
       + "<span class='min-w-0 flex-1'><span class='flex items-center gap-2'><span class='text-sm font-medium text-[#EEF2F8]'>" + escapeHtml(ag.name) + "</span>"
-      + (ag.role ? "<span class='text-[11px] font-mono text-[#738196]'>" + escapeHtml(ag.role) + "</span>" : "")
-      + (same ? "<span class='ml-auto text-[10px] font-mono text-[#738196]'>" + escapeHtml(t("cx_original")) + "</span>" : "")
+      + (ag.role ? "<span class='text-xs font-mono text-[#738196]'>" + escapeHtml(ag.role) + "</span>" : "")
+      + (same ? "<span class='ml-auto text-2xs font-mono text-[#738196]'>" + escapeHtml(t("cx_original")) + "</span>" : "")
       + "</span>" + (ag.tagline ? "<span class='block text-xs text-[#A0B0C8] mt-0.5'>" + escapeHtml(ag.tagline) + "</span>" : "") + "</span></button>";
   }).join("");
   listEl.querySelectorAll("[data-cx-agent]").forEach(function (btn) {

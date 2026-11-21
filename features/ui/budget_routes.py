@@ -8,9 +8,15 @@ from fastapi.responses import JSONResponse
 from core import secrets
 from core.contracts import WorkspaceConfig
 from features.ui import workspace
+from features.ui.privacy import require_local
 
 
-def build_router(config: Callable[[], WorkspaceConfig], snapshot: Callable[..., dict[str, object]], reset: Callable[[], None]) -> APIRouter:
+def build_router(
+    config: Callable[[], WorkspaceConfig],
+    snapshot: Callable[..., dict[str, object]],
+    reset: Callable[[], None],
+    verify_key: Callable[[str, str | None], dict[str, object]] | None = None,
+) -> APIRouter:
     router = APIRouter()
 
     def status(request: Request) -> JSONResponse:
@@ -66,5 +72,24 @@ def build_router(config: Callable[[], WorkspaceConfig], snapshot: Callable[..., 
         except OSError as exc:
             raise HTTPException(status_code=400, detail="Could not remove API key from local storage") from exc
         return JSONResponse({"keys": updated}, headers={"Cache-Control": "no-store"})
+
+    @router.post("/api/keys/verify")
+    def verify_saved_key(request: Request, payload: dict[str, str]) -> JSONResponse:
+        with workspace.STATE_LOCK:
+            active = config()
+            workspace.require_area(request, active)
+        provider = str(payload.get("provider") or "").strip().lower()
+        if provider != "ollama" and provider not in secrets.ENV_VARS:
+            raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider}")
+        if provider != "ollama":
+            require_local(active, provider)
+        if verify_key is None:
+            raise HTTPException(status_code=503, detail="Key verification unavailable")
+        raw_key = str(payload.get("api_key") or "").strip() or None
+        try:
+            result = verify_key(provider, raw_key)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return JSONResponse({"provider": provider, **result}, headers={"Cache-Control": "no-store"})
 
     return router

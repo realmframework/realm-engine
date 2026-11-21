@@ -42,7 +42,7 @@ async function forgetSavedKeys() {
   for (const id of ["api-key", "onboarding-api-key", "tts-api-key"]) { const el = document.getElementById(id); if (el) { el.value = ""; } }
   try {
     const res = await areaFetch("/api/keys", { method: "DELETE" });
-    if (res.ok) { const data = await safeJson(res); appKeyStatus = data.keys || {}; syncKeyStatusUI(); }
+    if (res.ok) { const data = await safeJson(res); appKeyStatus = data.keys || {}; if (typeof keyVerifyState === "object") { keyVerifyState = {}; } keyReplaceMode = false; onboardingReplaceMode = false; syncKeyStatusUI(); }
   } catch (_e) {}
   document.getElementById("budget-action-status").textContent = "Saved API keys removed from app storage. Your other settings are preserved.";
 }

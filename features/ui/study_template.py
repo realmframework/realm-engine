@@ -4,10 +4,10 @@ STUDY_STYLES_CSS: str = r"""<style>
 #study-modal { inline-size: min(44rem, calc(100vw - 2rem)); max-block-size: 88vh; overflow: hidden; }
 #study-modal[open] { display: flex; flex-direction: column; }
 .study-toolbar { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; padding: 0.55rem 0.7rem; border-radius: 0.85rem; background: var(--background); border: 1px solid var(--border-subtle); flex-shrink: 0; }
-.study-select { min-block-size: 2rem !important; border-radius: 0.55rem !important; background: var(--surface-raised) !important; border: 1px solid var(--border) !important; color: var(--text) !important; font-size: 0.75rem !important; padding: 0.28rem 1.8rem 0.28rem 0.6rem !important; outline: none; cursor: pointer; }
-.study-gen-btn { display: inline-flex; align-items: center; gap: 0.35rem; min-block-size: 2rem; padding: 0.32rem 0.8rem; border-radius: 0.55rem; background: var(--accent); color: var(--text-on-accent); font-size: 0.75rem; font-weight: 600; border: 0; cursor: pointer; }
+.study-select { min-block-size: 2.25rem !important; border-radius: 0.55rem !important; background: var(--surface-raised) !important; border: 1px solid var(--border) !important; color: var(--text) !important; font-size: calc(0.875rem * var(--ui-scale, 1)) !important; padding: 0.32rem 2rem 0.32rem 0.65rem !important; outline: none; cursor: pointer; }
+.study-gen-btn { display: inline-flex; align-items: center; gap: 0.35rem; min-block-size: 2.25rem; padding: 0.36rem 0.85rem; border-radius: 0.55rem; background: var(--accent); color: var(--text-on-accent); font-size: calc(0.875rem * var(--ui-scale, 1)); font-weight: 600; border: 0; cursor: pointer; }
 .study-gen-btn:disabled { opacity: 0.5; cursor: wait; }
-.study-sub-btn { display: inline-flex; align-items: center; min-block-size: 2rem; padding: 0.32rem 0.65rem; border-radius: 0.55rem; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; }
+.study-sub-btn { display: inline-flex; align-items: center; min-block-size: 2.25rem; padding: 0.36rem 0.75rem; border-radius: 0.55rem; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: calc(0.875rem * var(--ui-scale, 1)); cursor: pointer; }
 .study-sub-btn:hover { color: var(--text); border-color: var(--accent); }
 .study-add-panel { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; border-radius: 0.85rem; background: var(--background); border: 1px solid var(--border); flex-shrink: 0; }
 .study-add-panel[hidden] { display: none !important; }
@@ -16,11 +16,11 @@ STUDY_STYLES_CSS: str = r"""<style>
 .study-progress-fill { height: 100%; background: var(--accent); transition: width 0.2s ease; }
 .study-card-face { min-block-size: 13rem; padding: 1.35rem; border-radius: 1rem; background: var(--background); border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: space-between; gap: 0.9rem; cursor: pointer; }
 .study-card-face:hover { border-color: color-mix(in oklab, var(--accent) 55%, var(--border)); }
-.study-btn-hard { padding: 0.42rem 0.85rem; border-radius: 0.6rem; font-size: 0.78rem; font-weight: 500; background: color-mix(in oklab, var(--status-warn) 14%, transparent); border: 1px solid color-mix(in oklab, var(--status-warn) 45%, transparent); color: var(--status-warn); cursor: pointer; }
+.study-btn-hard { padding: 0.45rem 0.9rem; border-radius: 0.6rem; font-size: calc(0.875rem * var(--ui-scale, 1)); font-weight: 500; background: color-mix(in oklab, var(--status-warn) 14%, transparent); border: 1px solid color-mix(in oklab, var(--status-warn) 45%, transparent); color: var(--status-warn); cursor: pointer; }
 .study-btn-hard:hover { background: color-mix(in oklab, var(--status-warn) 24%, transparent); }
-.study-btn-good { padding: 0.42rem 0.85rem; border-radius: 0.6rem; font-size: 0.78rem; font-weight: 500; background: color-mix(in oklab, var(--accent) 16%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 42%, transparent); color: var(--accent); cursor: pointer; }
+.study-btn-good { padding: 0.45rem 0.9rem; border-radius: 0.6rem; font-size: calc(0.875rem * var(--ui-scale, 1)); font-weight: 500; background: color-mix(in oklab, var(--accent) 16%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 42%, transparent); color: var(--accent); cursor: pointer; }
 .study-btn-good:hover { background: color-mix(in oklab, var(--accent) 26%, transparent); }
-.study-btn-easy { padding: 0.42rem 0.85rem; border-radius: 0.6rem; font-size: 0.78rem; font-weight: 500; background: color-mix(in oklab, var(--status-ok) 14%, transparent); border: 1px solid color-mix(in oklab, var(--status-ok) 45%, transparent); color: var(--status-ok); cursor: pointer; }
+.study-btn-easy { padding: 0.45rem 0.9rem; border-radius: 0.6rem; font-size: calc(0.875rem * var(--ui-scale, 1)); font-weight: 500; background: color-mix(in oklab, var(--status-ok) 14%, transparent); border: 1px solid color-mix(in oklab, var(--status-ok) 45%, transparent); color: var(--status-ok); cursor: pointer; }
 .study-btn-easy:hover { background: color-mix(in oklab, var(--status-ok) 24%, transparent); }
 </style>"""
 
@@ -29,7 +29,7 @@ STUDY_MODAL_HTML: str = r"""<dialog id="study-modal" closedby="any" aria-labelle
     <div class="min-w-0">
       <div class="flex items-center gap-2 flex-wrap">
         <h2 id="study-modal-title" data-i18n="study_title" class="text-lg font-semibold text-[#EEF2F8]">Active Recall &amp; Flashcards</h2>
-        <span id="study-scope-pill" hidden class="px-2 py-0.5 rounded-full bg-[#4BB8E8]/15 text-[#4BB8E8] border border-[#4BB8E8]/35 text-[11px] font-mono truncate max-w-[14rem]"></span>
+        <span id="study-scope-pill" hidden class="px-2 py-0.5 rounded-full bg-[#4BB8E8]/15 text-[#4BB8E8] border border-[#4BB8E8]/35 text-xs font-mono truncate max-w-[14rem]"></span>
       </div>
       <p id="study-meta-line" class="text-xs text-[#738196] mt-0.5"></p>
     </div>
@@ -66,7 +66,7 @@ STUDY_MODAL_HTML: str = r"""<dialog id="study-modal" closedby="any" aria-labelle
   <p id="study-status-msg" role="status" class="text-xs text-[#4BB8E8]" style="margin:0"></p>
   <div id="study-card-stage"></div>
   <div id="study-controls-bar" class="flex items-center justify-between gap-2 pt-3 border-t border-white/10 flex-wrap shrink-0">
-    <span data-i18n="study_kbd_hint" class="text-[11px] font-mono text-[#738196]">Space: flip · 1 Hard · 2 Good · 3 Easy</span>
+    <span data-i18n="study_kbd_hint" class="text-xs font-mono text-[#738196]">Space: flip · 1 Hard · 2 Good · 3 Easy</span>
     <div id="study-rate-btns" class="flex items-center gap-2"></div>
   </div>
 </dialog>"""

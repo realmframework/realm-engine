@@ -1,8 +1,8 @@
 """Accessibility & Reading Comfort controller: fonts, scale, measure, high-contrast focus, reduced motion."""
 
 COMFORT_SCRIPT: str = r"""
-const ROOT_FONT_SCALES = { sm: "14.5px", md: "16px", lg: "18px", xl: "20px" };
-const READING_SCALES = { sm: "0.95rem", md: "1rem", lg: "1.05rem", xl: "1.1rem" };
+const ROOT_FONT_SCALES = { sm: "0.9375", md: "1", lg: "1.125", xl: "1.25" };
+const READING_SCALES = { sm: "calc(0.9375rem * 1)", md: "1rem", lg: "1.125rem", xl: "1.25rem" };
 const READING_WIDTHS = { narrow: "40rem", standard: "48rem", wide: "62rem" };
 let readingComfort = { reading_font: "default", reading_scale: "md", reading_width: "standard", high_contrast_focus: false, reduce_motion: false };
 let activeSlashRecipe = null;
@@ -95,8 +95,10 @@ function applyReadingComfort(cfg, persistLocal) {
   root.classList.toggle("realm-dyslexic", font === "dyslexic");
   root.classList.toggle("realm-hc-focus", hc);
   root.classList.toggle("realm-reduce-motion", rm);
-  root.style.fontSize = ROOT_FONT_SCALES[scale] || "16px";
-  root.style.setProperty("--reading-size", READING_SCALES[scale] || "1rem");
+  root.style.fontSize = "";
+  const uiScale = ROOT_FONT_SCALES[scale] || "1";
+  root.style.setProperty("--ui-scale", uiScale);
+  root.style.setProperty("--reading-size", "calc(1rem * " + uiScale + ")");
   root.style.setProperty("--reading-width", READING_WIDTHS[width] || "48rem");
   if (persistLocal !== false) {
     safeStorageSet("realm_reading_font", font);

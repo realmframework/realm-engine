@@ -47,7 +47,7 @@ function destinationControls(prefix, selected) {
         autocapitalize='none' spellcheck='false' aria-describedby='${prefix}-folder-help'
         class='w-full rounded-lg bg-[#04060F] border border-white/15 px-3 py-2 text-sm'/>
     </div>
-    <p id='${prefix}-folder-help' class='text-[11px] text-[#738196]'>${escapeHtml(t("up_sub_help"))}</p>
+    <p id='${prefix}-folder-help' class='text-xs text-[#738196]'>${escapeHtml(t("up_sub_help"))}</p>
   </div>`;
 }
 function bindDestination(prefix) {

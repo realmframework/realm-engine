@@ -10,7 +10,7 @@ EDITOR_STYLES_CSS: str = r"""<style>
 #guide-md-textarea { min-block-size: 22rem; }
 #reader-selection-pill { position: fixed; z-index: 60; display: flex; align-items: center; gap: 0.25rem; padding: 0.3rem; border-radius: 9999px; border: 1px solid var(--border); background: color-mix(in oklab, var(--surface-raised) 96%, transparent); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: var(--dialog-shadow); }
 #reader-selection-pill[hidden] { display: none !important; }
-#reader-selection-pill button { padding: 0.32rem 0.7rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; color: var(--text-muted); white-space: nowrap; transition: background-color 0.14s ease, color 0.14s ease; }
+#reader-selection-pill button { padding: 0.38rem 0.8rem; border-radius: 9999px; font-size: calc(0.875rem * var(--ui-scale, 1)); font-weight: 500; color: var(--text-muted); white-space: nowrap; transition: background-color 0.14s ease, color 0.14s ease; }
 #reader-selection-pill button:hover { background: color-mix(in oklab, var(--accent) 16%, transparent); color: var(--text); }
 #reader-selection-pill button.sel-primary { background: color-mix(in oklab, var(--accent) 16%, transparent); color: var(--accent); }
 #reader-selection-pill button.sel-primary:hover { background: var(--accent); color: var(--text-on-accent); }

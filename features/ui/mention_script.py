@@ -71,10 +71,10 @@ function updateMentionMenu() {
   if (!mentionFiltered.length) { closeMentionMenu(); return; }
   mentionRange = { start: atStart, end: pos };
   mentionActiveIdx = Math.min(mentionActiveIdx, mentionFiltered.length - 1);
-  let html = "<div role='presentation' class='px-2.5 pt-2 pb-1 text-[10px] font-mono uppercase tracking-wider text-[#738196]'>" + escapeHtml(t("mention_grp_agents")) + "</div>";
+  let html = "<div role='presentation' class='px-2.5 pt-2 pb-1 text-2xs font-mono uppercase tracking-wider text-[#738196]'>" + escapeHtml(t("mention_grp_agents")) + "</div>";
   mentionFiltered.forEach(function (ag, idx) {
     const col = typeof paletteColorsFor === "function" ? paletteColorsFor(ag.palette).accent : "#4BB8E8";
-    const modelTag = ag.model_name ? "<span class='ml-auto text-[11px] font-mono text-[#738196] truncate' style='max-width:9rem'>" + escapeHtml(ag.model_name) + "</span>" : "";
+    const modelTag = ag.model_name ? "<span class='ml-auto text-xs font-mono text-[#738196] truncate' style='max-width:9rem'>" + escapeHtml(ag.model_name) + "</span>" : "";
     html += "<button type='button' id='mention-opt-" + idx + "' role='option' aria-selected='" + (idx === mentionActiveIdx ? "true" : "false") + "' data-mention-idx='" + idx + "' class='slash-item'>"
       + "<span aria-hidden='true' class='w-2 h-2 rounded-full shrink-0' style='background:" + col + "'></span>"
       + "<span class='font-mono text-xs text-[#4BB8E8] shrink-0'>@" + escapeHtml(ag.id) + "</span>"

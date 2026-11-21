@@ -217,7 +217,8 @@ async function openGraphView(scope) {
       const alpha = isHov || isFoc ? 1 : (isDocLike ? (hasSpotlight && inFocus ? 0.94 : docFade * 0.92) : 0.94);
       if (alpha < 0.06) { continue; }
       if (!isHov && !isFoc && placed.length >= (focused || term ? 42 : 34)) { break; }
-      const baseFs = isHov ? 13.5 : n.type === "area" ? 13.5 : n.type === "hub" ? 12.2 : 11.2;
+      const uiMul = Number(getComputedStyle(document.documentElement).getPropertyValue("--ui-scale")) || 1;
+      const baseFs = (isHov ? 15 : n.type === "area" ? 15 : n.type === "hub" ? 14 : 13) * uiMul;
       const fs = baseFs / fontScale;
       ctx.font = (n.type === "area" || n.type === "hub" || isHov || isFoc ? "600 " : "500 ") + fs + "px Inter, system-ui, sans-serif";
       const rawName = n.type === "area" ? areaTitle(n.label) : (n.type === "hub" && n.docTotal ? (n.label + " · " + n.docTotal) : n.label);

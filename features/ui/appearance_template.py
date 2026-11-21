@@ -2,19 +2,19 @@
 
 APPEARANCE_FIELDS = r"""    <div class="flex flex-col gap-3 text-sm">
       <div class="flex items-center justify-between gap-2"><span data-i18n="agent_name_title" class="text-xs uppercase tracking-wider text-[#738196] font-mono">Name Your Agent</span><button id="reset-agent-name-btn" type="button" hidden data-i18n="reset_agent_name" class="text-xs text-[#4BB8E8] hover:underline">Reset to Saga</button></div>
-      <div class="flex flex-col gap-1.5 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] p-3">
-        <label for="agent-name-input" data-i18n="agent_name_label" class="text-xs font-medium text-[#EEF2F8]">Agent Display Name</label>
+      <div class="flex flex-col gap-1.5 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] p-3.5">
+        <label for="agent-name-input" data-i18n="agent_name_label" class="text-sm font-medium text-[#EEF2F8]">Agent Display Name</label>
         <input id="agent-name-input" type="text" maxlength="40" value="Saga" placeholder="Saga" class="bg-[#0B1020] border border-[rgba(238,242,248,0.12)] focus:border-[#4BB8E8] rounded-lg px-3 py-1.5 text-sm text-[#EEF2F8] outline-none" />
-        <span data-i18n="agent_name_desc" class="text-[11px] text-[#738196]">Display name shown on AI replies and exported notes (default: Saga).</span>
+        <span data-i18n="agent_name_desc" class="text-xs text-[#A0B0C8]">Display name shown on AI replies and exported notes (default: Saga).</span>
       </div>
     </div>
     <div class="flex flex-col gap-3 pt-3 border-t border-[rgba(238,242,248,0.08)] text-sm">
       <div class="flex items-center justify-between gap-2"><span data-i18n="appearance_logo_title" class="text-xs uppercase tracking-wider text-[#738196] font-mono">Workspace Logo</span><button id="reset-logo-btn" type="button" hidden data-i18n="reset_logo" class="text-xs text-[#4BB8E8] hover:underline">Reset Logo</button></div>
-      <div class="flex items-center gap-3 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] p-3">
+      <div class="flex items-center gap-3 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] p-3.5">
         <img id="settings-logo-preview" src="/static/logo-512.png" width="40" height="40" class="w-10 h-10 rounded-lg object-cover shrink-0" alt="Workspace logo preview" />
         <div class="flex-1 min-w-0">
-          <div data-i18n="appearance_logo_sub" class="text-xs font-medium text-[#EEF2F8]">Personalize Your Icon</div>
-          <div id="logo-upload-status" role="status" data-i18n="logo_backup_note" class="text-[11px] text-[#738196] truncate">Original REALM logo is always kept as backup (PNG, JPG, WebP · max 2 MB)</div>
+          <div data-i18n="appearance_logo_sub" class="text-sm font-medium text-[#EEF2F8]">Personalize Your Icon</div>
+          <div id="logo-upload-status" role="status" data-i18n="logo_backup_note" class="text-xs text-[#A0B0C8] truncate">Original REALM logo is always kept as backup (PNG, JPG, WebP · max 2 MB)</div>
         </div>
         <input id="workspace-logo-input" type="file" accept="image/png,image/jpeg,image/webp" class="visually-hidden" />
         <label for="workspace-logo-input" data-i18n="change_logo" class="cursor-pointer px-3 py-1.5 rounded-lg bg-[#0B1020] border border-[rgba(238,242,248,0.12)] hover:border-[#4BB8E8] text-xs font-medium text-[#4BB8E8] shrink-0 transition">Change Logo</label>
@@ -35,17 +35,17 @@ APPEARANCE_FIELDS = r"""    <div class="flex flex-col gap-3 text-sm">
         <div id="theme-presets-bar" role="group" aria-label="Color palettes" class="flex flex-wrap gap-1.5"></div>
       </div>
       <div class="comfort-two-col">
-        <label class="flex items-center justify-between gap-2 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-3 py-2 cursor-pointer">
-          <span class="flex flex-col"><span data-i18n="primary_accent" class="text-xs text-[#EEF2F8]">Primary Accent</span><span id="theme-accent-hex" class="text-[11px] font-mono text-[#738196]">#4BB8E8</span></span>
+        <label class="flex items-center justify-between gap-2 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-3.5 py-2.5 cursor-pointer">
+          <span class="flex flex-col"><span data-i18n="primary_accent" class="text-sm text-[#EEF2F8]">Primary Accent</span><span id="theme-accent-hex" class="text-xs font-mono text-[#A0B0C8]">#4BB8E8</span></span>
           <input id="theme-accent-picker" type="color" value="#4BB8E8" aria-label="Primary accent color" class="theme-swatch w-8 h-8 rounded-lg border-0 bg-transparent cursor-pointer shrink-0" />
         </label>
-        <label class="flex items-center justify-between gap-2 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-3 py-2 cursor-pointer">
-          <span class="flex flex-col"><span data-i18n="ambient_glow" class="text-xs text-[#EEF2F8]">Ambient Glow</span><span id="theme-glow-hex" class="text-[11px] font-mono text-[#738196]">#6366F1</span></span>
+        <label class="flex items-center justify-between gap-2 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-3.5 py-2.5 cursor-pointer">
+          <span class="flex flex-col"><span data-i18n="ambient_glow" class="text-sm text-[#EEF2F8]">Ambient Glow</span><span id="theme-glow-hex" class="text-xs font-mono text-[#A0B0C8]">#6366F1</span></span>
           <input id="theme-glow-picker" type="color" value="#6366F1" aria-label="Secondary ambient glow color" class="theme-swatch w-8 h-8 rounded-lg border-0 bg-transparent cursor-pointer shrink-0" />
         </label>
       </div>
-      <label for="theme-ambient-toggle" class="flex items-center justify-between gap-3 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-3.5 py-2.5 cursor-pointer select-none">
-        <span><span data-i18n="ambient_toggle" class="block text-xs font-medium text-[#EEF2F8]">Ambient Background</span><span data-i18n="ambient_desc" class="block text-[11px] text-[#738196] mt-0.5">Subtle animated light gradient and interactive dot grid.</span></span>
+      <label for="theme-ambient-toggle" class="flex items-center justify-between gap-3 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-4 py-3 cursor-pointer select-none">
+        <span><span data-i18n="ambient_toggle" class="block text-sm font-medium text-[#EEF2F8]">Ambient Background</span><span data-i18n="ambient_desc" class="block text-xs text-[#A0B0C8] mt-0.5">Subtle animated light gradient and interactive dot grid.</span></span>
         <input id="theme-ambient-toggle" type="checkbox" switch role="switch" checked class="shrink-0" />
       </label>
     </div>
@@ -79,12 +79,12 @@ APPEARANCE_FIELDS = r"""    <div class="flex flex-col gap-3 text-sm">
         </div>
       </div>
       <div class="comfort-preview-box"><p data-i18n="a11y_preview_sample" class="comfort-preview-sample">Preview: Answers and Library guides update live to match your reading size and font.</p></div>
-      <label for="a11y-hc-focus-toggle" class="flex items-center justify-between gap-3 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-3.5 py-2.5 cursor-pointer select-none">
-        <span><span data-i18n="a11y_hc_focus" class="block text-xs font-medium text-[#EEF2F8]">High-Contrast Focus &amp; Borders</span><span data-i18n="a11y_hc_focus_desc" class="block text-[11px] text-[#738196] mt-0.5">Stronger focus outlines and crisper card edges for keyboard navigation.</span></span>
+      <label for="a11y-hc-focus-toggle" class="flex items-center justify-between gap-3 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-4 py-3 cursor-pointer select-none">
+        <span><span data-i18n="a11y_hc_focus" class="block text-sm font-medium text-[#EEF2F8]">High-Contrast Focus &amp; Borders</span><span data-i18n="a11y_hc_focus_desc" class="block text-xs text-[#A0B0C8] mt-0.5">Stronger focus outlines and crisper card edges for keyboard navigation.</span></span>
         <input id="a11y-hc-focus-toggle" type="checkbox" switch role="switch" class="shrink-0" />
       </label>
-      <label for="a11y-reduce-motion-toggle" class="flex items-center justify-between gap-3 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-3.5 py-2.5 cursor-pointer select-none">
-        <span><span data-i18n="a11y_reduce_motion" class="block text-xs font-medium text-[#EEF2F8]">Reduce Motion</span><span data-i18n="a11y_reduce_motion_desc" class="block text-[11px] text-[#738196] mt-0.5">Calms 2D Graph physics, pauses ambient effects, and disables motion transitions.</span></span>
+      <label for="a11y-reduce-motion-toggle" class="flex items-center justify-between gap-3 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-4 py-3 cursor-pointer select-none">
+        <span><span data-i18n="a11y_reduce_motion" class="block text-sm font-medium text-[#EEF2F8]">Reduce Motion</span><span data-i18n="a11y_reduce_motion_desc" class="block text-xs text-[#A0B0C8] mt-0.5">Calms 2D Graph physics, pauses ambient effects, and disables motion transitions.</span></span>
         <input id="a11y-reduce-motion-toggle" type="checkbox" switch role="switch" class="shrink-0" />
       </label>
       <div class="pt-2 border-t border-[rgba(238,242,248,0.08)] flex items-center justify-between gap-3">

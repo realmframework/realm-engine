@@ -158,9 +158,9 @@ function renderStudyCard(dueOverride, masteredOverride) {
   stage.innerHTML = quickHint + "<div class='flex items-center justify-between gap-2 text-xs text-[#738196]'><span class='font-mono shrink-0'>" + (studyIdx + 1) + " / " + total + "</span><span class='truncate'>" + escapeHtml(card.source || "") + "</span></div>"
     + "<div class='study-progress-track' role='progressbar' aria-valuemin='0' aria-valuemax='100' aria-valuenow='" + progressPct + "' aria-label='Study progress'><div class='study-progress-fill' style='width:" + progressPct + "%'></div></div>"
     + "<div id='study-card-surface' class='study-card-face'>"
-    + "<div class='flex flex-col gap-2'><div class='flex items-center justify-between gap-2'><span class='text-[10px] font-mono uppercase tracking-wider text-[#4BB8E8]'>" + escapeHtml(t("study_question_lbl")) + "</span>" + delBtn + "</div><div class='md-body text-base font-medium text-[#EEF2F8] leading-relaxed'>" + escapeHtml(card.front) + "</div></div>"
+    + "<div class='flex flex-col gap-2'><div class='flex items-center justify-between gap-2'><span class='text-2xs font-mono uppercase tracking-wider text-[#4BB8E8]'>" + escapeHtml(t("study_question_lbl")) + "</span>" + delBtn + "</div><div class='md-body text-base font-medium text-[#EEF2F8] leading-relaxed'>" + escapeHtml(card.front) + "</div></div>"
     + (studyRevealed
-      ? "<div class='pt-3 border-t border-white/10 flex flex-col gap-2'><span class='text-[10px] font-mono uppercase tracking-wider text-[#38D399]'>" + escapeHtml(t("study_answer_lbl")) + "</span><div class='md-body text-sm text-[#C8D4E6] leading-relaxed'>" + formatMarkdown(card.back) + "</div></div>"
+      ? "<div class='pt-3 border-t border-white/10 flex flex-col gap-2'><span class='text-2xs font-mono uppercase tracking-wider text-[#38D399]'>" + escapeHtml(t("study_answer_lbl")) + "</span><div class='md-body text-sm text-[#C8D4E6] leading-relaxed'>" + formatMarkdown(card.back) + "</div></div>"
       : "<div class='pt-3 text-center'><button id='study-flip-btn' type='button' class='study-btn-good'>" + escapeHtml(t("study_reveal_btn")) + "</button></div>")
     + "</div>";
   const revealAndFocus = function () {

@@ -16,7 +16,7 @@ function setVoiceLoopEnabled(on) {
   if (toggle) { toggle.checked = voiceLoopEnabled; }
   if (badge) {
     badge.textContent = voiceLoopEnabled ? "ON" : "OFF";
-    badge.className = "text-[11px] font-mono " + (voiceLoopEnabled ? "text-[#38D399]" : "text-[#738196]");
+    badge.className = "text-xs font-mono " + (voiceLoopEnabled ? "text-[#38D399]" : "text-[#738196]");
   }
   safeStorageSet("realm_voice_loop", voiceLoopEnabled ? "1" : "0");
   if (typeof showToast === "function") { showToast(voiceLoopEnabled ? t("vl_toast_on") : t("vl_toast_off"), 2800); }
@@ -209,7 +209,7 @@ function syncLocalApiUI(cfg) {
   const on = Boolean(cfg && cfg.enable_local_api);
   const toggle = document.getElementById("local-api-toggle"), badge = document.getElementById("local-api-badge"), info = document.getElementById("local-api-info"), urlEl = document.getElementById("local-api-url");
   if (toggle) { toggle.checked = on; }
-  if (badge) { badge.textContent = on ? "ON" : "OFF"; badge.className = "text-[11px] font-mono " + (on ? "text-[#38D399]" : "text-[#738196]"); }
+  if (badge) { badge.textContent = on ? "ON" : "OFF"; badge.className = "text-xs font-mono " + (on ? "text-[#38D399]" : "text-[#738196]"); }
   if (info) { info.hidden = !on; }
   if (urlEl && window.location && window.location.origin) { urlEl.textContent = window.location.origin + "/v1"; }
 }

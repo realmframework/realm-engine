@@ -109,7 +109,7 @@ function renderCommandResults(queryText) {
   cmdFiltered.forEach(function (item, idx) {
     if (!q && item.group !== lastGroup) {
       lastGroup = item.group;
-      html += "<div role='presentation' class='px-2.5 pt-2.5 pb-1 text-[10px] font-mono uppercase tracking-wider text-[#738196]'>" + escapeHtml(t(item.group)) + "</div>";
+      html += "<div role='presentation' class='px-2.5 pt-2.5 pb-1 text-2xs font-mono uppercase tracking-wider text-[#738196]'>" + escapeHtml(t(item.group)) + "</div>";
     }
     const dot = item.color ? "<span aria-hidden='true' class='w-2 h-2 rounded-full shrink-0' style='background:" + item.color + "'></span>" : "";
     const sub = item.sub ? "<span class='ml-auto text-xs text-[#738196] truncate' style='max-width:14rem'>" + escapeHtml(item.sub) + "</span>" : "";
@@ -264,7 +264,7 @@ function updateSlashMenu() {
   slashFiltered.forEach(function (cmd, idx) {
     if (!needle && cmd.group !== lastGroup) {
       lastGroup = cmd.group;
-      html += "<div role='presentation' class='px-2.5 pt-2 pb-1 text-[10px] font-mono uppercase tracking-wider text-[#738196]'>" + escapeHtml(t(cmd.group)) + "</div>";
+      html += "<div role='presentation' class='px-2.5 pt-2 pb-1 text-2xs font-mono uppercase tracking-wider text-[#738196]'>" + escapeHtml(t(cmd.group)) + "</div>";
     }
     const dot = cmd.color ? "<span aria-hidden='true' class='w-2 h-2 rounded-full shrink-0' style='background:" + cmd.color + "'></span>" : "";
     html += "<button type='button' id='slash-opt-" + idx + "' role='option' aria-selected='" + (idx === slashActiveIdx ? "true" : "false") + "' data-slash-idx='" + idx + "' class='slash-item'>"

@@ -24,7 +24,7 @@ function areaButtons() {
   return knowledgeAreas.map(function (area, index) {
     const selected = dirs.includes(area.name), disabled = areaSwitching || selected && dirs.length === 1;
     const title = areaTitle(area);
-    const subPath = area.linked && area.linked_path ? "<span class='block text-[11px] font-mono text-[#738196] truncate mt-0.5' title='" + escapeHtml(area.linked_path) + "'>" + escapeHtml(area.linked_path) + "</span>" : "";
+    const subPath = area.linked && area.linked_path ? "<span class='block text-xs font-mono text-[#738196] truncate mt-0.5' title='" + escapeHtml(area.linked_path) + "'>" + escapeHtml(area.linked_path) + "</span>" : "";
     const rmLabel = area.linked ? "Unlink vault " + title + " (keeps files on disk)" : "Delete area " + title;
     return "<div class='flex items-center gap-1'>"
       + "<label for='area-check-" + index + "' class='inline-flex items-center justify-center shrink-0' style='width:38px;height:38px;cursor:pointer'>"

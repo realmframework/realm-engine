@@ -97,14 +97,14 @@ function normalizeWheelDelta(e) {
 function buildGraphInspectorHtml(node, count, isFocused) {
   const typeTitles = { area: t("graph_t_area"), hub: t("graph_t_hub"), doc: t("graph_t_doc"), section: t("graph_t_section") };
   const title = node.type === "area" ? areaTitle(node.label) : node.label;
-  const tags = (node.tags || []).length ? "<span class='font-mono text-[11px] text-[#738196] truncate'>(" + escapeHtml(node.tags.slice(0, 4).join(", ")) + ")</span>" : "";
+  const tags = (node.tags || []).length ? "<span class='font-mono text-xs text-[#738196] truncate'>(" + escapeHtml(node.tags.slice(0, 4).join(", ")) + ")</span>" : "";
   const hint = node.doc_id ? t("graph_h_read") : (isFocused ? t("graph_h_unfocus") : t("graph_h_focus"));
   const linkLbl = count === 1 ? t("graph_link_1") : t("graph_links_n", { n: count });
   return "<div class='flex items-center gap-2 min-w-0 flex-1'>"
-    + "<span class='px-2 py-0.5 rounded-full bg-[#4BB8E8]/15 text-[#4BB8E8] font-mono text-[11px] shrink-0'>" + escapeHtml(typeTitles[node.type] || "Node") + "</span>"
+    + "<span class='px-2 py-0.5 rounded-full bg-[#4BB8E8]/15 text-[#4BB8E8] font-mono text-xs shrink-0'>" + escapeHtml(typeTitles[node.type] || "Node") + "</span>"
     + "<span class='font-medium text-[#EEF2F8] truncate'>" + escapeHtml(title) + "</span>"
-    + "<span class='font-mono text-[11px] text-[#738196] shrink-0'>" + escapeHtml(linkLbl) + "</span>" + tags + "</div>"
-    + "<span class='hidden sm:inline font-mono text-[11px] text-[#A0B0C8] shrink-0'>" + escapeHtml(hint) + "</span>";
+    + "<span class='font-mono text-xs text-[#738196] shrink-0'>" + escapeHtml(linkLbl) + "</span>" + tags + "</div>"
+    + "<span class='hidden sm:inline font-mono text-xs text-[#A0B0C8] shrink-0'>" + escapeHtml(hint) + "</span>";
 }
 function drawGraphBackdrop(ctx, width, height, zoom, camX, camY, pal, centers, areas) {
   const gridStep = Math.max(28, 54 * zoom), ox = ((width / 2 + camX) % gridStep + gridStep) % gridStep, oy = ((height / 2 + camY) % gridStep + gridStep) % gridStep;
@@ -143,12 +143,12 @@ function buildGraphShellHtml(graphScope, areas, docTotal, linkTotal) {
     </div>
     <div class='absolute top-4 right-4 z-20 flex flex-col items-end gap-2'>
       <div class='flex items-center gap-2'>
-        <span class='graph-hud hidden sm:inline-flex items-center rounded-full px-3 py-1.5 text-[11px] font-mono text-[#A0B0C8] select-none'>${escapeHtml(t("graph_guides_links", { docs: docTotal, links: linkTotal }))}</span>
+        <span class='graph-hud hidden sm:inline-flex items-center rounded-full px-3 py-1.5 text-xs font-mono text-[#A0B0C8] select-none'>${escapeHtml(t("graph_guides_links", { docs: docTotal, links: linkTotal }))}</span>
         <button id='graph-controls-toggle' type='button' aria-expanded='false' aria-controls='graph-controls-panel' aria-label='${escapeHtml(t("graph_controls"))}' title='${escapeHtml(t("graph_controls"))} (/)'
           class='graph-hud relative h-9 w-9 rounded-full flex items-center justify-center text-[#A0B0C8] hover:text-[#EEF2F8] transition'>${tuneSvg}<span id='graph-filter-dot' hidden class='absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#4BB8E8]'></span></button>
       </div>
       <div id='graph-controls-panel' hidden class='graph-hud w-72 max-w-[calc(100vw-2rem)] rounded-2xl p-3.5 flex flex-col gap-3'>
-        <div class='flex items-center justify-between'><span class='text-xs font-mono uppercase tracking-wider text-[#738196]'>${escapeHtml(t("graph_controls"))}</span><span class='text-[11px] font-mono text-[#738196]'>${escapeHtml(t("graph_guides_n", { docs: docTotal }))}</span></div>
+        <div class='flex items-center justify-between'><span class='text-xs font-mono uppercase tracking-wider text-[#738196]'>${escapeHtml(t("graph_controls"))}</span><span class='text-xs font-mono text-[#738196]'>${escapeHtml(t("graph_guides_n", { docs: docTotal }))}</span></div>
         <div role='group' aria-label='Graph knowledge area scope' class='flex bg-[#04060F] p-1 rounded-xl border border-white/10 gap-1'>${buttons}</div>
         <input id='graph-filter-input' aria-label='Filter graph guides and topics' type='search' placeholder='${escapeHtml(t("graph_filter_ph"))}'
           class='w-full rounded-xl bg-[#04060F] border border-white/10 focus:border-[#4BB8E8] px-3 py-1.5 text-sm text-[#EEF2F8] outline-none'/>
@@ -165,11 +165,11 @@ function buildGraphShellHtml(graphScope, areas, docTotal, linkTotal) {
       class='w-full h-full block touch-none'></canvas>
     <div id='graph-inspector-line' aria-live='polite' class='graph-hud absolute bottom-4 left-4 right-44 sm:right-auto sm:max-w-xl z-10 rounded-full px-3.5 py-1.5 flex items-center gap-2.5 text-xs text-[#A0B0C8] min-h-[2rem]'>
       <div class='flex flex-wrap items-center gap-3'>${legend}</div>
-      <span class='hidden md:inline font-mono text-[11px] text-[#738196]'>${escapeHtml(t("graph_hint_bar"))}</span>
+      <span class='hidden md:inline font-mono text-xs text-[#738196]'>${escapeHtml(t("graph_hint_bar"))}</span>
     </div>
     <div class='graph-hud absolute bottom-4 right-4 z-10 rounded-full p-1 inline-flex items-center gap-0.5'>
       <button id='graph-zoom-out' type='button' aria-label='Zoom out' class='h-7 w-7 rounded-full flex items-center justify-center text-sm text-[#A0B0C8] hover:text-[#EEF2F8] hover:bg-white/5'>−</button>
-      <span id='graph-zoom-pct' class='px-1.5 text-[11px] font-mono text-[#738196] min-w-[2.6rem] text-center select-none'>100%</span>
+      <span id='graph-zoom-pct' class='px-1.5 text-xs font-mono text-[#738196] min-w-[2.6rem] text-center select-none'>100%</span>
       <button id='graph-zoom-in' type='button' aria-label='Zoom in' class='h-7 w-7 rounded-full flex items-center justify-center text-sm text-[#A0B0C8] hover:text-[#EEF2F8] hover:bg-white/5'>+</button>
       <button id='graph-reset-btn' type='button' aria-label='${escapeHtml(t("graph_reset_view"))}' title='${escapeHtml(t("graph_reset_view"))}' class='h-7 px-2 rounded-full flex items-center gap-1 text-xs text-[#A0B0C8] hover:text-[#EEF2F8] hover:bg-white/5'>${resetSvg}<span class='hidden sm:inline'>${escapeHtml(t("graph_reset_view"))}</span></button>
     </div>`;

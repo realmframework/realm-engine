@@ -32,7 +32,7 @@ function buildIdeaPool() {
 }
 function renderSeedIdeas() {
   const pool = buildIdeaPool(), listEl = document.getElementById("seed-list"); if (!listEl || !pool.length) { return; }
-  listEl.innerHTML = [0, 1, 2].map(function (i) { const seed = pool[(ideaOffset + i) % pool.length]; return "<button class='seed-chip text-left text-[#A0B0C8] hover:text-[#EEF2F8] text-[15px] py-1.5 transition-colors flex items-center gap-2.5 group w-fit' data-seed='" + escapeHtml(seed) + "' type='button'><span class='text-[#738196] group-hover:text-[#4BB8E8] transition-colors'>↳</span><span>" + escapeHtml(seed) + "</span></button>"; }).join("");
+  listEl.innerHTML = [0, 1, 2].map(function (i) { const seed = pool[(ideaOffset + i) % pool.length]; return "<button class='seed-chip text-left text-[#A0B0C8] hover:text-[#EEF2F8] text-sm py-1.5 transition-colors flex items-center gap-2.5 group w-fit' data-seed='" + escapeHtml(seed) + "' type='button'><span class='text-[#738196] group-hover:text-[#4BB8E8] transition-colors'>↳</span><span>" + escapeHtml(seed) + "</span></button>"; }).join("");
   listEl.querySelectorAll(".seed-chip").forEach(function (chip) { chip.addEventListener("click", function () { queryEl.value = chip.getAttribute("data-seed") || ""; askTutor(); }); });
 }
 function cycleIdeas() { const pool = buildIdeaPool(); ideaOffset = (ideaOffset + 3) % Math.max(pool.length, 3); renderSeedIdeas(); }

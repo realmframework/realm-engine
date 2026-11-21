@@ -97,7 +97,7 @@ function renderTreeNode(node, depth, index = { next: 0 }) {
           <input id='${id}-name' name='name' required maxlength='64' pattern='[\\p{L}\\p{N}_][\\p{L}\\p{N}_ .\\-]{0,63}'
             placeholder='patients' autocapitalize='none' spellcheck='false' aria-describedby='${id}-help'
             class='w-full rounded-lg border border-white/15 bg-[#04060F] px-3 py-2 text-sm'/>
-          <p id='${id}-help' class='text-[11px] text-[#738196] mt-1'>Create inside ${label}</p>
+          <p id='${id}-help' class='text-xs text-[#738196] mt-1'>Create inside ${label}</p>
         </div><button type='submit' class='rounded-lg border border-white/15 px-3 py-2 text-xs'>${escapeHtml(t("create_btn"))}</button>
         <button type='button' data-cancel-child='${escapeHtml(path)}' class='text-xs text-[#A0B0C8] px-2 py-2'>${escapeHtml(t("cancel"))}</button>
         <p data-child-status role='status' class='w-full text-xs text-[#A0B0C8]'></p>

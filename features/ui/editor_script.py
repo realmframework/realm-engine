@@ -160,12 +160,12 @@ async function openGuideMarkdownEditor(guide, previousTag) {
       + "<div class='flex items-center gap-1 bg-[#04060F] p-1 rounded-xl border border-white/10'>"
       + "<button id='ed-tab-write' type='button' class='px-3 py-1 rounded-lg text-xs font-medium bg-[#4BB8E8] text-[#04060F]'>" + escapeHtml(t("ed_write")) + "</button>"
       + "<button id='ed-tab-preview' type='button' class='px-3 py-1 rounded-lg text-xs font-medium text-[#A0B0C8] hover:text-[#EEF2F8]'>" + escapeHtml(t("ed_preview")) + "</button></div>"
-      + "<div class='flex items-center gap-2'><span id='ed-word-count' class='text-[11px] font-mono text-[#738196]'></span>"
+      + "<div class='flex items-center gap-2'><span id='ed-word-count' class='text-xs font-mono text-[#738196]'></span>"
       + "<button id='ed-cancel-btn' type='button' class='px-3 py-1.5 rounded-lg border border-white/15 text-xs text-[#A0B0C8] hover:text-[#EEF2F8]'>" + escapeHtml(t("cancel")) + "</button>"
       + "<button id='ed-save-btn' type='button' class='px-3.5 py-1.5 rounded-lg bg-[#4BB8E8] text-[#04060F] text-xs font-semibold hover:brightness-110 transition'>" + escapeHtml(t("ed_save_reindex")) + "</button></div></div>"
       + "<label for='guide-md-textarea' class='visually-hidden'>" + escapeHtml(t("sg_content_lbl")) + "</label>"
       + "<textarea id='guide-md-textarea' rows='18' class='md-editor-area w-full rounded-xl bg-[#04060F] border border-white/15 focus:border-[#4BB8E8] p-4 text-sm text-[#EEF2F8] outline-none'></textarea>"
-      + "<div id='guide-md-preview' hidden class='md-body md-prose rounded-xl bg-[#04060F] border border-white/10 p-5 text-[15px] leading-7 flex flex-col gap-3'></div>"
+      + "<div id='guide-md-preview' hidden class='md-body md-prose rounded-xl bg-[#04060F] border border-white/10 p-5 text-base leading-7 flex flex-col gap-3'></div>"
       + "<p id='ed-status' role='status' class='text-xs text-[#A0B0C8]'></p></section>";
     const ta = document.getElementById("guide-md-textarea"), pv = document.getElementById("guide-md-preview");
     const wcEl = document.getElementById("ed-word-count"), stEl = document.getElementById("ed-status");
