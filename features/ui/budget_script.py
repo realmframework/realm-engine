@@ -8,7 +8,8 @@ async function refreshBudget() {
     const response = await areaFetch("/api/budget"), data = await safeJson(response);
     if (version !== areaVersion || operation !== budgetRefreshId) { return; }
     if (!response.ok || data.state_error) { throw new Error(data.state_error || data.detail || "Budget meter could not be loaded."); }
-    document.getElementById("budget-meter").textContent = t("budget_meter_fmt", { req: data.cloud_requests_today, reqLim: data.daily_cloud_request_limit, cost: Number(data.estimated_cost_usd).toFixed(2), costLim: Number(data.daily_budget_usd_limit).toFixed(2) });
+    const rawCost = Number(data.estimated_cost_usd || 0);
+    document.getElementById("budget-meter").textContent = t("budget_meter_fmt", { req: data.cloud_requests_today, reqLim: data.daily_cloud_request_limit, cost: (rawCost > 0 && rawCost < 0.01 ? rawCost.toFixed(4) : rawCost.toFixed(2)), costLim: Number(data.daily_budget_usd_limit).toFixed(2) });
     document.getElementById("budget-details").textContent = Number(data.estimated_tokens_today).toLocaleString() + " reserved token estimate · " + data.requests_last_minute + " / 12 requests in the last minute · " + data.date_str + " (UTC)";
   } catch (error) { if (version === areaVersion && operation === budgetRefreshId) { document.getElementById("budget-meter").textContent = error.message; } }
 }

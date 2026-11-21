@@ -102,7 +102,8 @@ async function runStreamingTurn(chatId, bodyObj, headers, signal, pendingTurn, t
   if (!stoppedFlag) {
     pendingTurn.loadingTutor = false;
     const partial = String(pendingTurn.streamingText || "").trim();
-    pendingTurn.tutor = { answer: partial || "Stream ended unexpectedly before completing the answer.", cited_titles: [], knowledge_gap_detected: !partial, recommended_topics: [] };
+    if (!partial) { pendingTurn.isError = true; }
+    pendingTurn.tutor = { answer: partial || "Stream ended unexpectedly before completing the answer.", cited_titles: [], knowledge_gap_detected: false, recommended_topics: [] };
     renderChatStream();
     return { done: true };
   }

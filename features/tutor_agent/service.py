@@ -8,7 +8,7 @@ import httpx
 
 from core.cancellation import check_cancelled
 from core.contracts import SearchResult, TutorConfig, TutorResponse
-from features.tutor_agent.budget import check_and_record_budget, estimate_usage
+from features.tutor_agent import budget as _budget
 from features.tutor_agent.providers import call_provider, strip_json_fence
 
 LOW_SCORE_THRESHOLD = 0.5
@@ -107,20 +107,27 @@ def ask_tutor(
     """Ask the configured LLM tutor for an answer, with clear HTTP errors or deterministic fallback."""
     tutor_config = config or TutorConfig()
     active_temp = tutor_config.temperature if temperature is None else temperature
+    reserved: tuple[int, float] | None = None
     try:
         check_cancelled()
         messages = build_tutor_messages(question, results, history=history, response_language=tutor_config.response_language, persona_instruction=persona_instruction)
         if not skip_local_budget:
-            tokens, cost = estimate_usage(str(messages))
-            denied = check_and_record_budget(tutor_config.provider, tokens, tutor_config.daily_cloud_request_limit, tutor_config.daily_budget_usd_limit, cost)
+            tokens, cost = _budget.estimate_usage(str(messages), provider=tutor_config.provider)
+            denied = _budget.check_and_record_budget(tutor_config.provider, tokens, tutor_config.daily_cloud_request_limit, tutor_config.daily_budget_usd_limit, cost)
             if denied:
                 return TutorResponse(answer=denied, cited_titles=[], knowledge_gap_detected=True, recommended_topics=[])
+            reserved = (tokens, cost)
         content = call_provider(messages, tutor_config, temperature=active_temp)
+        if reserved:
+            in_tok, out_tok = max(1, reserved[0] - 512), max(1, (len(content.encode("utf-8")) + 3) // 4)
+            _budget.reconcile_budget(tutor_config.provider, reserved[0], reserved[1], in_tok + out_tok, _budget.estimate_tokens_cost(in_tok, out_tok, tutor_config.provider))
         check_cancelled()
         return _parse_tutor_json(content, results)
     except InterruptedError:
         raise
     except httpx.HTTPStatusError as exc:
+        if reserved:
+            _budget.reconcile_budget(tutor_config.provider, reserved[0], reserved[1], 0, 0.0, refund_request=True)
         code = exc.response.status_code
         if public_mode:
             return fallback_tutor_response(question, results)
@@ -132,6 +139,8 @@ def ask_tutor(
             return fallback_tutor_response(question, results)
         return TutorResponse(answer=detail, cited_titles=[], knowledge_gap_detected=True, recommended_topics=[])
     except (httpx.HTTPError, ValueError, KeyError, TypeError, IndexError):
+        if reserved:
+            _budget.reconcile_budget(tutor_config.provider, reserved[0], reserved[1], 0, 0.0, refund_request=True)
         return fallback_tutor_response(question, results)
 
 

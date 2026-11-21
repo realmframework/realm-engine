@@ -112,3 +112,23 @@ def test_build_tutor_messages_respects_response_language_and_stream_mode() -> No
     assert "Reply in German" in de_msgs[0]["content"]
     es_stream = build_tutor_messages("Resume", [SearchResult(chunk=chunk, score=0.9)], response_language="es", json_mode=False)
     assert "Reply in Spanish" in es_stream[0]["content"] and "never wrap in JSON" in es_stream[0]["content"]
+
+
+def test_provider_aware_estimate_and_reconciliation(monkeypatch: pytest.MonkeyPatch) -> None:
+    prompt = "x" * 8000
+    kimi_toks, kimi_cost = budget.estimate_usage(prompt, output_tokens=2048, provider="kimi")
+    anthropic_toks, anthropic_cost = budget.estimate_usage(prompt, output_tokens=2048, provider="anthropic")
+    assert kimi_toks == anthropic_toks == 2512
+    assert 0.001 < kimi_cost < 0.01 and anthropic_cost > kimi_cost * 3
+    for i in range(9):
+        assert budget.check_and_record_budget("kimi", kimi_toks, request_limit=50, usd_limit=1.0, estimated_cost_usd=kimi_cost, now=2000 + i) is None
+        actual_cost = budget.estimate_tokens_cost(2000, 80, "kimi")
+        budget.reconcile_budget("kimi", kimi_toks, kimi_cost, 2080, actual_cost, now=2000 + i)
+    snap = budget.budget_snapshot(50, 1.0, now=2010)
+    assert snap["cloud_requests_today"] == 9 and float(str(snap["estimated_cost_usd"])) < 0.05
+    budget.reset_budget(now=3000)
+    monkeypatch.setattr(httpx, "post", lambda url, **_kw: httpx.Response(401, request=httpx.Request("POST", url)))
+    resp = ask_tutor("Hi?", [], TutorConfig(provider="kimi", api_key="bad"))
+    assert "rejected credentials" in resp.answer.lower()
+    after_err = budget.budget_snapshot(50, 1.0, now=3001)
+    assert after_err["cloud_requests_today"] == 0 and after_err["estimated_cost_usd"] == 0.0

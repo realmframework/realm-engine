@@ -209,8 +209,8 @@ async function runFormatSynthesis(formatId) {
     if (buf.trim()) { handle(buf); }
     if (stale()) { return; }
     if (doneSession) { currentTurns = (doneSession.turns || []).map(t => Object.assign({}, t, { collapsed: true })); renderChatStream(); await loadRecentChats(); refreshBudget(); }
-    else if (!stoppedFlag) { pendingTurn.loadingTutor = false; const partial = String(pendingTurn.streamingText || "").trim(); pendingTurn.tutor = { answer: partial || "Synthesis stream ended unexpectedly.", cited_titles: [], knowledge_gap_detected: !partial }; renderChatStream(); }
-  } catch (err) { if ((!err || err.name !== "AbortError") && !stale()) { pendingTurn.loadingTutor = false; pendingTurn.tutor = { answer: err.message || "Synthesis failed.", cited_titles: [], knowledge_gap_detected: true }; renderChatStream(); } }
+    else if (!stoppedFlag) { pendingTurn.loadingTutor = false; const partial = String(pendingTurn.streamingText || "").trim(); if (!partial) { pendingTurn.isError = true; } pendingTurn.tutor = { answer: partial || "Synthesis stream ended unexpectedly.", cited_titles: [], knowledge_gap_detected: false }; renderChatStream(); }
+  } catch (err) { if ((!err || err.name !== "AbortError") && !stale()) { pendingTurn.loadingTutor = false; pendingTurn.isError = true; pendingTurn.tutor = { answer: err.message || "Synthesis failed.", cited_titles: [], knowledge_gap_detected: false }; renderChatStream(); refreshBudget(); } }
   finally { if (activeController === controller) { activeController = null; activeRequestId = null; setLoadingState(false); } }
 }
 async function refreshContextUsage() {

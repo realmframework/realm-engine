@@ -1,14 +1,6 @@
 """Appearance customization panel and safe workspace settings reset controls."""
 
 APPEARANCE_FIELDS = r"""    <div class="flex flex-col gap-3 text-sm">
-      <div class="flex items-center justify-between gap-2"><span data-i18n="agent_name_title" class="text-xs uppercase tracking-wider text-[#738196] font-mono">Name Your Agent</span><button id="reset-agent-name-btn" type="button" hidden data-i18n="reset_agent_name" class="text-xs text-[#4BB8E8] hover:underline">Reset to Saga</button></div>
-      <div class="flex flex-col gap-1.5 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] p-3.5">
-        <label for="agent-name-input" data-i18n="agent_name_label" class="text-sm font-medium text-[#EEF2F8]">Agent Display Name</label>
-        <input id="agent-name-input" type="text" maxlength="40" value="Saga" placeholder="Saga" class="bg-[#0B1020] border border-[rgba(238,242,248,0.12)] focus:border-[#4BB8E8] rounded-lg px-3 py-1.5 text-sm text-[#EEF2F8] outline-none" />
-        <span data-i18n="agent_name_desc" class="text-xs text-[#A0B0C8]">Display name shown on AI replies and exported notes (default: Saga).</span>
-      </div>
-    </div>
-    <div class="flex flex-col gap-3 pt-3 border-t border-[rgba(238,242,248,0.08)] text-sm">
       <div class="flex items-center justify-between gap-2"><span data-i18n="appearance_logo_title" class="text-xs uppercase tracking-wider text-[#738196] font-mono">Workspace Logo</span><button id="reset-logo-btn" type="button" hidden data-i18n="reset_logo" class="text-xs text-[#4BB8E8] hover:underline">Reset Logo</button></div>
       <div class="flex items-center gap-3 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] p-3.5">
         <img id="settings-logo-preview" src="/static/logo-512.png" width="40" height="40" class="w-10 h-10 rounded-lg object-cover shrink-0" alt="Workspace logo preview" />
@@ -88,7 +80,7 @@ APPEARANCE_FIELDS = r"""    <div class="flex flex-col gap-3 text-sm">
         <input id="a11y-reduce-motion-toggle" type="checkbox" switch role="switch" class="shrink-0" />
       </label>
       <div class="pt-2 border-t border-[rgba(238,242,248,0.08)] flex items-center justify-between gap-3">
-        <span data-i18n="reset_appearance_note" class="text-xs text-[#738196]">Restore Saga, original REALM logo, System mode, and Realm palette.</span>
+        <span data-i18n="reset_appearance_note" class="text-xs text-[#738196]">Restore original REALM logo, System mode, and Realm palette.</span>
         <button id="reset-appearance-btn" type="button" data-i18n="reset_appearance" class="shrink-0 px-3 py-1.5 rounded-lg border border-[rgba(238,242,248,0.12)] hover:border-[#4BB8E8] text-xs text-[#A0B0C8] hover:text-[#EEF2F8] transition">Reset All Appearance</button>
       </div>
     </div>"""

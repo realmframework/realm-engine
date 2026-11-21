@@ -14,14 +14,31 @@ LOCK = RLock()
 MAX_REQUESTS_PER_MINUTE = 12
 MAX_OUTPUT_TOKENS = 1024
 ESTIMATE_USD_PER_MILLION_TOKENS = 10.0
+PROVIDER_TOKEN_RATES: dict[str, tuple[float, float]] = {
+    "kimi": (0.60, 2.50),
+    "deepseek": (0.30, 1.10),
+    "gemini": (0.30, 2.50),
+    "mistral": (0.40, 2.00),
+    "openai": (1.50, 6.00),
+    "xai": (2.00, 10.00),
+    "anthropic": (3.00, 15.00),
+}
+DEFAULT_TOKEN_RATE = (1.50, 6.00)
 
 
-def estimate_usage(text: str, output_tokens: int = MAX_OUTPUT_TOKENS, kind: str = "chat") -> tuple[int, float]:
-    """Reserve UTF-8 bytes as a conservative token count, plus framing and bounded output."""
-    tokens = len(text.encode("utf-8")) + (1024 if output_tokens else 0) + output_tokens
+def estimate_tokens_cost(input_tokens: int, output_tokens: int, provider: str = "") -> float:
+    """Estimate USD spend from input/output token counts using realistic provider rates."""
+    in_rate, out_rate = PROVIDER_TOKEN_RATES.get(provider.lower(), DEFAULT_TOKEN_RATE)
+    return round((max(0, input_tokens) * in_rate + max(0, output_tokens) * out_rate) / 1_000_000, 8)
+
+
+def estimate_usage(text: str, output_tokens: int = MAX_OUTPUT_TOKENS, kind: str = "chat", provider: str = "") -> tuple[int, float]:
+    """Estimate realistic input + bounded output tokens and provider-aware USD reservation."""
+    in_tokens = max(1, (len(text.encode("utf-8")) + 3) // 4)
     if kind.endswith("_speech"):
-        return tokens, round(len(text) * (0.000015 if kind == "openai_speech" else 0.0003), 8)
-    return tokens, round(tokens * ESTIMATE_USD_PER_MILLION_TOKENS / 1_000_000, 8)
+        return in_tokens, round(len(text) * (0.000015 if kind == "openai_speech" else 0.0003), 8)
+    reserved_out = min(max(0, output_tokens), 512)
+    return in_tokens + reserved_out, estimate_tokens_cost(in_tokens, reserved_out, provider)
 
 
 def _load(now: float) -> dict[str, object]:
@@ -90,6 +107,26 @@ def check_and_record_budget(provider: str, estimated_tokens: int = MAX_OUTPUT_TO
         except (OSError, ValueError, TypeError, KeyError):
             return "Cloud Budget Guardrail triggered: Usage state is unavailable. Reset the counter in Settings or switch to Local Ollama."
     return None
+
+
+def reconcile_budget(provider: str, reserved_tokens: int, reserved_cost: float, actual_tokens: int, actual_cost: float, now: float | None = None, refund_request: bool = False) -> None:
+    """Adjust today's reserved tokens/cost to observed usage, or refund failed calls."""
+    if provider == "ollama":
+        return
+    with LOCK:
+        try:
+            state = _load(time.time() if now is None else now)
+            used = int(str(state["cloud_requests_today"]))
+            toks = int(str(state["estimated_tokens_today"]))
+            spent = float(str(state["estimated_cost_usd"]))
+            state.update(
+                cloud_requests_today=max(0, used - 1) if refund_request else used,
+                estimated_tokens_today=max(0, toks + actual_tokens - reserved_tokens),
+                estimated_cost_usd=round(max(0.0, spent + actual_cost - reserved_cost), 8),
+            )
+            _save(state)
+        except (OSError, ValueError, TypeError, KeyError):
+            return
 
 
 def reset_budget(now: float | None = None) -> None:

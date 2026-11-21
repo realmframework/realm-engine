@@ -95,13 +95,15 @@ def test_ui_exposes_adaptive_color_scheme_and_custom_theme_controls(area_client:
     assert "color-mix(in oklab," in html
     assert "contrast-color(var(--accent))" in html
     for marker in (
-        'id="hero-logo"', 'id="workspace-logo-input"', 'id="agent-name-input"', 'id="theme-accent-picker"', 'id="theme-glow-picker"',
+        'id="hero-logo"', 'id="workspace-logo-input"', 'id="agent-studio-modal"', 'id="theme-accent-picker"', 'id="theme-glow-picker"',
         'data-theme-mode="system"', 'data-theme-mode="light"', 'id="ambient-aurora-canvas"', 'id="ambient-dots-canvas"', 'class="supernova-beam',
         'id="theme-ambient-toggle"', 'data-lang-choice="de"', 'data-lang-choice="es"',
         'id="onboarding-step-1"', 'id="onboarding-step-4"', 'id="onboarding-skip-btn"',
         '"Realm"', '"Lisbeth"', '"Salander"', '"Wasp"', '"Plague"', '"Blomkvist"', '"Millennium"', '"Erika"', '"Harriet"',
+        'id="cfg-new-folder-btn" type="button" data-i18n="new_area_btn"', 'openNewAreaDialog();', 'chat_err_badge',
     ):
         assert marker in html
+    assert 'id="agent-name-input"' not in html and 'id="onboarding-agent-name"' not in html
 
 
 def test_i18n_locales_have_full_parity_and_cover_every_referenced_key() -> None:

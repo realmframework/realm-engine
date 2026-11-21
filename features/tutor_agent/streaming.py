@@ -13,9 +13,9 @@ from core.contracts import SearchResult, TutorConfig
 from core.logging_config import get_logger
 from core.model_routing import async_ollama_slot
 from core.runtime import is_loopback_url
+from features.tutor_agent import budget as _budget
 from features.tutor_agent import prompt_builder as _pb
 from features.tutor_agent import providers as _prov
-from features.tutor_agent.budget import check_and_record_budget, estimate_usage
 from features.tutor_agent.service import fallback_tutor_response
 
 MAX_STREAM_SECONDS, MAX_STREAM_CHARS = 300.0, 131_072
@@ -50,14 +50,15 @@ async def stream_messages_events(messages: list[dict[str, str]], config: TutorCo
     """Yield live {type: 'thinking'|'token'|'meta'|'error'} dicts from the configured LLM provider."""
     check_cancelled()
     active_temp = config.temperature if temperature is None else temperature
-    est_in, cost = estimate_usage(str(messages), output_tokens=max_tokens)
-    if denied := check_and_record_budget(config.provider, est_in, config.daily_cloud_request_limit, config.daily_budget_usd_limit, cost):
+    est_tokens, cost = _budget.estimate_usage(str(messages), output_tokens=max_tokens, provider=config.provider)
+    est_in = max(1, est_tokens - min(max(0, max_tokens), 512))
+    if denied := _budget.check_and_record_budget(config.provider, est_tokens, config.daily_cloud_request_limit, config.daily_budget_usd_limit, cost):
         yield {"type": "error", "code": 429, "detail": denied}
         return
     url, body, headers, timeout = _build_stream_request(messages, config, active_temp, max_tokens=max_tokens)
     _, resolved_model, _ = _prov.resolve_endpoint(config)
     detach = attach_current_task(request_id)
-    started, emitted_chars, think_chars, real_usage, failed = time.perf_counter(), 0, 0, {}, False
+    started, emitted_chars, think_chars, real_usage, failed, used_fallback = time.perf_counter(), 0, 0, {}, False, False
     try:
         async with async_ollama_slot(config.provider, resolved_model), httpx.AsyncClient(timeout=timeout, trust_env=not is_loopback_url(url), follow_redirects=False) as client, client.stream("POST", url, json=body, headers=headers) as response:
             if response.status_code in {401, 403}:
@@ -68,7 +69,7 @@ async def stream_messages_events(messages: list[dict[str, str]], config: TutorCo
                 return
             if response.status_code >= 400:
                 if fallback_text:
-                    emitted_chars = len(fallback_text)
+                    emitted_chars, used_fallback = len(fallback_text), True
                     yield {"type": "token", "delta": fallback_text}
                 else:
                     yield {"type": "error", "code": response.status_code, "detail": f"AI provider returned HTTP {response.status_code}. Check model settings or try again."}
@@ -112,7 +113,7 @@ async def stream_messages_events(messages: list[dict[str, str]], config: TutorCo
     except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
         _LOG.warning("Provider stream interrupted (%s/%s): %s", config.provider, resolved_model, type(exc).__name__)
         if emitted_chars == 0 and fallback_text:
-            emitted_chars = len(fallback_text)
+            emitted_chars, used_fallback = len(fallback_text), True
             yield {"type": "token", "delta": fallback_text}
         else:
             failed = True
@@ -120,17 +121,16 @@ async def stream_messages_events(messages: list[dict[str, str]], config: TutorCo
             return
     finally:
         detach()
+        if used_fallback or (emitted_chars == 0 and think_chars == 0 and not real_usage):
+            _budget.reconcile_budget(config.provider, est_tokens, cost, 0, 0.0, refund_request=True)
+        else:
+            rec_in, rec_out = int(real_usage.get("prompt_tokens") or est_in), int(real_usage.get("completion_tokens") or max(1, (emitted_chars + think_chars + 3) // 4))
+            _budget.reconcile_budget(config.provider, est_tokens, cost, rec_in + rec_out, _budget.estimate_tokens_cost(rec_in, rec_out, config.provider))
     if failed:
         return
     elapsed_ms = max(1, int((time.perf_counter() - started) * 1000))
-    out_tokens = int(real_usage.get("completion_tokens") or max(1, (emitted_chars + 3) // 4))
-    in_tokens = int(real_usage.get("prompt_tokens") or est_in)
-    yield {
-        "type": "meta", "provider": config.provider, "model": resolved_model,
-        "prompt_tokens": in_tokens, "completion_tokens": out_tokens,
-        "thinking_tokens": max(0, (think_chars + 3) // 4), "duration_ms": elapsed_ms,
-        "tokens_per_sec": round(out_tokens / max(0.05, elapsed_ms / 1000.0), 1),
-    }
+    out_tokens, in_tokens = int(real_usage.get("completion_tokens") or max(1, (emitted_chars + 3) // 4)), int(real_usage.get("prompt_tokens") or est_in)
+    yield {"type": "meta", "provider": config.provider, "model": resolved_model, "prompt_tokens": in_tokens, "completion_tokens": out_tokens, "thinking_tokens": max(0, (think_chars + 3) // 4), "duration_ms": elapsed_ms, "tokens_per_sec": round(out_tokens / max(0.05, elapsed_ms / 1000.0), 1)}
 
 
 async def stream_tutor_events(question: str, results: list[SearchResult], config: TutorConfig | None = None, history: list[tuple[str, str]] | None = None, temperature: float | None = None, request_id: str | None = None, compacted_summary: str = "", attached_notes: list[dict[str, str]] | None = None, format_instruction: str = "", free_chat: bool = False, persona_instruction: str = "", web_search_requested: bool = False) -> AsyncIterator[dict[str, object]]:
