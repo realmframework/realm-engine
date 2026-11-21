@@ -36,16 +36,19 @@ Write-Host "==> Creating portable ZIP: $ZipPath"
 if (Test-Path $ZipPath) { Remove-Item -Force $ZipPath }
 Compress-Archive -Path "$DistAppDir\*" -DestinationPath $ZipPath -CompressionLevel Optimal
 
-$Iscc = Get-Command iscc -ErrorAction SilentlyContinue
-if (-not $Iscc) {
+$IsccPath = $null
+$IsccCmd = Get-Command iscc -ErrorAction SilentlyContinue
+if ($IsccCmd) {
+    $IsccPath = $IsccCmd.Source
+} else {
     $DefaultIscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-    if (Test-Path $DefaultIscc) { $Iscc = Get-Item $DefaultIscc }
+    if (Test-Path $DefaultIscc) { $IsccPath = $DefaultIscc }
 }
 
-if ($Iscc) {
+if ($IsccPath) {
     Write-Host "==> Building Windows Setup Installer with Inno Setup: $SetupPath"
     if (Test-Path $SetupPath) { Remove-Item -Force $SetupPath }
-    & $Iscc.FullName "/DAppVersion=$Version" "$Root\packaging\realm-engine.iss"
+    & $IsccPath "/DAppVersion=$Version" "$Root\packaging\realm-engine.iss"
     if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
 } else {
     Write-Warning "Inno Setup (iscc) not found; skipped setup.exe build (portable ZIP was created)."

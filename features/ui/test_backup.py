@@ -16,8 +16,8 @@ def archive_bytes(entries: dict[str, str | bytes]) -> bytes:
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for name, value in entries.items():
-            archive.writestr(name.replace("\x00", "_"), value)
-    return buffer.getvalue().replace(b"nul_.md", b"nul\x00.md")
+            archive.writestr(name.replace("\x00", "_").replace("\\", "!"), value)
+    return buffer.getvalue().replace(b"nul_.md", b"nul\x00.md").replace(b"a!escape.md", b"a\\escape.md")
 
 
 @pytest.mark.parametrize("name", ["../escape.md", "a/../../escape.md", "/absolute.md", "C:/drive.md", "a\\escape.md", "a/./b.md", "a//b.md", "../../ignored.txt", "../outside/", "nul\x00.md"])

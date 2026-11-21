@@ -108,14 +108,14 @@ def test_audit_is_read_only_and_scrub_is_area_local(area_client: TestClient, tmp
     assert report["clean_vault"] is False and report["unredacted_warnings"] == 5
     assert report["counts_by_type"]["NAME"] == 1 and report["audit_external_bytes_sent"] == 0
     assert report["benchmark"]["generation_evaluated"] is False
-    assert patient.read_text() == raw
+    assert patient.read_text(encoding="utf-8") == raw
     assert area_client.post("/api/compliance/scrub", json={"confirm": False}).status_code == 400
     assert area_client.post("/api/compliance/scrub", content='confirm=true', headers={"content-type": "application/x-www-form-urlencoded"}).status_code == 422
     scrubbed = area_client.post("/api/compliance/scrub", json={"confirm": True}).json()
     assert scrubbed["clean_vault"] and scrubbed["redacted_now"] == 5
     assert scrubbed["counts_by_type"]["DOB"] == 1 and scrubbed["counts_by_type"]["ADDRESS"] == 1
-    assert "14.03.1938" not in patient.read_text() and "[REDACTED_HEALTH_ID]" in patient.read_text()
-    assert (outside / "patient.md").read_text() == raw
+    assert "14.03.1938" not in patient.read_text(encoding="utf-8") and "[REDACTED_HEALTH_ID]" in patient.read_text(encoding="utf-8")
+    assert (outside / "patient.md").read_text(encoding="utf-8") == raw
     assert "[REDACTED_DOB]" in next(g for g in area_client.get("/api/guides").json() if g["doc_id"] == "patient")["sections"][0]["content"]
     assert area_client.post("/api/compliance/audit").json()["unredacted_warnings"] == 0
     stale = {"x-knowledge-area": "other"}

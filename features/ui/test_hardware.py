@@ -12,7 +12,7 @@ from features.ui import hardware
 
 def test_linux_physical_pages(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(hardware.sys, "platform", "linux")
-    monkeypatch.setattr(hardware.os, "sysconf", lambda key: 4096 if key == "SC_PAGE_SIZE" else 4_194_304)
+    monkeypatch.setattr(hardware.os, "sysconf", lambda key: 4096 if key == "SC_PAGE_SIZE" else 4_194_304, raising=False)
     assert hardware.physical_ram_gb() == 16
 
 
@@ -25,9 +25,9 @@ def test_mac_probe_and_safe_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
         raise subprocess.TimeoutExpired("sysctl", 1)
 
     monkeypatch.setattr(hardware.subprocess, "run", unavailable)
-    monkeypatch.setattr(hardware.os, "sysconf", lambda _key: 65536)
+    monkeypatch.setattr(hardware.os, "sysconf", lambda _key: 65536, raising=False)
     assert hardware.physical_ram_gb() == 4
-    monkeypatch.setattr(hardware.os, "sysconf", lambda _key: int("unavailable"))
+    monkeypatch.setattr(hardware.os, "sysconf", lambda _key: int("unavailable"), raising=False)
     assert hardware.physical_ram_gb() == 0
 
 

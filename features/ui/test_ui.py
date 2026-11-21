@@ -79,7 +79,7 @@ def test_chat_study_notes_save_in_active_library(tmp_path: Path, monkeypatch: py
     content += "\nContact learner@example.invalid\n"
     response = client.post("/api/upload", json={"filename": "conversation-study-notes-unique.md", "content": content, "tags": "study-notes"})
     assert response.status_code == 200 and response.json()["doc_count"] == 1
-    saved = (tmp_path / "conversation-study-notes-unique.md").read_text()
+    saved = (tmp_path / "conversation-study-notes-unique.md").read_text(encoding="utf-8")
     assert saved == (content.replace("learner@example.invalid", "[REDACTED_EMAIL]") if anonymize else content)
     assert response.json()["redacted_count"] == int(anonymize)
     guide = client.get("/api/guides?tag=study-notes").json()[0]
