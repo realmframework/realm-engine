@@ -24,6 +24,8 @@ def physical_ram_gb() -> int:
         return max(0, round(size / 1024**3))
     except (OSError, ValueError, AttributeError, subprocess.SubprocessError):
         try:
+            if sys.platform == "win32":
+                return 0
             return max(0, round(os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE") / 1024**3))
         except (OSError, ValueError, AttributeError):
             return 0
