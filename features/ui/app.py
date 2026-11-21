@@ -26,25 +26,14 @@ from features.tutor_agent.providers import list_provider_models
 from features.tutor_agent.service import ask_tutor as run_tutor
 from features.tutor_agent.streaming import stream_messages_events, stream_tutor_events
 from features.ui import (
-    agent_builder_routes,
-    appearance_routes,
-    area_routes,
-    audio_routes,
-    backup_routes,
-    budget_routes,
-    chat_routes,
-    compliance_routes,
-    document_routes,
     model_routes,
-    power_routes,
     public_config,
     public_rate_limit,
-    query_routes,
     selection,
     slides_source,
-    study_routes,
+    ui_routers,
+    work_bridge,
     workspace,
-    workspace_templates,
 )
 from features.ui.cloud_access import build_embedder, build_guard
 from features.ui.hardware import hardware_advice
@@ -52,6 +41,7 @@ from features.ui.privacy import require_local
 from features.ui.startup import area_lifespan
 from features.ui.template import HTML_PAGE
 from features.ui.upload_guard import upload_body_guard
+from features.work_board import router as work_board_router
 
 STATIC_DIR, AUTO_EMBED = bundle_root() / "features" / "ui" / "static", os.environ.get("REALM_AUTO_EMBED", "1").strip().lower() not in {"0", "false", "no"}
 secrets.load_dotenv_files()
@@ -118,20 +108,20 @@ def _build_local_app() -> FastAPI:
     local.add_middleware(upload_body_guard)
     local.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     cloud_guard = build_guard(lambda: WORKSPACE_CONFIG, budget.check_and_record_budget, budget.estimate_usage)
-    audio_routes.privacy_config, audio_routes.cloud_admission = (lambda: WORKSPACE_CONFIG), cloud_guard
-    for router in (
-        appearance_routes.build_router(lambda: WORKSPACE_CONFIG, _set_workspace_config), agent_builder_routes.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events),
-        backup_routes.build_router(lambda: WORKSPACE_CONFIG, activate_workspace), workspace_templates.build_router(lambda: WORKSPACE_CONFIG, activate_workspace),
-        model_routes.build_router(lambda: WORKSPACE_CONFIG, embedder.reset_ollama_status), audio_routes.router,
-        chat_routes.build_router(lambda: WORKSPACE_CONFIG, converters.convert_bytes_to_markdown, stream_messages_events, inspect_anonymization),
-        document_routes.build_router(lambda: WORKSPACE_CONFIG, _reindex, converters.convert_bytes_to_markdown, inspect_anonymization, anonymize_slug),
-        area_routes.build_router(lambda: WORKSPACE_CONFIG, activate_workspace, get_index, ingest_directory),
-        query_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, route_query_intent, hybrid_search, build_embedder(lambda *a, **kw: embed_text(*a, **kw), cloud_guard), lambda *args, **kwargs: run_tutor(*args, **kwargs), stream_tutor_events),
-        compliance_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, _reindex, inspect_anonymization, hybrid_search),
-        budget_routes.build_router(lambda: WORKSPACE_CONFIG, budget.budget_snapshot, budget.reset_budget, key_verify.verify_provider_key),
-        power_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, _reindex), study_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, stream_messages_events),
+    deps: dict[str, object] = {
+        "stream_messages": stream_messages_events, "reset_ollama": embedder.reset_ollama_status,
+        "convert_bytes": converters.convert_bytes_to_markdown, "inspect_anon": inspect_anonymization,
+        "anon_slug": anonymize_slug, "ingest_dir": ingest_directory, "route_intent": route_query_intent,
+        "hybrid_search": hybrid_search, "embedder": build_embedder(lambda *a, **kw: embed_text(*a, **kw), cloud_guard),
+        "run_tutor": lambda *args, **kwargs: run_tutor(*args, **kwargs), "stream_tutor": stream_tutor_events,
+        "budget_snapshot": budget.budget_snapshot, "reset_budget": budget.reset_budget, "verify_key": key_verify.verify_provider_key,
+    }
+    routers = (
+        *ui_routers.build_ui_routers(get_config=lambda: WORKSPACE_CONFIG, set_config=_set_workspace_config, activate_workspace=activate_workspace, get_index=get_index, reindex=_reindex, cloud_guard=cloud_guard, deps=deps),
         slides_router.build_router(slides_source.build_source_resolver(lambda: WORKSPACE_CONFIG, get_index)),
-    ):
+        work_board_router.build_router(lambda: WORKSPACE_CONFIG, work_bridge.build_work_source_resolver(lambda: WORKSPACE_CONFIG, get_index), stream_messages_events, work_bridge.build_work_vault_sync(lambda: WORKSPACE_CONFIG, _reindex), lambda: workspace.REPO_ROOT),
+    )
+    for router in routers:
         local.include_router(router)
     local.add_api_route("/favicon.ico", lambda: FileResponse(STATIC_DIR / "favicon.ico"), methods=["GET"], include_in_schema=False)
     local.add_api_route("/healthz", lambda: {"status": "ok", "mode": "local", "version": APP_VERSION}, methods=["GET"])

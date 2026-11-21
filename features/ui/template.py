@@ -15,6 +15,9 @@ from features.ui.script import CLIENT_SCRIPT
 from features.ui.sidebar_template import SIDEBAR_HTML
 from features.ui.study_template import STUDY_MODAL_HTML, STUDY_STYLES_CSS
 from features.ui.theme_styles import THEME_BRIDGE_CSS
+from features.ui.work_board_modals import WORK_BOARD_MODALS_HTML
+from features.ui.work_board_styles import WORK_BOARD_STYLES_CSS
+from features.ui.work_board_template import WORK_BOARD_HTML
 from features.ui.workflow_template import WORKFLOW_MODALS_HTML, WORKFLOW_STYLES_CSS
 
 MIC_SVG = '<svg aria-hidden="true" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3m-3 0h6"/></svg>'
@@ -154,6 +157,7 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
     + WORKFLOW_STYLES_CSS
     + STUDY_STYLES_CSS
     + POWER_STYLES_CSS
+    + WORK_BOARD_STYLES_CSS
     + """
 </head>
 <body class="bg-[#04060F] font-sans text-base text-[#EEF2F8] antialiased">
@@ -168,6 +172,8 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
   <main id="main-content" tabindex="-1" class="relative z-10 w-full flex-1 flex flex-col pt-0 outline-none">
     <div id="graph-view" class="graph-viewport hidden w-full relative overflow-hidden bg-[#04060F]"></div>
 """
+    + WORK_BOARD_HTML
+    + "\n"
     + """    <div id="workspace-shell" class="flex flex-col w-full flex-1 justify-center items-center px-4 sm:px-6">
       <div id="active-stream" tabindex="-1" class="hidden w-full max-w-3xl flex-1 pt-8 pb-16 flex-col gap-8 outline-none">
         <div id="chat-stream" class="flex flex-col gap-8 w-full max-w-3xl"></div>
@@ -237,6 +243,7 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
     + WORKFLOW_MODALS_HTML
     + STUDY_MODAL_HTML
     + POWER_MODAL_HTML
+    + WORK_BOARD_MODALS_HTML
     + "\n"
     + CLIENT_SCRIPT
     + "\n</body>\n</html>\n"

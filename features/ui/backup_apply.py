@@ -8,7 +8,8 @@ from fastapi import HTTPException
 
 from core.contracts import WorkspaceConfig
 from core.db import atomic_write_bytes
-from core.linked_vaults import cache_index_for_dir, is_linked_vault
+from core.linked_vaults import cache_index_for_dir, cache_study_path, is_linked_vault
+from core.work_contracts import WorkBoardState
 from features.ui import chat_store, folders, workspace
 from features.ui.backup_archive import MAX_ARCHIVE_BYTES, bounded_bytes
 from features.ui.backup_state import restored_state
@@ -33,7 +34,10 @@ def apply_restore(entries: dict[str, bytes], active: WorkspaceConfig, activate: 
                 raise HTTPException(status_code=409, detail="An existing guide differs. Restore into a new workspace to keep both versions.")
         else:
             planned.append((path, raw))
-    metadata = {workspace.WORKSPACE_FILE, chat_path, cache_index_for_dir(target, workspace.REPO_ROOT)}
+    wb_path = cache_study_path(active.knowledge_dir, "work_board.json", workspace.REPO_ROOT)
+    wb_raw = entries.get("work_board.json")
+    wb_state = WorkBoardState.model_validate_json(wb_raw.decode("utf-8")) if wb_raw is not None else None
+    metadata = {workspace.WORKSPACE_FILE, chat_path, cache_index_for_dir(target, workspace.REPO_ROOT), wb_path}
     original = {p: bounded_bytes(p, MAX_ARCHIVE_BYTES) if p.exists() else None for p in metadata}
     if any(p.is_symlink() for p in metadata) or chat_path.with_suffix(".json.tmp").is_symlink():
         raise ValueError("Restore storage cannot be a symbolic link")
@@ -55,6 +59,8 @@ def apply_restore(entries: dict[str, bytes], active: WorkspaceConfig, activate: 
                 created.append(path)
                 handle.write(raw)
         chat_store.save_chats(chats, chat_path)
+        if wb_state is not None:
+            atomic_write_bytes(wb_path, wb_state.model_dump_json(indent=2).encode("utf-8"))
         payload = activate(config)
     except Exception:
         for path in reversed(created):

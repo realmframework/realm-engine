@@ -192,6 +192,7 @@ function renderTurnTutorHtml(turn, tIdx) {
   const speakBtn = isVoiceEnabled() ? "<button type='button' data-speak-turn='" + tIdx + "' aria-pressed='" + String(speaking) + "' class='turn-icon-btn' title='" + escapeHtml(speakLbl) + "' aria-label='" + escapeHtml(speakLbl) + "'>" + (speaking ? STOP_SVG : SPEAKER_SVG) + "</button>" : "";
   const exportMenu = typeof exportMenuHtml === "function" ? exportMenuHtml("turn", tIdx, false, true) : "";
   const moreItems = "<button type='button' data-review-turn='" + tIdx + "' class='turn-popover-item'>" + escapeHtml(t("chat_cross_examine")) + "…</button>"
+    + "<button type='button' data-extract-turn='" + tIdx + "' class='turn-popover-item'>" + escapeHtml(t("wb_extract_to_board")) + "</button>"
     + "<button type='button' data-format-turn='" + tIdx + "' class='turn-popover-item'>" + escapeHtml(t("chat_format_btn")) + "</button>"
     + (knowledgeAreas.length ? "<button type='button' data-save-turn='" + tIdx + "' class='turn-popover-item'>" + escapeHtml(t("chat_save_guide")) + "</button>" : "")
     + (currentChatId ? "<button type='button' data-fork-turn='" + tIdx + "' class='turn-popover-item'>" + escapeHtml(t("chat_fork")) + "</button>" : "");
@@ -241,6 +242,7 @@ function renderChatStream() {
   streamEl.querySelectorAll("[data-copy-turn]").forEach(function (btn) { btn.addEventListener("click", function () { copyTurnAnswer(Number(btn.getAttribute("data-copy-turn") || 0), btn); }); });
   streamEl.querySelectorAll("[data-format-turn]").forEach(function (btn) { btn.addEventListener("click", function () { closeMore(btn); if (typeof openFormatStudio === "function") { openFormatStudio("browse"); } }); });
   streamEl.querySelectorAll("[data-review-turn]").forEach(function (btn) { btn.addEventListener("click", function () { closeMore(btn); if (typeof openCrossExamineModal === "function") { openCrossExamineModal(Number(btn.getAttribute("data-review-turn") || 0)); } }); });
+  streamEl.querySelectorAll("[data-extract-turn]").forEach(function (btn) { btn.addEventListener("click", function () { closeMore(btn); const idx = Number(btn.getAttribute("data-extract-turn") || 0), trn = currentTurns[idx]; if (trn && trn.tutor && typeof extractTasksToBoard === "function") { extractTasksToBoard({ chat_id: currentChatId || "", turn_index: idx, text: trn.tutor.answer || "" }); } }); });
   streamEl.querySelectorAll("[data-fork-turn]").forEach(function (btn) { btn.addEventListener("click", function () { closeMore(btn); if (typeof forkChatAtTurn === "function") { forkChatAtTurn(Number(btn.getAttribute("data-fork-turn") || 0)); } }); });
   streamEl.querySelectorAll("[data-save-turn]").forEach(function (btn) { btn.addEventListener("click", function () { closeMore(btn); saveTurnToLibrary(Number(btn.getAttribute("data-save-turn") || 0)); }); });
   streamEl.querySelectorAll("[data-topic]").forEach(function (btn) { btn.addEventListener("click", function () { queryEl.value = btn.dataset.topic || ""; submitQuery(); }); });

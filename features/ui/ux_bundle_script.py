@@ -9,6 +9,7 @@ from features.ui.guide_script import GUIDE_SCRIPT
 from features.ui.mention_script import MENTION_SCRIPT
 from features.ui.power_script import POWER_SCRIPT
 from features.ui.study_script import STUDY_SCRIPT
+from features.ui.work_board_script import WORK_BOARD_SCRIPT
 from features.ui.workflow_script import WORKFLOW_SCRIPT
 
 UX_BUNDLE_SCRIPT: str = (
@@ -22,6 +23,7 @@ UX_BUNDLE_SCRIPT: str = (
     + POWER_SCRIPT
     + GUIDE_SCRIPT
     + AGENT_BUILDER_SCRIPT
+    + WORK_BOARD_SCRIPT
     + r"""
 function bindAllUXBundles() {
   for (const fn of [
@@ -35,6 +37,7 @@ function bindAllUXBundles() {
     typeof bindPowerUX === "function" && bindPowerUX,
     typeof bindGuideUX === "function" && bindGuideUX,
     typeof bindAgentBuilderUX === "function" && bindAgentBuilderUX,
+    typeof bindWorkBoardUX === "function" && bindWorkBoardUX,
   ]) {
     if (fn) { try { fn(); } catch (err) { console.error("UX bundle init failed:", err); } }
   }

@@ -76,6 +76,7 @@ function applyWorkspacePayload(ws) {
   workspaceDocCount = Number(ws.doc_count || 0); workspacePrompts = Array.isArray(ws.starter_prompts) ? ws.starter_prompts : [];
   document.getElementById("sidebar-guide-count").textContent = String(workspaceDocCount); document.getElementById("home-guide-count").textContent = String(workspaceDocCount);
   renderLibraryTopics(); if (workspacePrompts.length) { ideaOffset = 0; renderSeedIdeas(); }
+  if (typeof loadWorkBoardSummary === "function") { loadWorkBoardSummary(false); }
 }
 async function loadWorkspace() {
   const version = areaVersion;

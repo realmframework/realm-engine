@@ -1,6 +1,6 @@
 [project]
 name = "realm-engine"
-version = "0.4.0"
+version = "0.5.0"
 description = "Local-first Hybrid RAG & Multi-Turn AI Knowledge Engine with optional read-only public API mode."
 readme = "README.md"
 license = "MIT"

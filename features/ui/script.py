@@ -88,6 +88,7 @@ function setLoadingState(loading) {
   }
 }
 function setViewMode(active, hideDock) {
+  if (typeof closeWorkBoardView === "function") { closeWorkBoardView(); }
   if (typeof setAmbientDimmed === "function") { setAmbientDimmed(Boolean(active)); }
   const shell = document.getElementById("workspace-shell"), dock = document.getElementById("search-dock"), stream = document.getElementById("active-stream"), gv = document.getElementById("graph-view");
   shell.classList.remove("hidden"); if (gv) { gv.classList.add("hidden"); }

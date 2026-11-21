@@ -81,7 +81,7 @@ def read_archive(raw: bytes) -> dict[str, bytes]:
             if info.is_dir():
                 entries[str(path) + "/"] = b""
                 continue
-            if path.suffix.lower() == ".md" or str(path) in {"workspace.json", "chats.json"}:
+            if path.suffix.lower() == ".md" or str(path) in {"workspace.json", "chats.json", "work_board.json"}:
                 with archive.open(info) as handle:
                     content = handle.read(MAX_FILE_BYTES + 1)
                 if len(content) != info.file_size or len(content) > MAX_FILE_BYTES:

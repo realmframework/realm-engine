@@ -187,7 +187,7 @@ for (const linkId of ["link-vault-btn", "settings-link-vault-btn"]) {
   if (el) { el.addEventListener("click", linkExistingFolder); }
 }
 async function initializeWorkspace() {
-  try { await loadWorkspace(); await Promise.all([loadKeyStatus().then(loadModels), loadSystemStatus(), loadRecentChats(), loadGuidesCatalog(null)]); }
+  try { await loadWorkspace(); await Promise.all([loadKeyStatus().then(loadModels), loadSystemStatus(), loadRecentChats(), loadGuidesCatalog(null), typeof loadWorkBoardSummary === "function" ? loadWorkBoardSummary(true) : Promise.resolve()]); }
   catch (error) { areaStatus(t("st_ws_load_err")); }
 }
 """
