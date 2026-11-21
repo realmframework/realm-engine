@@ -184,6 +184,8 @@ function buildSlashCommands() {
   cmds.push(
     { group: "slash_grp_modes", slug: "free", label: "/free", desc: t("slash_free_d"), kind: "mode", action: () => { if (typeof setFreeChatMode === "function") { setFreeChatMode(!freeChatMode); } } },
     { group: "slash_grp_modes", slug: "new", label: "/new", desc: t("slash_new_d"), kind: "mode", action: () => resetHome() },
+    { group: "slash_grp_modes", slug: "cards", label: "/cards", desc: t("slash_cards_d"), kind: "mode", action: () => { if (typeof openStudyDeck === "function") { openStudyDeck({}); } } },
+    { group: "slash_grp_modes", slug: "gaps", label: "/gaps", desc: t("slash_gaps_d"), kind: "mode", action: () => { if (typeof openGapAnalysisModal === "function") { openGapAnalysisModal(); } } },
     { group: "slash_grp_modes", slug: "help", label: "/help", desc: t("slash_help_d"), kind: "mode", action: () => { if (typeof openGuideModal === "function") { openGuideModal(); } } }
   );
   return cmds;
@@ -212,18 +214,14 @@ async function applySlashCommand(cmd, trailingText, autoSend) {
   closeSlashMenu();
   const rest = String(trailingText || "").trim();
   if (cmd.kind === "recipe") {
-    if (autoSend && rest) {
-      queryEl.value = "";
-      if (typeof clearActiveSlashRecipe === "function") { clearActiveSlashRecipe(); }
+    const autoQ = autoSend ? (rest || (typeof standaloneRecipeQuery === "function" ? standaloneRecipeQuery(cmd) : "")) : "";
+    if (autoQ) {
+      queryEl.value = ""; if (typeof clearActiveSlashRecipe === "function") { clearActiveSlashRecipe(); }
       if (typeof autoResizeQuery === "function") { autoResizeQuery(); }
-      runSearch(true, { displayQuery: rest, instructionPrefix: cmd.prefix });
-      return;
+      runSearch(true, { displayQuery: autoQ, instructionPrefix: cmd.prefix }); return;
     }
     if (typeof setActiveSlashRecipe === "function") { setActiveSlashRecipe(cmd); }
-    queryEl.value = rest;
-    if (typeof autoResizeQuery === "function") { autoResizeQuery(); }
-    queryEl.focus();
-    return;
+    queryEl.value = rest; if (typeof autoResizeQuery === "function") { autoResizeQuery(); } queryEl.focus(); return;
   }
   if (cmd.kind === "agent") {
     queryEl.value = rest; if (typeof autoResizeQuery === "function") { autoResizeQuery(); } queryEl.focus();

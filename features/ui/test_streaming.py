@@ -104,3 +104,37 @@ def test_per_message_web_search_requires_explicit_chat_flag(monkeypatch: pytest.
     _, on_res, _ = query_engine.retrieve(ChatTurnRequest(query="today news", use_web_search=True), [], [], route, local_search, embed, policy)
     assert len(on_res) == 1 and on_res[0].chunk.url == "https://example.com" and called == ["today news"]
     assert ws_mod.search_web_context("blocked", WorkspaceConfig(strict_local_only=True, web_search_enabled=True)) == []
+
+
+def test_standalone_slash_recipe_with_history_and_agent_color_streaming_markers(area_client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / "slash_area").mkdir()
+    monkeypatch.setattr(workspace, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(chat_store, "CHATS_FILE", tmp_path / "chats_slash.json")
+    chunks = [KnowledgeChunk(id="c1", title="Intro", file_path="intro.md", content="Hybrid search guide", tags=[])]
+    calls: list[str] = []
+
+    async def fake_stream(question: str, results: list[SearchResult], config: TutorConfig | None = None, history: list[tuple[str, str]] | None = None, **_kw: object) -> AsyncIterator[dict[str, object]]:
+        calls.append(question)
+        yield {"type": "token", "delta": "Question 1: What is hybrid search?"}
+
+    app = FastAPI()
+    app.include_router(
+        query_routes.build_router(
+            lambda: WorkspaceConfig(knowledge_dir="slash_area", active_dirs=["slash_area"]),
+            lambda: chunks,
+            lambda q, **_kw: {"label": "Exact", "intent": "lookup", "routed_query": q, "top_k": 5, "retrieval_mode": "lexical", "rrf_k": 60},
+            lambda q, _c, **_kw: [SearchResult(chunk=chunks[0], score=0.9)] if "hybrid" in q.query.lower() else [],
+            lambda *_a, **_kw: [],
+            lambda *_a, **_kw: None,  # type: ignore[arg-type,return-value]
+            fake_stream,
+        )
+    )
+    client = TestClient(app)
+    r1 = client.post("/api/chats/quiz-1/turn/stream", json={"query": "Explain hybrid search", "ask_tutor": True, "retrieval_mode": "lexical"})
+    assert r1.status_code == 200 and "Question 1" in r1.text
+    r2 = client.post("/api/chats/quiz-1/turn/stream", json={"query": "Quiz — our conversation above", "instruction_prefix": "Quiz me one question at a time: ", "ask_tutor": True, "retrieval_mode": "lexical"})
+    assert r2.status_code == 200 and "Question 1" in r2.text and len(calls) == 2
+    html = area_client.get("/").text
+    for marker in ("turnAuthorColor", "turn-author-heading", "--turn-seed:", "md-body is-streaming", "standaloneRecipeQuery", '"/cards"', '"/gaps"'):
+        assert marker in html
+    assert "<span class='stream-cursor'" not in html

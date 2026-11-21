@@ -81,9 +81,22 @@ html, body { background-color: var(--background) !important; color: var(--text) 
 .ambient-stage.is-dimmed { opacity: 0.22; }
 .ambient-stage.is-dimmed.is-speaking { opacity: 0.44; }
 .ambient-stage.is-off { display: none; }
-.stream-cursor { display: inline-block; width: 0.5rem; height: 1.05em; margin-inline-start: 0.2rem; vertical-align: -0.15em; border-radius: 2px; background: var(--accent); opacity: 0.85; }
-@media (prefers-reduced-motion: no-preference) { .stream-cursor { animation: realm-caret 0.9s steps(2, start) infinite; } }
-@keyframes realm-caret { to { opacity: 0.15; } }
+.stream-cursor { display: inline-block; width: 0.48em; height: 0.48em; margin-inline-start: 0.35em; vertical-align: 0.08em; border-radius: 9999px; background: var(--turn-accent, var(--accent)); opacity: 0.85; }
+.turn-themed { --turn-accent: color-mix(in oklab, var(--turn-seed, var(--accent-seed)) 50%, #04060F); }
+.turn-author-heading { color: var(--turn-accent, var(--accent)); }
+.turn-themed .md-list-marker { color: var(--turn-accent, var(--accent)) !important; }
+@media (prefers-color-scheme: dark) {
+  .turn-themed { --turn-accent: color-mix(in oklab, var(--turn-seed, var(--accent-seed)) 88%, white); }
+}
+@supports (color: light-dark(white, black)) {
+  .turn-themed { --turn-accent: light-dark(color-mix(in oklab, var(--turn-seed, var(--accent-seed)) 50%, #04060F), color-mix(in oklab, var(--turn-seed, var(--accent-seed)) 88%, white)); }
+}
+.md-body.is-streaming > :is(p, h1, h2, h3, h4, h5, h6, blockquote):last-child::after,
+.md-body.is-streaming > :is(ul, ol):last-child > li:last-child::after { content: ""; display: inline-block; width: 0.48em; height: 0.48em; margin-inline-start: 0.35em; vertical-align: 0.08em; border-radius: 9999px; background: var(--turn-accent, var(--accent)); box-shadow: 0 0 8px color-mix(in oklab, var(--turn-accent, var(--accent)) 52%, transparent); }
+@media (prefers-reduced-motion: no-preference) {
+  .stream-cursor, .md-body.is-streaming > :is(p, h1, h2, h3, h4, h5, h6, blockquote):last-child::after, .md-body.is-streaming > :is(ul, ol):last-child > li:last-child::after { animation: realm-stream-dot 1.15s ease-in-out infinite; }
+}
+@keyframes realm-stream-dot { 0%, 100% { opacity: 0.92; transform: scale(1); } 50% { opacity: 0.32; transform: scale(0.8); } }
 #global-drop-overlay { background: color-mix(in oklab, var(--background) 74%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 #ambient-aurora-canvas { position: absolute; inset: -6%; width: 112%; height: 112%; display: block; filter: blur(22px); opacity: 0.94; transform: translateZ(0); }
 #ambient-dots-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }

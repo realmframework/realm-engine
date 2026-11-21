@@ -86,7 +86,7 @@ def build_router(config: Callable[[], contracts.WorkspaceConfig], index: Callabl
                 yield _sse("retrieval", {"results": [r.model_dump() for r in results], "router_decision": routed, "rag_config": {"retrieval_mode": query.retrieval_mode, "top_k": query.top_k, "rrf_k": query.rrf_k, "temperature": payload.temperature, "router_label": routed["label"]}})
                 if not payload.ask_tutor:
                     response: contracts.TutorResponse | None = None
-                elif not is_free and not results and not notes:
+                elif not is_free and not results and not notes and not (history and payload.instruction_prefix.strip()):
                     msg = "No matching source passages were found in this scope. I cannot provide a grounded answer; try another question, attach a note, or switch to Free Chat."
                     yield _sse("token", {"delta": msg})
                     response = contracts.TutorResponse(answer=msg, cited_titles=[], knowledge_gap_detected=True, recommended_topics=[])

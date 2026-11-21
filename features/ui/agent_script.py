@@ -23,6 +23,12 @@ function turnAuthorName(turn) {
   }
   return (workspaceConfig && workspaceConfig.agent_name) || "Saga";
 }
+function turnAuthorColor(turn) {
+  if (!syncAgentPalette || !turn || !Array.isArray(agentTeam) || !agentTeam.length) { return ""; }
+  const ag = (turn.agent_id && agentTeam.find(a => a.id === turn.agent_id))
+    || (turn.agent_name && agentTeam.find(a => String(a.name || "").toLowerCase() === String(turn.agent_name).toLowerCase()));
+  return (ag && ag.palette) ? (paletteColorsFor(ag.palette).accent || "") : "";
+}
 function paletteColorsFor(paletteId) {
   const presets = typeof THEME_PRESETS !== "undefined" ? THEME_PRESETS : [];
   return presets.find(p => p.id === paletteId) || presets[0] || { accent: "#4BB8E8", glow: "#6366F1" };
@@ -312,6 +318,7 @@ function bindAgentControls() {
       chk.addEventListener("change", async function () {
         syncAgentPalette = Boolean(chk.checked); syncActiveAgentBadge();
         if (syncAgentPalette) { applyPaletteForAgent(activeAgentObj(), !isInsideChat()); }
+        if (typeof currentTurns !== "undefined" && currentTurns.length && typeof renderChatStream === "function") { renderChatStream(); }
         await fetch("/api/agents/select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sync_agent_palette: syncAgentPalette }) }).catch(() => {});
       });
     }

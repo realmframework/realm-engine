@@ -9,12 +9,22 @@ function scheduleStreamRender() {
   requestAnimationFrame(function () {
     streamRenderScheduled = false;
     const idx = currentTurns.length - 1, last = idx >= 0 ? currentTurns[idx] : null;
-    const bodyEl = last && last.loadingTutor && last.streamingText ? document.getElementById("turn-" + idx + "-stream-body") : null;
-    if (bodyEl) {
-      bodyEl.innerHTML = formatMarkdown(last.streamingText, true, 3) + "<span class='stream-cursor' aria-hidden='true'></span>";
-      return;
+    if (!last || !last.loadingTutor) { return; }
+    const target = String(last.streamingText || ""), bodyEl = target ? document.getElementById("turn-" + idx + "-stream-body") : null;
+    if (!bodyEl) { last.displayedChars = target.length; renderChatStream(); return; }
+    const shown = typeof last.displayedChars === "number" ? last.displayedChars : 0, backlog = target.length - shown;
+    if (backlog <= 0) { return; }
+    const reduced = typeof prefersReducedMotion === "function" && prefersReducedMotion();
+    let nextLen = (reduced || backlog <= 4) ? target.length : Math.min(target.length, shown + Math.max(4, Math.ceil(backlog * 0.3)));
+    if (nextLen < target.length) {
+      const ws = target.slice(nextLen, nextLen + 5).search(/[\s.,;:!?]/);
+      if (ws >= 0) { nextLen += ws + 1; }
     }
-    renderChatStream();
+    last.displayedChars = nextLen;
+    bodyEl.innerHTML = formatMarkdown(target.slice(0, nextLen), true, 3);
+    const sc = document.getElementById("active-stream");
+    if (sc && sc.scrollHeight - sc.scrollTop - sc.clientHeight < 120) { sc.scrollTop = sc.scrollHeight; }
+    if (nextLen < target.length) { scheduleStreamRender(); }
   });
 }
 async function runStreamingTurn(chatId, bodyObj, headers, signal, pendingTurn, turnIdx, version) {

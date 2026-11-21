@@ -10,12 +10,12 @@ html.realm-dyslexic body, html.realm-dyslexic .md-body, html.realm-dyslexic .com
 html.realm-hc-focus { --border: light-dark(rgba(11, 16, 32, 0.44), rgba(238, 242, 248, 0.44)); --border-subtle: light-dark(rgba(11, 16, 32, 0.24), rgba(238, 242, 248, 0.24)); }
 html.realm-hc-focus :where(a:any-link, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 3px solid var(--accent) !important; outline-offset: 3px !important; }
 html.realm-reduce-motion .ambient-stage { display: none !important; }
-html.realm-reduce-motion .stream-cursor, html.realm-reduce-motion .animate-pulse, html.realm-reduce-motion .animate-spin { animation: none !important; }
+html.realm-reduce-motion .stream-cursor, html.realm-reduce-motion .md-body.is-streaming *::after, html.realm-reduce-motion .animate-pulse, html.realm-reduce-motion .animate-spin { animation: none !important; }
 html.realm-reduce-motion #sidebar, html.realm-reduce-motion #main-shell, html.realm-reduce-motion html.no-native-switch input[type="checkbox"][switch]::before, html.realm-reduce-motion .study-progress-fill { transition: none !important; }
 html.realm-reduce-motion .active\:scale-95:active { transform: none !important; }
 html.realm-reduce-motion ::view-transition-group(*), html.realm-reduce-motion ::view-transition-old(*), html.realm-reduce-motion ::view-transition-new(*) { animation: none !important; }
 @media (prefers-reduced-motion: reduce) {
-  .animate-pulse, .animate-spin, .stream-cursor { animation: none !important; }
+  .animate-pulse, .animate-spin, .stream-cursor, .md-body.is-streaming *::after { animation: none !important; }
   #sidebar, #main-shell, .study-progress-fill, html.no-native-switch input[type="checkbox"][switch]::before { transition: none !important; }
   .active\:scale-95:active { transform: none !important; }
 }

@@ -209,7 +209,12 @@ function stopActiveRequest() {
 function resetHome() { activeScope = { subfolder: null, doc_id: null }; renderScopeChoices(); if (typeof resetXrayOverrides === "function") { resetXrayOverrides(); } if (typeof clearActiveSlashRecipe === "function") { clearActiveSlashRecipe(); } abortActiveRequest(); if (activeRecognition) { activeRecognition.abort(); activeRecognition = null; } stopActiveAudio(); stopGraphSimulation(); currentChatId = null; currentTurns = []; if (typeof activeAttachedNotes !== "undefined") { activeAttachedNotes = []; lastContextUsage = null; inspectorOpen = false; } if (typeof renderAttachedChips === "function") { renderAttachedChips(); } if (typeof restoreDefaultAgent === "function") { restoreDefaultAgent(); } document.getElementById("chat-stream").replaceChildren(); queryEl.value = ""; if (typeof autoResizeQuery === "function") { autoResizeQuery(); } setActiveTag(null); setViewMode(false); renderTutor(null); renderResults([], false); renderRecentChats(); if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); } queryEl.focus(); }
 async function runSearch(withTutor, opts) {
   const opt = opts || {}, version = areaVersion, recipe = !opt.instructionPrefix && typeof consumeActiveSlashRecipe === "function" ? consumeActiveSlashRecipe() : null;
-  const q = (opt.displayQuery !== undefined ? String(opt.displayQuery) : queryEl.value).trim(), effInstr = String(opt.instructionPrefix || (recipe && recipe.prefix) || "").trim();
+  let q = (opt.displayQuery !== undefined ? String(opt.displayQuery) : queryEl.value).trim();
+  const effInstr = String(opt.instructionPrefix || (recipe && recipe.prefix) || "").trim();
+  if (!q && recipe) {
+    q = typeof standaloneRecipeQuery === "function" ? standaloneRecipeQuery(recipe) : "";
+    if (!q) { if (typeof setActiveSlashRecipe === "function") { setActiveSlashRecipe(recipe); } queryEl.focus(); return; }
+  }
   const effAgentId = opt.agentId || (typeof resolveMentionedAgent === "function" && resolveMentionedAgent(q)) || (typeof activeAgentId !== "undefined" && activeAgentId) || "saga", effAgentName = typeof agentNameById === "function" ? agentNameById(effAgentId) : activeAgentName();
   const useTutor = appliedRunMode !== "search" && (withTutor !== undefined ? withTutor : (askTutorToggle.checked && q.length > 0));
   abortActiveRequest();
@@ -253,7 +258,7 @@ async function runSearch(withTutor, opts) {
   finally { if (activeController === controller) { activeController = null; activeRequestId = null; setLoadingState(false); } }
 }
 async function askTutor() { askTutorToggle.checked = appliedRunMode !== "search"; await runSearch(askTutorToggle.checked); }
-function submitQuery() { if (typeof tryExpandInlineSlashSubmit === "function" && tryExpandInlineSlashSubmit()) { return; } if (queryEl.value.trim() || selectedTag) { runSearch(askTutorToggle.checked && queryEl.value.trim().length > 0); } else { queryEl.focus(); } }
+function submitQuery() { if (typeof tryExpandInlineSlashSubmit === "function" && tryExpandInlineSlashSubmit()) { return; } const hasRec = typeof activeSlashRecipe !== "undefined" && Boolean(activeSlashRecipe); if (queryEl.value.trim() || selectedTag || hasRec) { runSearch(askTutorToggle.checked && (queryEl.value.trim().length > 0 || hasRec)); } else { queryEl.focus(); } }
 document.getElementById("search-form").addEventListener("submit", function (e) { e.preventDefault(); if (activeController) { stopActiveRequest(); return; } submitQuery(); }); document.getElementById("model-refresh").addEventListener("click", loadModels);
 if (submitBtn) { submitBtn.addEventListener("click", function (e) { if (activeController) { e.preventDefault(); stopActiveRequest(); } }); }
 document.addEventListener("keydown", function (e) { if (e.key === "Escape" && activeController && !document.querySelector("dialog[open]")) { stopActiveRequest(); } });

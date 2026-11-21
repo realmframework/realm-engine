@@ -66,5 +66,6 @@ select option { background-color: var(--surface-raised) !important; color: var(-
   #prompt-container { border: 1px solid ButtonBorder !important; box-shadow: none !important; }
   #prompt-container:focus-within { outline: 2px solid Highlight !important; }
   #seed-chips .seed-chip, #more-ideas-btn, #home-browse-btn { background: Canvas !important; border: 1px solid ButtonBorder !important; color: ButtonText !important; }
+  .turn-author-heading { color: Highlight !important; }
 }
 """

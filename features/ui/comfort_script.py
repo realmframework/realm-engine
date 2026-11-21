@@ -8,16 +8,44 @@ let readingComfort = { reading_font: "default", reading_scale: "md", reading_wid
 let activeSlashRecipe = null;
 const SUPPORTS_FIELD_SIZING = typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("field-sizing", "content");
 
+function hasSlashContext() {
+  const hasTurns = typeof currentTurns !== "undefined" && Array.isArray(currentTurns) && currentTurns.length > 0;
+  const hasNotes = typeof activeAttachedNotes !== "undefined" && Array.isArray(activeAttachedNotes) && activeAttachedNotes.length > 0;
+  const hasScope = typeof activeScope !== "undefined" && Boolean(activeScope && (activeScope.doc_id || activeScope.subfolder));
+  const hasVault = (typeof freeChatMode === "undefined" || !freeChatMode) && typeof knowledgeAreas !== "undefined" && Array.isArray(knowledgeAreas) && knowledgeAreas.length > 0;
+  return hasTurns || hasNotes || hasScope || hasVault;
+}
+
+function standaloneRecipeQuery(rec) {
+  if (!rec || !hasSlashContext()) { return ""; }
+  const hasTurns = typeof currentTurns !== "undefined" && Array.isArray(currentTurns) && currentTurns.length > 0;
+  const hasNotes = typeof activeAttachedNotes !== "undefined" && Array.isArray(activeAttachedNotes) && activeAttachedNotes.length > 0;
+  let target = "";
+  if (hasTurns) { target = t("slash_target_chat"); }
+  else if (hasNotes) { target = t("slash_target_notes"); }
+  else if (typeof activeScope !== "undefined" && activeScope && activeScope.doc_id) {
+    const g = (typeof allGuides !== "undefined" && Array.isArray(allGuides)) ? allGuides.find(x => x.doc_id === activeScope.doc_id) : null;
+    target = (g && g.title) || t("slash_target_doc");
+  } else if (typeof activeScope !== "undefined" && activeScope && activeScope.subfolder) {
+    target = activeScope.subfolder;
+  } else {
+    const title = (typeof workspaceConfig === "object" && workspaceConfig && workspaceConfig.app_title) || "";
+    const firstGuide = (typeof allGuides !== "undefined" && Array.isArray(allGuides) && allGuides.length) ? allGuides[0].title : "";
+    target = (title && title !== "My Knowledge Base") ? title : (firstGuide || t("slash_target_ws"));
+  }
+  return (rec.chip || rec.slug || "Run") + " — " + target;
+}
+
 function setActiveSlashRecipe(cmd) {
   activeSlashRecipe = cmd ? { slug: cmd.slug, chip: cmd.chip || cmd.label, prefix: cmd.prefix || "" } : null;
   const chip = document.getElementById("recipe-chip"), lbl = document.getElementById("recipe-chip-label");
-  if (!chip || !lbl) { return; }
-  if (activeSlashRecipe) {
-    lbl.textContent = activeSlashRecipe.chip;
-    chip.hidden = false;
-  } else {
-    lbl.textContent = "";
-    chip.hidden = true;
+  if (chip && lbl) {
+    if (activeSlashRecipe) { lbl.textContent = activeSlashRecipe.chip; chip.hidden = false; }
+    else { lbl.textContent = ""; chip.hidden = true; }
+  }
+  if (typeof queryEl !== "undefined" && queryEl) {
+    if (activeSlashRecipe) { queryEl.placeholder = hasSlashContext() ? t("slash_ph_ready") : t("slash_ph_topic"); }
+    else { queryEl.placeholder = (typeof isActiveView !== "undefined" && isActiveView) ? t("ask_followup") : (typeof defaultPlaceholder !== "undefined" ? defaultPlaceholder : "Ask anything..."); }
   }
 }
 
