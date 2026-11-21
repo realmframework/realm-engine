@@ -1,5 +1,6 @@
 """Compose scoped retrieval and deterministic refusal before any answer generation."""
 
+import inspect
 from collections.abc import Callable
 
 from core.contracts import (
@@ -45,7 +46,7 @@ def retrieve(payload: ChatTurnRequest, chunks: list[KnowledgeChunk], history: li
     return query, stripped, routed
 
 
-def answer(payload: ChatTurnRequest, results: list[SearchResult], history: list[tuple[str, str]], tutor: Callable[..., TutorResponse], policy: WorkspaceConfig) -> TutorResponse | None:
+def answer(payload: ChatTurnRequest, results: list[SearchResult], history: list[tuple[str, str]], tutor: Callable[..., TutorResponse], policy: WorkspaceConfig, persona_instruction: str = "") -> TutorResponse | None:
     if not payload.ask_tutor:
         return None
     if not results:
@@ -56,4 +57,6 @@ def answer(payload: ChatTurnRequest, results: list[SearchResult], history: list[
         updates["reasoning_effort"] = "low"
         history = history[-2:]
     config = config.model_copy(update=updates)
-    return tutor(payload.query, results, config, history=history, temperature=payload.temperature)
+    params = inspect.signature(tutor).parameters
+    extra = {"persona_instruction": persona_instruction} if persona_instruction and ("persona_instruction" in params or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())) else {}
+    return tutor(payload.query, results, config, history=history, temperature=payload.temperature, **extra)

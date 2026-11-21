@@ -29,11 +29,12 @@ def _sse(event: str, data: dict[str, object]) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 def _cited(results: list[contracts.SearchResult]) -> list[str]:
-    return list(dict.fromkeys(r.chunk.title for r in results[:5] if r.chunk.title))
+    web = [r.chunk.title for r in results if (r.chunk.url or "web" in r.chunk.tags) and r.chunk.title]
+    return list(dict.fromkeys([*web, *(r.chunk.title for r in results if r.chunk.title and r.chunk.title not in web)][:8]))
 
 def build_router(config: Callable[[], contracts.WorkspaceConfig], index: Callable[[], list[contracts.KnowledgeChunk]], route: Callable[..., dict[str, object]], search: Callable[..., list[contracts.SearchResult]], embed: Callable[..., list[float]], stream_tutor: StreamTutorFn) -> APIRouter:
-    router = APIRouter()
-    rich_stream = bool({"free_chat", "persona_instruction"} & set(inspect.signature(stream_tutor).parameters))
+    router, params = APIRouter(), set(inspect.signature(stream_tutor).parameters)
+    rich_stream, supports_web_flag = bool({"free_chat", "persona_instruction"} & params), "web_search_requested" in params
 
     @router.post("/api/chats/{chat_id}/turn/stream")
     async def append_stream(chat_id: str, payload: contracts.ChatTurnRequest, request: Request, x_api_key: str | None = Header(default=None, alias="x-api-key"), x_request_id: str | None = Header(default=None, alias="x-request-id")) -> StreamingResponse:
@@ -92,7 +93,8 @@ def build_router(config: Callable[[], contracts.WorkspaceConfig], index: Callabl
                 else:
                     await asyncio.to_thread(model_routing.maybe_unload_previous_ollama, eff_prov, eff_model or "qwen3:8b")
                     t_cfg = workspace.build_tutor_config(eff_prov, eff_model or None, eff_key, payload.temperature).model_copy(update={"daily_cloud_request_limit": active.daily_cloud_request_limit, "daily_budget_usd_limit": active.daily_budget_usd_limit, "response_language": active.language, **({"reasoning_effort": "low"} if active.eco_mode else {})})
-                    stream_it = stream_tutor(payload.query, results, t_cfg, history=history, temperature=payload.temperature, request_id=x_request_id, compacted_summary=summary, attached_notes=notes, format_instruction=fmt_instr, free_chat=is_free, persona_instruction=persona_instr) if rich_stream else stream_tutor(payload.query, results, t_cfg, history=history, temperature=payload.temperature, request_id=x_request_id)
+                    web_kw = {"web_search_requested": bool(payload.use_web_search and not active.strict_local_only and active.web_search_enabled)} if supports_web_flag else {}
+                    stream_it = stream_tutor(payload.query, results, t_cfg, history=history, temperature=payload.temperature, request_id=x_request_id, compacted_summary=summary, attached_notes=notes, format_instruction=fmt_instr, free_chat=is_free, persona_instruction=persona_instr, **web_kw) if rich_stream else stream_tutor(payload.query, results, t_cfg, history=history, temperature=payload.temperature, request_id=x_request_id)
                     async for item in stream_it:
                         if await request.is_disconnected():
                             raise InterruptedError("Generation stopped by user.")

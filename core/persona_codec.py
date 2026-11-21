@@ -84,12 +84,18 @@ def parse_persona_md(raw: str, fallback_id: str, file_path: str = "") -> AgentPe
 
 
 def build_persona_prompt(agent: AgentPersona | None) -> str:
-    """Build a crisp analytical lens block injected below REALM grounding & safety rules."""
+    """Build a crisp identity and analytical lens block placed at the top of the system prompt."""
     if agent is None:
         return ""
     body = agent.instructions.strip()
     if not body and not agent.role:
         return ""
-    header = f"[ACTIVE AGENT PERSONA: {agent.name} — {agent.role}]"
+    tagline = f" {agent.tagline.strip()}" if agent.tagline.strip() else ""
+    header = f"[ACTIVE AGENT PERSONA: {agent.name} — {agent.role}]\nYou are {agent.name}, the {agent.role} inside REALM Engine.{tagline}"
+    identity = (
+        f"When asked who you are, what your name is, or what you do, introduce yourself directly as {agent.name} ({agent.role} in REALM Engine). "
+        "Never introduce yourself as Kimi, Moonshot AI, ChatGPT, OpenAI, Claude, Anthropic, Gemini, DeepSeek, or any underlying model vendor "
+        "unless the user explicitly asks which underlying LLM model is powering you."
+    )
     guard = "Apply this analytical lens and communication style without breaking factual grounding, citations, or untrusted-document safety rules. Stay professional — never break into fictional cosplay."
-    return f"{header}\n{guard}\n\n{body}".strip()
+    return f"{header}\n{identity}\n{guard}\n\n{body}".strip()

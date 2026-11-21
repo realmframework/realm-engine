@@ -133,9 +133,9 @@ async def stream_messages_events(messages: list[dict[str, str]], config: TutorCo
     }
 
 
-async def stream_tutor_events(question: str, results: list[SearchResult], config: TutorConfig | None = None, history: list[tuple[str, str]] | None = None, temperature: float | None = None, request_id: str | None = None, compacted_summary: str = "", attached_notes: list[dict[str, str]] | None = None, format_instruction: str = "", free_chat: bool = False, persona_instruction: str = "") -> AsyncIterator[dict[str, object]]:
+async def stream_tutor_events(question: str, results: list[SearchResult], config: TutorConfig | None = None, history: list[tuple[str, str]] | None = None, temperature: float | None = None, request_id: str | None = None, compacted_summary: str = "", attached_notes: list[dict[str, str]] | None = None, format_instruction: str = "", free_chat: bool = False, persona_instruction: str = "", web_search_requested: bool = False) -> AsyncIterator[dict[str, object]]:
     tutor_config = config or TutorConfig()
-    messages = _pb.build_stream_messages(question, results, history=history, response_language=tutor_config.response_language, compacted_summary=compacted_summary, attached_notes=attached_notes, format_instruction=format_instruction, free_chat=free_chat, persona_instruction=persona_instruction)
+    messages = _pb.build_stream_messages(question, results, history=history, response_language=tutor_config.response_language, compacted_summary=compacted_summary, attached_notes=attached_notes, format_instruction=format_instruction, free_chat=free_chat, persona_instruction=persona_instruction, web_search_requested=web_search_requested)
     fallback = "" if free_chat else fallback_tutor_response(question, results).answer
     async for ev in stream_messages_events(messages, tutor_config, temperature=temperature, request_id=request_id, fallback_text=fallback):
         yield ev

@@ -70,7 +70,7 @@ def build_router(
                         raise HTTPException(status_code=409, detail="Conversation scope is locked. Start a new chat to change it.")
                     payload = payload.model_copy(update={"subfolder": existing.subfolder, "doc_id": existing.doc_id})
                 payload = payload.model_copy(update={"api_key": x_api_key or payload.api_key})
-                agent, _ = active_persona_prompt(workspace.REPO_ROOT, payload.agent_id or active.active_agent, active.agent_name)
+                agent, persona_instr = active_persona_prompt(workspace.REPO_ROOT, payload.agent_id or active.active_agent, active.agent_name)
                 eff_prov, eff_model, eff_key, is_pinned, model_notice = model_routing.resolve_agent_model(agent, active, payload.provider, payload.model, payload.api_key)
                 require_local(active, eff_prov, eff_model)
             _, full_history, _ = context_meter.active_history_for_session(existing)
@@ -81,7 +81,7 @@ def build_router(
                 model_routing.maybe_unload_previous_ollama(eff_prov, eff_model or "qwen3:8b")
             tutor_q = f"{payload.instruction_prefix.strip()}\n\n{payload.query}" if payload.instruction_prefix.strip() else payload.query
             tutor_payload = payload.model_copy(update={"query": tutor_q, "provider": eff_prov, "model": eff_model or None, "api_key": eff_key})
-            response = query_engine.answer(tutor_payload, results, history, tutor, active)
+            response = query_engine.answer(tutor_payload, results, history, tutor, active, persona_instruction=persona_instr)
             cancellation.check_cancelled()
             telemetry = {"provider": eff_prov, "model": eff_model, "pinned_agent_model": is_pinned, **({"notice": model_notice} if model_notice else {})}
             turn = contracts.ChatTurn(query=payload.query, tag=payload.tag, ask_tutor=payload.ask_tutor, tutor=response, results=results, created_at=chat_store.utc_now_iso(), top_k=query.top_k, retrieval_mode=query.retrieval_mode, rrf_k=query.rrf_k, temperature=payload.temperature, subfolder=payload.subfolder, doc_id=payload.doc_id, telemetry=telemetry, agent_id=agent.id, agent_name=agent.name)

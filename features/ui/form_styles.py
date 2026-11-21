@@ -65,7 +65,7 @@ input[type="checkbox"][switch] {
   accent-color: var(--accent); margin: 0; cursor: pointer; flex-shrink: 0;
 }
 input[type="checkbox"][switch]:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 3px; border-radius: 999px; }
-html.has-native-switch input[type="checkbox"][switch] { transform: scale(1.18); transform-origin: right center; }
+html.has-native-switch input[type="checkbox"][switch] { transform: scale(1.12); transform-origin: center; margin-inline: 0.5rem 0.2rem; }
 html.no-native-switch input[type="checkbox"][switch] {
   -webkit-appearance: none; appearance: none; position: relative;
   inline-size: 2.75rem; block-size: 1.55rem; border-radius: 9999px;

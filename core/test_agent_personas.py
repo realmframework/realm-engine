@@ -62,5 +62,7 @@ def test_cannot_delete_last_agent_and_prompt_keeps_craft_guardrail(tmp_path: Pat
     agent, prompt = agent_personas.active_persona_prompt(tmp_path, "saga")
     assert agent.id == "saga"
     assert "[ACTIVE AGENT PERSONA: Saga" in prompt
+    assert "You are Saga, the Lead Knowledge Agent inside REALM Engine." in prompt
+    assert "Never introduce yourself as Kimi" in prompt
     assert "never break into fictional cosplay" in prompt
     assert build_persona_prompt(None) == ""

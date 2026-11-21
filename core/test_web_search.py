@@ -56,3 +56,20 @@ def test_ollama_web_and_searxng_providers(monkeypatch: pytest.MonkeyPatch) -> No
 
     bad_scheme = WorkspaceConfig(strict_local_only=False, web_search_enabled=True, web_search_provider="searxng", searxng_url="file:///etc/passwd")
     assert web_search.search_web_context("bad", bad_scheme) == []
+
+
+def test_duckduckgo_lite_fallback_and_preamble_cleanup(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen_queries: list[tuple[str, str]] = []
+    lite_html = '<a rel="nofollow" href="https://huyenchip.com/" class=\'result-link\'>Chip Huyen</a><td class="result-snippet">Author of AI Engineering.</td>'
+
+    def fake_post(url: str, data: dict[str, str], **_kw: object) -> httpx.Response:
+        seen_queries.append((url, data["q"]))
+        if "lite.duckduckgo.com" in url:
+            return httpx.Response(200, text=lite_html)
+        return httpx.Response(202, text="<html>challenge</html>")
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    cfg = WorkspaceConfig(strict_local_only=False, web_search_enabled=True, web_search_provider="duckduckgo")
+    results = web_search.search_web_context("Can you search the web for Chip Huyen AI Engineering?", cfg)
+    assert len(results) == 1 and results[0].chunk.url == "https://huyenchip.com/"
+    assert seen_queries == [(web_search.DDG_HTML_URL, "Chip Huyen AI Engineering"), (web_search.DDG_LITE_URL, "Chip Huyen AI Engineering")]

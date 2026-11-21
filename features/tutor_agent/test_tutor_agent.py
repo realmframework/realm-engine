@@ -121,3 +121,25 @@ def test_list_provider_models_uses_real_endpoints_and_filters(monkeypatch: pytes
     assert list_provider_models("gemini", api_key="gk") == ["kimi-k3.1-pro"]
     assert seen_urls[-1] == "https://generativelanguage.googleapis.com/v1beta/openai/models"
     assert list_provider_models("openai") == FALLBACK_MODELS["openai"]
+
+
+def test_stream_prompt_prioritizes_agent_identity_and_preserves_live_web_urls() -> None:
+    from features.tutor_agent.prompt_builder import build_stream_messages
+
+    big_vault = [
+        SearchResult(chunk=KnowledgeChunk(id=f"v-{i}", title=f"Vault {i}", file_path=f"v{i}.md", content="A" * 5000, tags=[]), score=0.9)
+        for i in range(8)
+    ]
+    web_hit = SearchResult(
+        chunk=KnowledgeChunk(id="web-1", title="Web — Chip Huyen", file_path="https://huyenchip.com/", url="https://huyenchip.com/", content="AI Engineering author site.", tags=["web"]),
+        score=0.62,
+    )
+    persona = "[ACTIVE AGENT PERSONA: Saga — Lead Knowledge Agent]\nYou are Saga, the Lead Knowledge Agent inside REALM Engine."
+    msgs = build_stream_messages("Find Chip Huyen's site", [*big_vault, web_hit], persona_instruction=persona, web_search_requested=True)
+    assert msgs[0]["content"].startswith("[ACTIVE AGENT PERSONA: Saga")
+    assert "LIVE WEB SEARCH ACTIVE" in msgs[0]["content"]
+    assert "<live_web_search_results>" in msgs[1]["content"]
+    assert "URL: https://huyenchip.com/" in msgs[1]["content"]
+    assert msgs[1]["content"].index("<live_web_search_results>") < msgs[1]["content"].index("<untrusted_document_context>")
+    empty_web = build_stream_messages("Latest news", [], persona_instruction=persona, web_search_requested=True)
+    assert "LIVE WEB SEARCH ATTEMPTED" in empty_web[0]["content"]
