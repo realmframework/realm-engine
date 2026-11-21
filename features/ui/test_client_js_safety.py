@@ -24,7 +24,7 @@ from features.ui.studio_script import STUDIO_SCRIPT
 def _run_node(code: str) -> str:
     if not shutil.which("node"):
         pytest.skip("node binary not installed")
-    res = subprocess.run(["node", "-e", code], capture_output=True, text=True, check=False, timeout=10)
+    res = subprocess.run(["node", "-"], input=code, capture_output=True, text=True, encoding="utf-8", check=False, timeout=10)
     assert res.returncode == 0, f"Node failed:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}"
     return res.stdout
 
@@ -37,7 +37,7 @@ def test_client_script_passes_node_syntax_check() -> None:
         handle.write(js)
         tmp_path = Path(handle.name)
     try:
-        res = subprocess.run(["node", "--check", str(tmp_path)], capture_output=True, text=True, check=False, timeout=10)
+        res = subprocess.run(["node", "--check", str(tmp_path)], capture_output=True, text=True, encoding="utf-8", check=False, timeout=10)
         assert res.returncode == 0, res.stderr
     finally:
         tmp_path.unlink(missing_ok=True)

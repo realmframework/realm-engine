@@ -21,7 +21,7 @@ def _run_js(expression: str) -> str:
     node = shutil.which("node")
     assert node is not None
     script = _ESCAPE_HELPER + MARKDOWN_SCRIPT + f"\nconsole.log(JSON.stringify({expression}));"
-    out = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True, timeout=5)
+    out = subprocess.run([node, "-"], input=script, capture_output=True, text=True, encoding="utf-8", check=True, timeout=5)
     return str(json.loads(out.stdout))
 
 

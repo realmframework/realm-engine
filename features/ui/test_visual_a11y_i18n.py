@@ -139,7 +139,7 @@ def test_markdown_lists_are_semantic_ul_ol_and_respect_heading_base() -> None:
         return
     prelude = 'function escapeHtml(v){return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/\'/g,"&#39;");}\n' + MARKDOWN_SCRIPT
     code = prelude + "\nconsole.log(JSON.stringify({ul:formatMarkdown('- One\\n- Two'),ol:formatMarkdown('1. First\\n2. Second'),h:formatMarkdown('# Top\\n## Sub',false,3)}));"
-    out = json.loads(subprocess.run([node, "-e", code], capture_output=True, text=True, check=True, timeout=5).stdout)
+    out = json.loads(subprocess.run([node, "-"], input=code, capture_output=True, text=True, encoding="utf-8", check=True, timeout=5).stdout)
     assert "<ul role='list' class='md-list'>" in out["ul"] and "<li class='md-list-item'" in out["ul"] and "aria-hidden='true'" in out["ul"]
     assert "<ol role='list' class='md-list'>" in out["ol"] and "<li class='md-list-item'" in out["ol"]
     assert "<h3 " in out["h"] and "<h4 " in out["h"] and "<h1" not in out["h"]
