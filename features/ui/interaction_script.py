@@ -82,7 +82,9 @@ function bindSidebarDrawer() {
   syncSidebarDrawer("");
 }
 function bindRovingTablist(selector, onSelect) {
-  const tabs = Array.from(document.querySelectorAll(selector));
+  const tabs = typeof selector === "string"
+    ? Array.from(document.querySelectorAll(selector))
+    : (selector && typeof selector.querySelectorAll === "function" ? Array.from(selector.querySelectorAll("[role='tab']")) : []);
   tabs.forEach(function (tab, idx) {
     tab.addEventListener("keydown", function (e) {
       let next = null;

@@ -296,9 +296,11 @@ function tryExpandInlineSlashSubmit() {
 
 function bindCommandUX() {
   const modal = document.getElementById("cmd-palette-modal"), inp = document.getElementById("cmd-palette-input"), sideBtn = document.getElementById("sidebar-cmd-btn");
+  const closeBtn = document.getElementById("close-cmd-palette");
   const kbdEl = document.getElementById("sidebar-cmd-kbd"), recReset = document.getElementById("recipe-reset-btn");
   if (kbdEl && !/mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent || "")) { kbdEl.textContent = "Ctrl K"; }
   if (modal && inp) { modal.addEventListener("close", function () { inp.setAttribute("aria-expanded", "false"); }); }
+  if (closeBtn && modal) { closeBtn.addEventListener("click", function () { if (modal.open) { modal.close(); } }); }
   if (sideBtn) { sideBtn.addEventListener("click", openCommandPalette); }
   if (recReset) { recReset.addEventListener("click", () => { if (typeof clearActiveSlashRecipe === "function") { clearActiveSlashRecipe(); } if (queryEl) { queryEl.focus(); } }); }
   if (inp) {

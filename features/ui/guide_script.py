@@ -23,15 +23,20 @@ function bindGuideUX() {
       btn.addEventListener("click", () => setGuideTab(btn.getAttribute("data-guide-tab") || "shortcuts"));
     });
     if (typeof bindRovingTablist === "function") {
-      bindRovingTablist(tablist, (btn) => setGuideTab(btn.getAttribute("data-guide-tab") || "shortcuts"));
+      bindRovingTablist("#guide-tabs [data-guide-tab]", (btn) => setGuideTab(btn.getAttribute("data-guide-tab") || "shortcuts"));
     }
   }
+  const openGuide = () => {
+    setGuideTab("shortcuts");
+    if (typeof openGuideModal === "function") { openGuideModal(); }
+    else if (modal && !modal.open) { modal.showModal(); }
+  };
   const settingsGuideBtn = document.getElementById("settings-open-guide-btn");
   if (settingsGuideBtn) {
     settingsGuideBtn.addEventListener("click", () => {
       const settingsModal = document.getElementById("settings-modal");
       if (settingsModal && settingsModal.open) { settingsModal.close(); }
-      if (typeof openQuickGuide === "function") { openQuickGuide(); }
+      openGuide();
     });
   }
   if (modal) {
@@ -39,13 +44,10 @@ function bindGuideUX() {
       btn.addEventListener("click", () => {
         const target = btn.getAttribute("data-guide-jump");
         modal.close();
-        if (target === "onboarding" && typeof openOnboardingModal === "function") { openOnboardingModal(); }
-        else if (target === "agents" && typeof openAgentsModal === "function") { openAgentsModal(); }
-        else if (target === "formats" && typeof openFormatStudioModal === "function") { openFormatStudioModal(); }
-        else if (target === "settings") {
-          const sm = document.getElementById("settings-modal");
-          if (sm && !sm.open) { sm.showModal(); }
-        }
+        if (target === "onboarding" && typeof openOnboardingWizard === "function") { openOnboardingWizard(1); }
+        else if (target === "agents" && typeof openAgentStudio === "function") { openAgentStudio("roster"); }
+        else if (target === "formats" && typeof openFormatStudio === "function") { openFormatStudio("browse"); }
+        else if (target === "settings" && typeof openSettings === "function") { openSettings("workspace"); }
       });
     });
   }
@@ -53,7 +55,7 @@ function bindGuideUX() {
     if ((e.metaKey || e.ctrlKey) && e.key === "/") {
       e.preventDefault();
       if (modal && modal.open) { modal.close(); }
-      else if (typeof openQuickGuide === "function") { openQuickGuide(); }
+      else { openGuide(); }
       return;
     }
     if (e.key === "?" && !e.metaKey && !e.ctrlKey && !e.altKey) {
@@ -61,7 +63,7 @@ function bindGuideUX() {
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (document.activeElement && document.activeElement.isContentEditable)) { return; }
       if (document.querySelector("dialog[open]")) { return; }
       e.preventDefault();
-      if (typeof openQuickGuide === "function") { openQuickGuide(); }
+      openGuide();
     }
   });
 }

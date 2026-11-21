@@ -72,7 +72,7 @@ COMMAND_PALETTE_HTML: str = r"""<dialog id="cmd-palette-modal" closedby="any" ar
   <div id="cmd-palette-head">
     <svg aria-hidden="true" class="w-4 h-4 text-[#4BB8E8] shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m20 20-3.5-3.5"/></svg>
     <input id="cmd-palette-input" type="search" role="combobox" aria-labelledby="cmd-palette-title" aria-expanded="false" aria-controls="cmd-palette-list" aria-autocomplete="list" autocomplete="off" spellcheck="false" autofocus data-i18n-placeholder="cmd_placeholder" placeholder="Search guides, chats, agents, workspaces, or actions…" />
-    <kbd class="cmd-kbd shrink-0">ESC</kbd>
+    <button id="close-cmd-palette" type="button" aria-label="Close dialog" data-i18n-aria-label="aria_close_dialog" class="h-8 w-8 rounded-full text-[#738196] hover:text-[#EEF2F8] hover:bg-white/[0.06] flex items-center justify-center text-sm shrink-0 transition">✕</button>
   </div>
   <div id="cmd-palette-list" role="listbox" aria-label="Search results"></div>
   <div id="cmd-palette-foot">

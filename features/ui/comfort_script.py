@@ -61,6 +61,7 @@ function openGuideModal() {
   const modal = document.getElementById("guide-modal");
   if (!modal) { return; }
   if (modal.open) { modal.close(); return; }
+  if (typeof setGuideTab === "function") { setGuideTab("shortcuts"); }
   modal.showModal();
 }
 

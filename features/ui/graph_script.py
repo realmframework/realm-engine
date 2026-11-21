@@ -103,6 +103,7 @@ async function openGraphView(scope) {
     });
   }
   function fitNodes(subset, immediate) {
+    const reduced = isReduced();
     const list = subset && subset.length ? subset : nodes;
     if (!list.length) {
       tZoom = 1; tCamX = 0; tCamY = 0; panVx = 0; panVy = 0;
@@ -152,6 +153,7 @@ async function openGraphView(scope) {
     return n.clusterIdx >= 0 ? pal.clusters[n.clusterIdx % pal.clusters.length] : pal.accent;
   }
   function draw() {
+    const reduced = isReduced();
     const pal = graphThemeColors(), nodeScale = Math.pow(zoom, 0.65), fontScale = Math.pow(zoom, 0.82);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = 1; ctx.clearRect(0, 0, width, height);
     drawGraphBackdrop(ctx, width, height, zoom, camX, camY, pal, centers, areas);

@@ -22,15 +22,19 @@ UX_BUNDLE_SCRIPT: str = (
     + GUIDE_SCRIPT
     + r"""
 function bindAllUXBundles() {
-  if (typeof bindComfortControls === "function") { bindComfortControls(); }
-  if (typeof bindCommandUX === "function") { bindCommandUX(); }
-  if (typeof bindMentionUX === "function") { bindMentionUX(); }
-  if (typeof bindEditorUX === "function") { bindEditorUX(); }
-  if (typeof bindWorkflowUX === "function") { bindWorkflowUX(); }
-  if (typeof bindStudyUX === "function") { bindStudyUX(); }
-  if (typeof bindEcoSyncUX === "function") { bindEcoSyncUX(); }
-  if (typeof bindPowerUX === "function") { bindPowerUX(); }
-  if (typeof bindGuideUX === "function") { bindGuideUX(); }
+  for (const fn of [
+    typeof bindComfortControls === "function" && bindComfortControls,
+    typeof bindCommandUX === "function" && bindCommandUX,
+    typeof bindMentionUX === "function" && bindMentionUX,
+    typeof bindEditorUX === "function" && bindEditorUX,
+    typeof bindWorkflowUX === "function" && bindWorkflowUX,
+    typeof bindStudyUX === "function" && bindStudyUX,
+    typeof bindEcoSyncUX === "function" && bindEcoSyncUX,
+    typeof bindPowerUX === "function" && bindPowerUX,
+    typeof bindGuideUX === "function" && bindGuideUX,
+  ]) {
+    if (fn) { try { fn(); } catch (err) { console.error("UX bundle init failed:", err); } }
+  }
 }
 """
 )

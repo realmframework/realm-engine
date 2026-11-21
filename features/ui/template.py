@@ -212,7 +212,7 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
           </div>
           <div class="flex flex-wrap items-center gap-5 mt-2 pt-1">
             <button id="more-ideas-btn" type="button" data-i18n="more_ideas" class="text-xs font-medium text-[#738196] hover:text-[#4BB8E8] transition-colors flex items-center gap-1">↻ More ideas</button>
-            <button id="home-browse-btn" type="button" class="text-xs font-medium text-[#738196] hover:text-[#EEF2F8] transition-colors flex items-center gap-1.5"><span><span data-i18n="browse_guides_pre">Browse all </span><span id="home-guide-count">40</span><span data-i18n="browse_guides_post"> documents →</span></span></button>
+            <button id="home-browse-btn" type="button" class="text-xs font-medium text-[#738196] hover:text-[#EEF2F8] transition-colors flex items-center gap-1.5"><span><span data-i18n="browse_guides_pre">Browse all </span><span id="home-guide-count">0</span><span data-i18n="browse_guides_post"> documents →</span></span></button>
           </div>
         </div>
       </div>

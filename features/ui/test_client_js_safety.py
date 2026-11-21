@@ -130,3 +130,17 @@ def test_query_engine_retrieve_applies_muted_and_pinned_doc_ids() -> None:
     assert "doc-a" not in doc_ids
     assert doc_ids[0] == "doc-c"
     assert "doc-b" in doc_ids
+
+
+def test_graph_guide_search_close_and_boot_isolation_guards() -> None:
+    from features.ui.command_template import COMMAND_PALETTE_HTML
+    from features.ui.graph_script import GRAPH_SCRIPT
+    from features.ui.guide_script import GUIDE_SCRIPT
+    from features.ui.sidebar_template import SIDEBAR_HTML
+
+    assert GRAPH_SCRIPT.count("const reduced = isReduced();") >= 2
+    assert 'bindRovingTablist("#guide-tabs [data-guide-tab]"' in GUIDE_SCRIPT
+    for bad in ("openQuickGuide", "openOnboardingModal", "openAgentsModal", "openFormatStudioModal"):
+        assert bad not in GUIDE_SCRIPT
+    assert 'id="close-cmd-palette"' in COMMAND_PALETTE_HTML and "<kbd" not in COMMAND_PALETTE_HTML
+    assert ">40<" not in SIDEBAR_HTML and "try { fn(); } catch" in CLIENT_SCRIPT

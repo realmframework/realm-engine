@@ -34,11 +34,11 @@ async function deleteLibraryGuide(guide, previousTag) {
   } catch (error) { areaStatus(error.message); }
 }
 function bindDialogFallbacks() {
-  if (!("closedBy" in HTMLDialogElement.prototype)) {
-    const outside = function (e, d) { const r = d.getBoundingClientRect(); return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom; };
-    for (const d of document.querySelectorAll('dialog[closedby="any"]')) {
-      let pressedOutside = false; d.addEventListener("pointerdown", function (e) { pressedOutside = outside(e, d); }); d.addEventListener("pointerup", function (e) { if (pressedOutside && outside(e, d)) { d.close(); } });
-    }
+  const outside = function (e, d) { const r = d.getBoundingClientRect(); return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom; };
+  for (const d of document.querySelectorAll('dialog[closedby="any"]')) {
+    let pressedOutside = false;
+    d.addEventListener("pointerdown", function (e) { pressedOutside = e.target === d && outside(e, d); });
+    d.addEventListener("pointerup", function (e) { if (pressedOutside && e.target === d && outside(e, d) && d.open) { d.close(); } pressedOutside = false; });
   }
   document.getElementById("new-area-form").addEventListener("submit", createKnowledgeArea);
   document.getElementById("new-area-btn").addEventListener("click", openNewAreaDialog);

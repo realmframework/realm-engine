@@ -196,7 +196,9 @@ async function loadGuidesCatalog(tagFilter) {
 async function openLibraryCatalog(tagFilter) {
   const version = areaVersion;
   abortActiveRequest(); stopGraphSimulation(); currentChatId = null; currentTurns = []; if (typeof syncInspectorSidebar === "function") { inspectorOpen = false; syncInspectorSidebar(); } document.getElementById("chat-stream").replaceChildren(); renderRecentChats();
-  setViewMode(true, true); renderTutor(null); chunksHeader.classList.add("hidden"); document.getElementById("stream-divider").classList.add("hidden"); resultsEl.classList.remove("hidden");
+  await setViewMode(true, true);
+  if (version !== areaVersion) { return; }
+  renderTutor(null); chunksHeader.classList.add("hidden"); document.getElementById("stream-divider").classList.add("hidden"); resultsEl.classList.remove("hidden");
   if (!knowledgeAreas.length) {
     resultsEl.innerHTML = "<section id='library-view' class='library-empty-state pt-16 flex flex-col items-center gap-4'><h1 id='catalog-heading' class='text-xl font-medium text-[#EEF2F8]'>" + escapeHtml(t("no_ws_empty_t")) + "</h1><p class='text-sm text-[#A0B0C8] max-w-md'>" + escapeHtml(t("no_ws_empty_d")) + "</p><div class='flex flex-wrap items-center justify-center gap-2.5 pt-2'><button type='button' data-new-area class='px-4 py-2 rounded-xl bg-[#4BB8E8] text-[#04060F] text-xs font-semibold hover:brightness-110 transition'>" + escapeHtml(t("new_area_btn")) + "</button><button id='empty-lib-link-btn' type='button' class='px-4 py-2 rounded-xl bg-[#0B1020] border border-white/15 hover:border-[#4BB8E8] text-xs text-[#EEF2F8] transition'>" + escapeHtml(t("open_vault")) + "</button></div></section>";
     bindAreaButtons(resultsEl);
