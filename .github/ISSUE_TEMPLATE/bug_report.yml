@@ -1,0 +1,53 @@
+name: Bug Report
+description: Report a defect, crash, packaging error, or unexpected behavior in REALM Engine
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! For security vulnerabilities, please use **Security → Advisories → Report a vulnerability** instead of a public issue.
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform & Installation Method
+      options:
+        - macOS Desktop App (.dmg — Apple Silicon)
+        - macOS Desktop App (.dmg — Intel)
+        - Windows Desktop App (.exe / Portable .zip)
+        - Linux (Source / Wheel)
+        - Docker / Docker Compose
+        - Headless Public API (REALM_MODE=public)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App Version
+      description: Found in Settings → Privacy & GDPR Audit → System Diagnostics & About, or via `realm-engine --version`.
+      placeholder: "e.g. 0.3.0"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Clear description of the bug and what you expected to happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Open...
+        2. Click...
+        3. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized Diagnostics (Optional)
+      description: Paste output from Settings → Privacy & GDPR Audit → Copy Sanitized Report (never paste API keys or private documents).
+      render: json

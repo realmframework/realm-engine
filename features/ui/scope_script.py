@@ -26,19 +26,19 @@ function startScopedChat(scope) {
   resetHome();
   activeScope = scope;
   renderScopeChoices();
-  setViewMode(true).then(() => queryEl.focus());
+  queryEl.focus();
   document.getElementById("scope-status").textContent = activeScope.doc_id !== null || activeScope.subfolder !== null
     ? "New chat scoped to " + document.getElementById("scope-chip-label").textContent
     : "New chat across the entire area";
 }
 function scopedChatButton(docId) {
   return "<button type='button' data-chat-doc='" + escapeHtml(docId)
-    + "' class='self-start rounded-lg border border-white/15 px-3 py-1.5 text-xs text-[#A0B0C8] hover:text-[#EEF2F8]'>Chat with this Document</button>";
+    + "' class='self-start rounded-lg border border-white/15 px-3 py-1.5 text-xs text-[#A0B0C8] hover:text-[#EEF2F8]'>" + escapeHtml(t("lib_chat_doc")) + "</button>";
 }
 function folderChatButton(path) {
   return "<button type='button' data-chat-folder='" + escapeHtml(path === null ? ":area:" : path)
     + "' title='Chat with this Folder' aria-label='Chat with this Folder: " + escapeHtml(path === null ? "Entire Area" : path || "Root files")
-    + "' class='shrink-0 rounded-lg px-2 py-2 text-xs text-[#738196] hover:text-[#EEF2F8]'>Chat ↗</button>";
+    + "' class='shrink-0 rounded-lg px-2 py-2 text-xs text-[#738196] hover:text-[#EEF2F8]'>" + escapeHtml(t("lib_chat_folder")) + "</button>";
 }
 function bindScopedChatButtons(root) {
   root.querySelectorAll("[data-chat-doc], [data-chat-folder]").forEach(function (button) {

@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from threading import RLock
 
+from core.db import atomic_write_text, backup_corrupt_file
 from core.runtime import bundle_root, data_root, is_frozen
 
 SECRETS_FILE = data_root() / "secrets.json"
@@ -45,30 +46,33 @@ def load_dotenv_files(paths: list[Path] | None = None) -> None:
             continue
 
 
-def _read_store() -> dict[str, str]:
+def _read_store(*, recover_corrupt: bool = False) -> dict[str, str]:
     if SECRETS_FILE.is_symlink() or SECRETS_FILE.with_suffix(".json.tmp").is_symlink():
         raise ValueError("Secrets storage cannot be a symbolic link")
     if not SECRETS_FILE.is_file():
         return {}
-    raw = json.loads(SECRETS_FILE.read_text(encoding="utf-8"))
+    try:
+        raw = json.loads(SECRETS_FILE.read_text(encoding="utf-8"))
+    except ValueError:
+        if recover_corrupt:
+            backup_corrupt_file(SECRETS_FILE, mode=0o600)
+            return {}
+        raise
     if not isinstance(raw, dict):
+        if recover_corrupt:
+            backup_corrupt_file(SECRETS_FILE, mode=0o600)
         return {}
     return {str(k): str(v).strip() for k, v in raw.items() if k in ENV_VARS and isinstance(v, str) and v.strip()}
 
 
 def _write_store(store: dict[str, str]) -> None:
-    SECRETS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    tmp = SECRETS_FILE.with_suffix(".json.tmp")
-    if SECRETS_FILE.is_symlink() or tmp.is_symlink():
+    if SECRETS_FILE.is_symlink() or SECRETS_FILE.with_suffix(".json.tmp").is_symlink():
         raise ValueError("Secrets storage cannot be a symbolic link")
-    with tmp.open("w", encoding="utf-8") as handle:
-        os.chmod(tmp, 0o600)
-        json.dump(store, handle, indent=2)
-    tmp.replace(SECRETS_FILE)
+    atomic_write_text(SECRETS_FILE, json.dumps(store, indent=2), mode=0o600)
 
 
 def _mask_key(key: str) -> str:
-    return f"…{key[-4:]}" if len(key) >= 4 else "saved"
+    return f"…{key[-4:]}" if len(key) >= 10 else "saved"
 
 
 def get_api_key(provider: str, explicit: str | None = None) -> str | None:
@@ -112,7 +116,7 @@ def save_api_key(provider: str, api_key: str) -> dict[str, dict[str, object]]:
         raise ValueError(f"Unsupported provider: {provider}")
     cleaned = api_key.strip()
     with LOCK:
-        store = _read_store()
+        store = _read_store(recover_corrupt=True)
         if cleaned:
             store[provider] = cleaned
         else:
@@ -124,7 +128,7 @@ def save_api_key(provider: str, api_key: str) -> dict[str, dict[str, object]]:
 def delete_api_keys(provider: str | None = None) -> dict[str, dict[str, object]]:
     """Remove one or all saved app-level API keys and return updated masked status."""
     with LOCK:
-        store = _read_store()
+        store = _read_store(recover_corrupt=True)
         if provider:
             if provider not in ENV_VARS:
                 raise ValueError(f"Unsupported provider: {provider}")

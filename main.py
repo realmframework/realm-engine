@@ -10,11 +10,12 @@ import time
 import webbrowser
 from pathlib import Path
 from urllib.error import URLError
-from urllib.request import urlopen
 
 import uvicorn
 
-from core.runtime import data_root
+from core import secrets
+from core.runtime import data_root, seed_starter_vault, urlopen_loopback
+from core.version import APP_VERSION
 
 
 def find_app_browser() -> str | None:
@@ -49,19 +50,19 @@ def open_desktop_window(url: str) -> bool:
 
 def server_ready(url: str) -> bool:
     try:
-        with urlopen(url, timeout=0.5) as response:
+        with urlopen_loopback(url, timeout=0.5) as response:
             return response.status == 200 and b"REALM Engine" in response.read(4096)
     except (OSError, URLError):
         return False
 
 
 def run_desktop(host: str, port: int, reuse: bool = True) -> None:
-    url = f"http://127.0.0.1:{port}"
+    url = f"http://{host if host in {'127.0.0.1', 'localhost'} else '127.0.0.1'}:{port}"
     if reuse and server_ready(url):
         open_desktop_window(url)
         print(f"Opened existing local server at {url}")
         return
-    server = uvicorn.Server(uvicorn.Config("features.ui.app:app", host=host, port=port))
+    server = uvicorn.Server(uvicorn.Config("features.ui.app:app", host=host, port=port, timeout_graceful_shutdown=3))
     worker = threading.Thread(target=server.run, name="realm-web-server", daemon=True)
     worker.start()
     try:
@@ -82,26 +83,31 @@ def run_desktop(host: str, port: int, reuse: bool = True) -> None:
 
 
 def build_indexes(root: Path, area_names: list[str], embed_provider: str = "none") -> int:
-    """Pre-build index.json files (with optional embeddings) without starting the HTTP server."""
     from core.db import load_chunks, save_chunks
+    from core.linked_vaults import cache_index_for_dir
     from features.ingestion.embedder import hydrate_embeddings
     from features.ingestion.service import ingest_directory
     from features.ui import areas
-
-    targets = area_names or [a.name for a in areas.list_areas(root) if (root / a.name).is_dir()]
-    total_chunks = 0
+    targets, total_chunks = area_names or [a.name for a in areas.list_areas(root) if (root / a.name).is_dir()], 0
     for name in targets:
         target = areas.area_path(name, root, create=False)
-        cache = target / "index.json"
-        cached = load_chunks(cache) if cache.is_file() and not cache.is_symlink() else []
-        chunks = hydrate_embeddings(ingest_directory(target), cached, embed_missing=embed_provider != "none", provider=embed_provider)
+        cache = cache_index_for_dir(target, root)
+        if cache.is_symlink():
+            raise ValueError(f"Area index cannot be a symbolic link: {cache}")
+        cached = load_chunks(cache) if cache.is_file() else []
+        chunks = hydrate_embeddings(ingest_directory(target, read_only=target.resolve().parent != root.resolve()), cached, embed_missing=embed_provider != "none", provider=embed_provider)
         save_chunks(chunks, cache)
         total_chunks += len(chunks)
     return total_chunks
-
-
 def main(argv: list[str] | None = None) -> None:
+    raw_argv = list(sys.argv[1:] if argv is None else argv)
+    secrets.load_dotenv_files()
+    if raw_argv and raw_argv[0] in {"ask", "mcp"}:
+        from core.cli_commands import dispatch_cli_subcommand
+        dispatch_cli_subcommand(raw_argv, data_root)
+        return
     parser = argparse.ArgumentParser(description="REALM Engine")
+    parser.add_argument("--version", action="version", version=f"REALM Engine {APP_VERSION}")
     parser.add_argument("--desktop", action="store_true", help="Open a tabless Chrome/Brave/Edge app window, with browser fallback")
     parser.add_argument("--public", action="store_true", help="Serve the stateless read-only public API mode (REALM_MODE=public)")
     parser.add_argument("--build-index", action="store_true", help="Pre-build index.json for vaults and exit")
@@ -120,6 +126,7 @@ def main(argv: list[str] | None = None) -> None:
         os.environ["REALM_MODE"] = "public"
     if args.data_dir:
         os.environ["REALM_DATA_DIR"] = str(args.data_dir.expanduser().resolve())
+        secrets.load_dotenv_files()
     directory = data_root()
     directory.mkdir(parents=True, exist_ok=True)
     if args.build_index:
@@ -127,8 +134,10 @@ def main(argv: list[str] | None = None) -> None:
         count = build_indexes(directory, raw, embed_provider=args.embed_provider)
         print(f"Indexed {count} chunks under {directory}")
         return
-    if not args.public and not (directory / "knowledge_base").exists():
-        (directory / "knowledge_base").mkdir()
+    if not args.public:
+        seed_starter_vault(directory)
+        if args.host not in {"127.0.0.1", "localhost", "::1"} and os.environ.get("REALM_ALLOW_NON_LOOPBACK", "").strip() != "1":
+            sys.stderr.write("Warning: binding local admin mode to a non-loopback address; prefer 127.0.0.1 or --public.\n")
     if args.desktop:
         run_desktop(args.host, args.port, reuse=args.data_dir is None)
     else:

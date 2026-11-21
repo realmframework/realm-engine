@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from core import secrets
+from core import model_routing, secrets
 from core.contracts import WorkspaceConfig
 from features.ui import app as ui_app
 from features.ui import chat_store, workspace
@@ -45,6 +45,7 @@ def default_test_workspace(tmp_path_factory: pytest.TempPathFactory, monkeypatch
     monkeypatch.setattr(ui_app, "AUTO_EMBED", False)
     monkeypatch.setattr(ui_app.budget, "BUDGET_FILE", root / "budget_state.json")
     monkeypatch.setattr(secrets, "SECRETS_FILE", root / "secrets.json")
+    monkeypatch.setattr(model_routing, "_LAST_OLLAMA_MODEL", "")
 
 
 @pytest.fixture

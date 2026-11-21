@@ -1,5 +1,6 @@
 """Selected-area indexing, source identities and primary-compatible file destinations."""
 
+import unicodedata
 from collections.abc import Callable
 from pathlib import Path
 
@@ -21,8 +22,19 @@ def document_id(config: WorkspaceConfig, area: str, doc_id: str) -> str:
     return area + "::" + doc_id if len(config.active_dirs) > 1 else doc_id
 
 
+def _norm_sub(value: str) -> str:
+    return unicodedata.normalize("NFC", value.strip().strip("/")).casefold()
+
+
 def is_excluded(subfolder: str, excluded: list[str]) -> bool:
-    return bool(subfolder) and any(subfolder == ex or subfolder.startswith(ex + "/") for ex in excluded)
+    sub = _norm_sub(subfolder)
+    return bool(sub) and any(sub == ex or sub.startswith(ex + "/") for raw in excluded if (ex := _norm_sub(raw)))
+
+
+def assert_guide_not_excluded(config: WorkspaceConfig, area: str, local_id: str) -> None:
+    sub = local_id.rsplit("/", 1)[0] if "/" in local_id else ""
+    if is_excluded(sub, config.excluded_subfolders.get(area, [])):
+        raise HTTPException(status_code=404, detail="Guide is inside an unloaded folder")
 
 
 def filter_chunks(chunks: list[KnowledgeChunk], area: str, config: WorkspaceConfig) -> list[KnowledgeChunk]:

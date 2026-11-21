@@ -21,7 +21,11 @@ def test_optional_scope_chip_is_inside_pill_and_hidden_initially(area_client: Te
     form = pill[:pill.index("</form>")]
     assert re.search(r'<span id="scope-chip"\s+hidden\b', form)
     assert '#scope-chip[hidden] { display: none !important; }' in html
-    assert 'id="scope-reset-btn"' in form and 'id="query"' in form
+    assert re.search(r'<span id="recipe-chip"\s+hidden\b', form)
+    assert '#recipe-chip[hidden] { display: none !important; }' in html
+    assert '<textarea id="query"' in form and 'id="scope-reset-btn"' in form
     assert 'id="model"' in form and 'id="mic-btn"' in form and 'id="prompt-submit-btn"' in form
     assert ".chat-dock { background: transparent !important; }" in html
     assert ".chat-scroll-mask {" in html
+    for bad_copy in ("the face of REALM", "Futuristic", "Supernova &amp; Interactive Dots", "Supernova & Interactive Dots"):
+        assert bad_copy not in html

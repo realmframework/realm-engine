@@ -110,7 +110,7 @@ def test_audit_is_read_only_and_scrub_is_area_local(area_client: TestClient, tmp
     assert report["benchmark"]["generation_evaluated"] is False
     assert patient.read_text(encoding="utf-8") == raw
     assert area_client.post("/api/compliance/scrub", json={"confirm": False}).status_code == 400
-    assert area_client.post("/api/compliance/scrub", content='confirm=true', headers={"content-type": "application/x-www-form-urlencoded"}).status_code == 422
+    assert area_client.post("/api/compliance/scrub", content='confirm=true', headers={"content-type": "application/x-www-form-urlencoded"}).status_code == 415
     scrubbed = area_client.post("/api/compliance/scrub", json={"confirm": True}).json()
     assert scrubbed["clean_vault"] and scrubbed["redacted_now"] == 5
     assert scrubbed["counts_by_type"]["DOB"] == 1 and scrubbed["counts_by_type"]["ADDRESS"] == 1

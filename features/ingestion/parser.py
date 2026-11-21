@@ -1,8 +1,11 @@
-"""Forgiving Markdown parser with optional YAML frontmatter support."""
+"""Forgiving Markdown parser with optional YAML frontmatter and fenced-code awareness."""
 
+import re
 from pathlib import Path
 
 from core.contracts import KnowledgeChunk
+
+_FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})")
 
 
 def _clean_scalar(value: str) -> str:
@@ -13,7 +16,7 @@ def _clean_scalar(value: str) -> str:
 
 
 def parse_frontmatter(lines: list[str]) -> tuple[dict[str, object], list[str]]:
-    """Parse optional leading ``---`` YAML frontmatter without external dependencies."""
+    """Parse optional leading ``---`` YAML frontmatter without swallowing horizontal rules."""
     if not lines or lines[0].strip() != "---":
         return {}, lines
     end_idx = next((i for i in range(1, len(lines)) if lines[i].strip() in {"---", "..."}), None)
@@ -32,19 +35,20 @@ def parse_frontmatter(lines: list[str]) -> tuple[dict[str, object], list[str]]:
             continue
         list_key = None
         if ":" not in raw:
-            continue
+            return {}, lines
         key, value = raw.split(":", 1)
         key_clean, val_clean = key.strip().lower(), value.strip()
-        if not key_clean:
-            continue
+        if not key_clean or not re.fullmatch(r"[a-z0-9_-]{1,40}", key_clean):
+            return {}, lines
         if val_clean.startswith("[") and val_clean.endswith("]"):
-            items = [_clean_scalar(item) for item in val_clean[1:-1].split(",") if _clean_scalar(item)]
-            meta[key_clean] = items
+            meta[key_clean] = [_clean_scalar(item) for item in val_clean[1:-1].split(",") if _clean_scalar(item)]
         elif val_clean == "":
             meta[key_clean] = []
             list_key = key_clean
         else:
             meta[key_clean] = _clean_scalar(val_clean)
+    if not meta:
+        return {}, lines
     body = lines[end_idx + 1 :]
     while body and not body[0].strip():
         body = body[1:]
@@ -65,8 +69,8 @@ def _extract_tags(meta: dict[str, object], body_lines: list[str]) -> tuple[list[
 
 
 def parse_markdown_text(text: str, stem: str, file_path: str) -> list[KnowledgeChunk]:
-    """Split Markdown text into knowledge chunks keyed by ``## `` headings or an Overview fallback."""
-    lines = text.splitlines()
+    """Split Markdown text into chunks keyed by ``## `` headings while preserving intro & fences."""
+    lines = text.lstrip("\ufeff").splitlines()
     if not lines:
         return []
     meta, body_lines = parse_frontmatter(lines)
@@ -82,22 +86,34 @@ def parse_markdown_text(text: str, stem: str, file_path: str) -> list[KnowledgeC
 
     tags, tag_offset = _extract_tags(meta, body_lines[body_start:])
     body_start += tag_offset
-    description = str(meta.get("description") or "").strip()
-    url = str(meta.get("url") or "").strip()
+    description, url = str(meta.get("description") or "").strip(), str(meta.get("url") or "").strip()
 
     remaining_lines = body_lines[body_start:]
     sections: list[tuple[str, list[str]]] = []
+    lead: list[str] = []
     heading: str | None = None
     body: list[str] = []
+    fence_char = ""
+    fence_len = 0
 
     for line in remaining_lines:
-        if line.startswith("## "):
-            if heading is not None and body:
+        if m := _FENCE_RE.match(line):
+            marker = m.group(1)
+            if not fence_char:
+                fence_char, fence_len = marker[0], len(marker)
+            elif marker[0] == fence_char and len(marker) >= fence_len and not line.strip().lstrip(fence_char):
+                fence_char, fence_len = "", 0
+        if not fence_char and line.startswith("## "):
+            if heading is None and "\n".join(lead).strip():
+                sections.append(("Overview", lead))
+                lead = []
+            elif heading is not None and body:
                 sections.append((heading, body))
-            heading = line[3:].strip()
-            body = []
+            heading, body = line[3:].strip(), []
         elif heading is not None:
             body.append(line)
+        else:
+            lead.append(line)
     if heading is not None and body:
         sections.append((heading, body))
     if not sections and "\n".join(remaining_lines).strip():
@@ -128,4 +144,4 @@ def parse_markdown_text(text: str, stem: str, file_path: str) -> list[KnowledgeC
 def parse_markdown_file(file_path: Path, knowledge_dir: Path | None = None) -> list[KnowledgeChunk]:
     """Split a Markdown file on disk into knowledge chunks."""
     stem = file_path.relative_to(knowledge_dir).with_suffix("").as_posix() if knowledge_dir else file_path.stem
-    return parse_markdown_text(file_path.read_text(encoding="utf-8"), stem, str(file_path))
+    return parse_markdown_text(file_path.read_text(encoding="utf-8", errors="replace"), stem, str(file_path))

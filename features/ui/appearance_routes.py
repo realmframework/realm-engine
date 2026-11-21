@@ -9,8 +9,9 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from core.contracts import AppearanceUpdate, WorkspaceConfig
+from core.db import atomic_write_bytes
 from core.runtime import bundle_root
-from features.ui import workspace
+from features.ui import agent_routes, workspace
 
 MAX_LOGO_BYTES = 2 * 1024 * 1024
 LOGO_MEDIA_TYPES: dict[str, str] = {".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp"}
@@ -101,13 +102,15 @@ def build_router(
             raise HTTPException(status_code=400, detail="Unsupported image format. Please upload a PNG, JPG, or WebP image.")
         with workspace.STATE_LOCK:
             workspace.REPO_ROOT.mkdir(parents=True, exist_ok=True)
-            _clear_custom_logos(workspace.REPO_ROOT)
             target = workspace.REPO_ROOT / f"{LOGO_STEM}{ext}"
-            tmp = workspace.REPO_ROOT / f"{LOGO_STEM}.tmp"
-            if target.is_symlink() or tmp.is_symlink():
+            if target.is_symlink():
                 raise HTTPException(status_code=400, detail="Custom logo path cannot be a symbolic link")
-            tmp.write_bytes(raw)
-            tmp.replace(target)
+            atomic_write_bytes(target, raw)
+            for other_ext in LOGO_MEDIA_TYPES:
+                if other_ext != ext:
+                    other = workspace.REPO_ROOT / f"{LOGO_STEM}{other_ext}"
+                    if other.is_file() and not other.is_symlink():
+                        other.unlink(missing_ok=True)
         return {"custom": True, "url": f"/api/workspace/logo?v={int(time.time() * 1000)}"}
 
     @router.delete("/api/workspace/logo")
@@ -116,4 +119,5 @@ def build_router(
             _clear_custom_logos(workspace.REPO_ROOT)
         return {"custom": False, "url": "/static/logo-512.png"}
 
+    router.include_router(agent_routes.build_router(get_config, set_config))
     return router

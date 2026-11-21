@@ -7,17 +7,26 @@ from core.contracts import AnonymizationReport
 
 _EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 _IBAN_RE = re.compile(
-    r"\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){3,7}(?:[ ]?[A-Z0-9]{1,4})?\b|\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b"
+    r"\b[A-Z]{2}\d{2}(?:[ \t-]?[A-Z0-9]{4}){3,7}(?:[ \t-]?[A-Z0-9]{1,4})?\b|\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b",
+    re.IGNORECASE,
 )
 _IPV4_RE = re.compile(
     r"\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b"
 )
 _PHONE_RE = re.compile(
-    r"(?<!\w)(?:\+\d{1,3}[\s.-]?)?(?:\(?\d{2,5}\)?[\s.-]+)\d{3,4}[\s.-]?\d{2,5}\b"
+    r"(?<!\w)(?:"
+    r"\+\d{1,3}[ \t.-]?\(?\d{2,5}\)?[ \t.-]+\d{3,4}[ \t.-]?\d{2,5}"
+    r"|\(\d{2,5}\)[ \t.-]*\d{3,4}[ \t.-]?\d{2,5}"
+    r"|0\d{1,4}[ \t/-]+\d{3,4}[ \t.-]?\d{2,5}"
+    r"|\d{3}[ \t.-]\d{3,4}[ \t.-]\d{3,5}"
+    r")\b"
 )
 _DOB_RE = re.compile(r"\b\d{1,2}\.\d{1,2}\.(?:19|20)\d{2}\b")
 _HEALTH_RE = re.compile(r"\b[A-Z]\d{9}\b")
-_ADDRESS_RE = re.compile(r"\b\d{5}\s+[A-ZÄÖÜ][a-zäöüßA-ZÄÖÜ-]+\b|\b[A-ZÄÖÜ][a-zäöüß]+(?:straße|str\.|weg|platz|allee)\s+\d+[a-zA-Z]?\b")
+_ADDRESS_RE = re.compile(
+    r"\b\d{5}[ \t]+[A-ZÄÖÜ][a-zäöüßA-ZÄÖÜ-]+\b"
+    r"|\b[A-ZÄÖÜ][a-zäöüßA-ZÄÖÜ-]*(?:[ \t]+[A-ZÄÖÜ][a-zäöüßA-ZÄÖÜ-]+){0,2}(?:[ \t]+)?(?:[Ss]traße|[Ss]trasse|[Ss]tr\.|[Ww]eg|[Pp]latz|[Aa]llee)[ \t]+\d+[a-zA-Z]?\b"
+)
 PII_TYPES = ("EMAIL", "IBAN", "PHONE", "NAME", "IP", "DOB", "HEALTH_ID", "ADDRESS")
 _CV_MARKERS = {"cv", "resume", "lebenslauf", "curriculum", "vitae", "bio", "profile"}
 _DOC_STOPWORDS = {
@@ -32,18 +41,17 @@ _DOC_STOPWORDS = {
 
 
 def extract_filename_names(filename: str) -> list[str]:
-    """Extract proper-name tokens from a document filename while ignoring common document words."""
+    """Extract proper-name tokens strictly from personal/CV document filenames."""
     if not filename:
         return []
     stem = Path(filename).stem
     tokens = [tok for tok in re.split(r"[^A-Za-zÀ-ÖØ-öø-ÿ]+", stem) if len(tok) >= 2]
-    is_personal_doc = any(tok.lower() in _CV_MARKERS for tok in tokens)
+    if not any(tok.lower() in _CV_MARKERS for tok in tokens):
+        return []
     names: list[str] = []
     for tok in tokens:
         low = tok.lower()
-        if low in _DOC_STOPWORDS:
-            continue
-        if (tok[0].isupper() or is_personal_doc) and low not in [n.lower() for n in names]:
+        if low not in _DOC_STOPWORDS and low not in [n.lower() for n in names]:
             names.append(tok)
     return names
 

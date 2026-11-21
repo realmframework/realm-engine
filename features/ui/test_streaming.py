@@ -89,9 +89,14 @@ def test_per_message_web_search_requires_explicit_chat_flag(monkeypatch: pytest.
     web_chunk = KnowledgeChunk(id="w1", title="Web — Live", file_path="https://example.com", url="https://example.com", content="Live snippet", tags=["web"])
     monkeypatch.setattr(query_engine, "search_web_context", lambda q, cfg: called.append(q) or [SearchResult(chunk=web_chunk, score=0.6)])
     policy = WorkspaceConfig(strict_local_only=False, web_search_enabled=True)
-    route = lambda q, **_kw: {"label": "Exact", "intent": "lookup", "routed_query": q, "top_k": 5, "retrieval_mode": "lexical", "rrf_k": 60}
-    local_search = lambda *_a, **_kw: []
-    embed = lambda *_a, **_kw: []
+    def route(q: str, **_kw: object) -> dict[str, object]:
+        return {"label": "Exact", "intent": "lookup", "routed_query": q, "top_k": 5, "retrieval_mode": "lexical", "rrf_k": 60}
+
+    def local_search(*_a: object, **_kw: object) -> list[SearchResult]:
+        return []
+
+    def embed(*_a: object, **_kw: object) -> list[float]:
+        return []
 
     _, off_res, _ = query_engine.retrieve(ChatTurnRequest(query="today news", use_web_search=False), [], [], route, local_search, embed, policy)
     assert off_res == [] and called == []

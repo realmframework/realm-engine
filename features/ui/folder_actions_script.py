@@ -47,7 +47,7 @@ async function createChildFolder(event) {
   folderMutationPending = true; buttons.forEach(b => { b.disabled = true; }); status.textContent = "Creating subfolder...";
   try {
     const response = await areaFetch("/api/subfolders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: path }) });
-    const data = await response.json();
+    const data = await safeJson(response);
     if (version !== areaVersion) { return; }
     if (!response.ok) { throw new Error(data.detail || "Subfolder could not be created."); }
     applySubfolders(data); renderScopeChoices();
@@ -57,7 +57,7 @@ async function createChildFolder(event) {
     for (let i = 1; i <= parts.length; i++) { expandedFolders.add(parts.slice(0, i).join("/")); }
     await openLibraryCatalog(selectedTag);
     if (version !== areaVersion) { return; }
-    showToast("Created folder “" + name + "”");
+    showToast(t("toast_folder_created", { name: name }));
     const selected = Array.from(document.querySelectorAll("[data-subfolder]")).find(b => b.dataset.subfolder === path);
     if (selected) { selected.focus({ preventScroll: true }); }
   } catch (error) {
@@ -67,19 +67,20 @@ async function createChildFolder(event) {
 async function unloadSubfolder(path) {
   if (folderMutationPending || !path) { return; }
   const version = areaVersion, area = activeKnowledgeArea, operation = currentScrollId;
-  const msg = "Unload “" + path + "” from REALM? Its guides will be hidden from search, chats, and the 2D Graph. Your original files on disk will NOT be deleted — you can reload this folder anytime.";
-  if (!await confirmDeletion("Unload folder (keep files)?", msg, "Unload") || version !== areaVersion) { return; }
+  const fCount = allGuides.filter(g => g.subfolder === path || (g.subfolder && g.subfolder.startsWith(path + "/"))).length;
+  const sCount = availableSubfolders.filter(s => s.startsWith(path + "/")).length;
+  if (!await confirmDeletion(t("cf_unload_sub_t"), t("cf_unload_sub_m", { path: path, files: fCount, subfolders: sCount }), t("cf_unload_sub_btn")) || version !== areaVersion) { return; }
   folderMutationPending = true;
   try {
     const res = await areaFetch("/api/subfolders/unload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: path }) }, area);
-    const data = await res.json();
+    const data = await safeJson(res);
     if (version !== areaVersion) { return; }
-    if (!res.ok) { throw new Error(data.detail || "Could not unload folder."); }
+    if (!res.ok) { throw new Error(data.detail || t("st_unload_err")); }
     if (selectedSubfolder === path || (selectedSubfolder && selectedSubfolder.startsWith(path + "/"))) { selectedSubfolder = ""; }
     applyWorkspacePayload(data); await loadGuidesCatalog(null);
     if (operation === currentScrollId && document.getElementById("catalog-heading")) { await openLibraryCatalog(selectedTag); }
-    showToast("Unloaded “" + path + "” — files remain safely on disk.");
-  } catch (err) { areaStatus(err.message || "Could not unload folder."); }
+    showToast(t("toast_folder_unloaded", { path: path }));
+  } catch (err) { areaStatus(err.message || t("st_unload_err")); }
   finally { folderMutationPending = false; }
 }
 async function reloadSubfolder(path, areaName) {
@@ -88,27 +89,28 @@ async function reloadSubfolder(path, areaName) {
   folderMutationPending = true;
   try {
     const res = await areaFetch("/api/subfolders/reload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: path, area: areaName || "" }) }, area);
-    const data = await res.json();
+    const data = await safeJson(res);
     if (version !== areaVersion) { return; }
-    if (!res.ok) { throw new Error(data.detail || "Could not reload folder."); }
+    if (!res.ok) { throw new Error(data.detail || t("st_reload_err")); }
     applyWorkspacePayload(data); await loadGuidesCatalog(null);
     if (operation === currentScrollId && document.getElementById("catalog-heading")) { await openLibraryCatalog(selectedTag); }
-    showToast("Reloaded “" + path + "” back into REALM.");
-  } catch (err) { areaStatus(err.message || "Could not reload folder."); }
+    showToast(t("toast_folder_reloaded", { path: path }));
+  } catch (err) { areaStatus(err.message || t("st_reload_err")); }
   finally { folderMutationPending = false; }
 }
 async function deleteSubfolder(path) {
   if (folderMutationPending) { return; }
   if (!path || selectedAreas().length > 1 && selectedAreas().includes(path)) { await deleteKnowledgeArea(path || activeKnowledgeArea); return; }
   const version = areaVersion, area = activeKnowledgeArea, operation = currentScrollId;
-  const warning = "Permanently delete “" + area + "/" + path + "”, all nested subfolders and every file inside it, including their indexed passages? This cannot be undone.";
-  if (!await confirmDeletion("Delete subfolder?", warning) || version !== areaVersion) { return; }
+  const fCount = allGuides.filter(g => g.subfolder === path || (g.subfolder && g.subfolder.startsWith(path + "/"))).length;
+  const sCount = availableSubfolders.filter(s => s.startsWith(path + "/")).length;
+  if (!await confirmDeletion(t("cf_del_sub_t"), t("cf_del_sub_m", { path: path, files: fCount, subfolders: sCount })) || version !== areaVersion) { return; }
   folderMutationPending = true;
   try {
     const response = await areaFetch("/api/subfolders?path=" + encodeURIComponent(path), { method: "DELETE" }, area);
-    const data = await response.json();
+    const data = await safeJson(response);
     if (version !== areaVersion) { return; }
-    if (!response.ok) { throw new Error(data.detail || "Subfolder could not be deleted."); }
+    if (!response.ok) { throw new Error(data.detail || t("st_sub_del_err")); }
     const stillInLibrary = operation === currentScrollId && document.getElementById("catalog-heading");
     if (stillInLibrary && (selectedSubfolder === path || selectedSubfolder && selectedSubfolder.startsWith(path + "/"))) {
       selectedSubfolder = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
@@ -120,10 +122,11 @@ async function deleteSubfolder(path) {
     if (stillInLibrary && operation === currentScrollId) {
       await openLibraryCatalog(selectedTag);
       if (version !== areaVersion) { return; }
-      document.getElementById("catalog-heading").focus({ preventScroll: true });
+      const heading = document.getElementById("catalog-heading");
+      if (heading) { heading.focus({ preventScroll: true }); }
     }
-    areaStatus("Deleted subfolder /" + path);
-  } catch (error) { if (version === areaVersion) { areaStatus(error.message || "Subfolder deletion failed."); } }
+    areaStatus(t("st_sub_deleted", { path: path }));
+  } catch (error) { if (version === areaVersion) { areaStatus(error.message || t("st_sub_del_err")); } }
   finally { folderMutationPending = false; }
 }
 """

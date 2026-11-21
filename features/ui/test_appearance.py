@@ -1,8 +1,12 @@
 """Tests for custom workspace logo upload/reset and adaptive theme persistence."""
 
+import re
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+
+from features.ui.i18n_script import I18N_SCRIPT
+from features.ui.template import HTML_PAGE
 
 PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
 JPG_BYTES = b"\xff\xd8\xff\xe0" + b"\x00" * 32
@@ -97,4 +101,35 @@ def test_ui_exposes_adaptive_color_scheme_and_custom_theme_controls(area_client:
         'id="onboarding-step-1"', 'id="onboarding-step-4"', 'id="onboarding-skip-btn"',
         '"Realm"', '"Lisbeth"', '"Salander"', '"Wasp"', '"Plague"', '"Blomkvist"', '"Millennium"', '"Erika"', '"Harriet"',
     ):
+        assert marker in html
+
+
+def test_i18n_locales_have_full_parity_and_cover_every_referenced_key() -> None:
+    blocks = {lang: set() for lang in ("en", "de", "es")}
+    for m in re.finditer(r"  (en|de|es): \{([\s\S]*?)\n  \}[,\n]", I18N_SCRIPT):
+        blocks[m.group(1)].update(re.findall(r"(?:^|,\s*|\n\s*)([a-z0-9_]+):\s*\"", m.group(2)))
+    assert len(blocks["en"]) >= 250
+    assert blocks["en"] == blocks["de"] == blocks["es"]
+    used = set(re.findall(r'data-i18n(?:|-span|-placeholder)="([a-z0-9_]+)"', HTML_PAGE))
+    used |= set(re.findall(r'\bt\("([a-z0-9_]+)"', HTML_PAGE))
+    assert not (used - blocks["en"])
+    assert not (used - blocks["de"])
+    assert not (used - blocks["es"])
+
+
+def test_reading_comfort_persistence_and_command_ux_markup(area_client: TestClient) -> None:
+    res = area_client.post(
+        "/api/workspace/appearance",
+        json={"reading_font": "dyslexic", "reading_scale": "lg", "reading_width": "wide", "high_contrast_focus": True, "reduce_motion": True},
+    )
+    assert res.status_code == 200
+    cfg = res.json()["config"]
+    assert cfg["reading_font"] == "dyslexic" and cfg["reading_scale"] == "lg" and cfg["reading_width"] == "wide"
+    assert cfg["high_contrast_focus"] is True and cfg["reduce_motion"] is True
+    assert area_client.post("/api/workspace/appearance", json={"reading_font": "comic"}).status_code == 422
+    reset = area_client.post("/api/workspace/reset-defaults").json()["config"]
+    assert reset["reading_font"] == "default" and reset["reading_scale"] == "md" and reset["reading_width"] == "standard"
+    assert reset["high_contrast_focus"] is False and reset["reduce_motion"] is False
+    html = area_client.get("/").text
+    for marker in ('id="cmd-palette-modal" closedby="any"', 'id="cmd-palette-input"', 'id="slash-cmd-menu" hidden', 'id="sidebar-cmd-btn"', 'data-reading-font="dyslexic"', 'data-reading-scale="xl"', 'data-reading-width="wide"', 'id="a11y-hc-focus-toggle"', 'id="a11y-reduce-motion-toggle"'):
         assert marker in html

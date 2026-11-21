@@ -1,4 +1,4 @@
-"""Bound transport bodies, audio uploads, and standard HTTP security headers."""
+"""Bound transport bodies, local Host/CSRF guards, audio uploads, and security headers."""
 
 from collections.abc import Callable
 
@@ -7,16 +7,15 @@ from fastapi.responses import JSONResponse
 from starlette.datastructures import UploadFile
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-MAX_UPLOAD_BYTES = 15 * 1024 * 1024
-MAX_AUDIO_BYTES = 25 * 1024 * 1024
-MAX_BATCH_BYTES = 64 * 1024 * 1024
-SIZE_MESSAGE = "Each file must be 15 MB (15 MiB) or smaller. Upload a smaller file."
-_GUARDED_PATHS = {"/api/upload", "/api/anonymize/preview", "/api/backup/import", "/api/audio/transcribe"}
-_SECURITY_HEADERS = (
-    (b"x-content-type-options", b"nosniff"),
-    (b"x-frame-options", b"DENY"),
-    (b"referrer-policy", b"no-referrer"),
+from core.http_guard import (
+    collect_headers,
+    security_headers_for,
+    validate_local_request,
 )
+
+MAX_UPLOAD_BYTES, MAX_AUDIO_BYTES, MAX_BATCH_BYTES = 15 * 1024 * 1024, 25 * 1024 * 1024, 64 * 1024 * 1024
+MAX_DEFAULT_BODY_BYTES, MAX_PUBLIC_ASK_BYTES, MAX_LOGO_BODY_BYTES = 2 * 1024 * 1024, 64 * 1024, 3 * 1024 * 1024
+SIZE_MESSAGE = "Each file must be 15 MB (15 MiB) or smaller. Upload a smaller file."
 
 
 def check_file_size(raw: bytes) -> bytes:
@@ -62,31 +61,42 @@ def _path_limit(path: str) -> tuple[int, str]:
         return MAX_AUDIO_BYTES, "Audio upload must be 25 MiB or smaller."
     if path == "/api/upload":
         return MAX_BATCH_BYTES, SIZE_MESSAGE
-    return MAX_UPLOAD_BYTES * 2, SIZE_MESSAGE
+    if path == "/api/anonymize/preview" or (path.startswith("/api/chats/") and path.endswith("/attach")):
+        return MAX_UPLOAD_BYTES * 2, SIZE_MESSAGE
+    if path == "/api/workspace/logo":
+        return MAX_LOGO_BODY_BYTES, "Logo image must be 2 MB or smaller."
+    if path == "/api/public/ask":
+        return MAX_PUBLIC_ASK_BYTES, "Request body is too large."
+    return MAX_DEFAULT_BODY_BYTES, "Request body exceeds the 2 MiB limit."
 
 
-def upload_body_guard(app: ASGIApp) -> ASGIApp:
+def _build_guard(app: ASGIApp, *, local_mode: bool) -> ASGIApp:
     async def bounded(scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             await app(scope, receive, send)
             return
 
+        path = str(scope.get("path", ""))
+        sec_headers = security_headers_for(path, local_mode=local_mode)
+
         async def send_with_headers(message: Message) -> None:
             if message["type"] == "http.response.start":
                 existing = list(message.get("headers", []))
                 present = {k.lower() for k, _ in existing}
-                for key, val in _SECURITY_HEADERS:
+                for key, val in sec_headers:
                     if key not in present:
                         existing.append((key, val))
                 message = {**message, "headers": existing}
             await send(message)
 
-        path = str(scope.get("path", ""))
-        if path not in _GUARDED_PATHS:
-            await app(scope, receive, send_with_headers)
+        headers, has_dup = collect_headers(scope)
+        if local_mode and (denied := validate_local_request(scope, headers, has_dup)):
+            await JSONResponse({"detail": denied[1]}, status_code=denied[0])(scope, receive, send_with_headers)
+            return
+        if has_dup:
+            await JSONResponse({"detail": "Duplicate security-sensitive header rejected."}, status_code=400)(scope, receive, send_with_headers)
             return
         maximum, message_text = _path_limit(path)
-        headers = dict(scope.get("headers", []))
         try:
             declared = int(headers.get(b"content-length", b"0"))
         except ValueError:
@@ -107,3 +117,11 @@ def upload_body_guard(app: ASGIApp) -> ASGIApp:
         await app(scope, limited_receive, send_with_headers)
 
     return bounded
+
+
+def upload_body_guard(app: ASGIApp) -> ASGIApp:
+    return _build_guard(app, local_mode=True)
+
+
+def public_body_guard(app: ASGIApp) -> ASGIApp:
+    return _build_guard(app, local_mode=False)

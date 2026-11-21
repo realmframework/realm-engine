@@ -58,7 +58,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-VERSION="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
+VERSION="$(uv run python -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
 RAW_ARCH="$(uname -m)"
 case "$RAW_ARCH" in
   arm64) ARCH_LABEL="apple-silicon" ;;
@@ -92,10 +92,23 @@ uv run --group desktop pyinstaller --noconfirm --clean "$ROOT/packaging/realm-en
 run_smoke_test() {
   local smoke_dir
   smoke_dir="$(mktemp -d "${TMPDIR:-/tmp}/realm-smoke.XXXXXX")"
-  "$APP_BUNDLE/Contents/MacOS/REALM Engine" --smoke-test --data-dir "$smoke_dir"
+  if ! "$APP_BUNDLE/Contents/MacOS/REALM Engine" --smoke-test --data-dir "$smoke_dir"; then
+    echo "Error: macOS smoke test failed. Diagnostic log:" >&2
+    cat "$smoke_dir/logs/realm-engine.log" "$smoke_dir/realm-engine.log" 2>/dev/null || true
+    rm -rf "$smoke_dir"
+    exit 1
+  fi
   test -f "$smoke_dir/knowledge_base/welcome.md"
   rm -rf "$smoke_dir"
 }
+
+echo "==> Verifying macOS bundle hygiene (zero foreign .dll/.jar files)"
+FOREIGN_BINS="$(find "$APP_BUNDLE/Contents" -type f \( -name "*.dll" -o -name "*.jar" \) || true)"
+if [[ -n "$FOREIGN_BINS" ]]; then
+  echo "Error: Unexpected non-macOS binaries found in .app bundle:" >&2
+  echo "$FOREIGN_BINS" >&2
+  exit 1
+fi
 
 echo "==> Running headless smoke test on built app bundle"
 run_smoke_test
@@ -120,10 +133,10 @@ fi
 if [[ -n "$SIGN_IDENTITY" ]]; then
   echo "==> Code-signing bundle with: $SIGN_IDENTITY"
   # Sign nested Mach-O binaries bottom-up for Apple Notary compliance (avoiding deprecated --deep)
-  find "$APP_BUNDLE/Contents" -type f \( -name "*.dylib" -o -name "*.so" -o -perm -111 \) ! -path "$APP_BUNDLE/Contents/MacOS/REALM Engine" -print0 \
+  find "$APP_BUNDLE/Contents" -type f \( -name "*.dylib" -o -name "*.so" -o -perm +111 \) ! -path "$APP_BUNDLE/Contents/MacOS/REALM Engine" -print0 \
     | while IFS= read -r -d '' bin; do
         if file "$bin" | grep -q "Mach-O"; then
-          codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$SIGN_IDENTITY" "$bin"
+          codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$bin"
         fi
       done
   codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$SIGN_IDENTITY" "$APP_BUNDLE/Contents/MacOS/REALM Engine"

@@ -16,7 +16,7 @@ async function openGraphGuide(node) {
   const version = areaVersion, guides = await loadGuidesCatalog(null);
   const guide = guides.find(function (g) { return g.doc_id === node.doc_id || g.area === node.area && g.doc_id === node.area + "::" + node.doc_id; });
   if (version !== areaVersion) { return; }
-  if (!guide) { areaStatus("This guide is no longer in its knowledge area."); return; }
+  if (!guide) { areaStatus(t("st_doc_missing_ws")); return; }
   stopGraphSimulation();
   await renderGuideReader(guide, null, node.section_index ?? -1);
 }
@@ -26,7 +26,7 @@ async function openGraphView(scope) {
   const operation = currentScrollId, version = areaVersion;
   currentChatId = null; currentTurns = [];
   if (typeof syncInspectorSidebar === "function") { inspectorOpen = false; syncInspectorSidebar(); }
-  document.getElementById("chat-stream").innerHTML = ""; renderRecentChats();
+  document.getElementById("chat-stream").replaceChildren(); renderRecentChats();
   await setViewMode(true, true);
   if (operation !== currentScrollId || version !== areaVersion) { return; }
   renderTutor(null); chunksHeader.classList.add("hidden");
@@ -34,12 +34,18 @@ async function openGraphView(scope) {
   const container = document.getElementById("graph-view");
   container.classList.remove("hidden"); document.getElementById("workspace-shell").classList.add("hidden");
   if (typeof setAmbientGraphPause === "function") { setAmbientGraphPause(true); }
-  container.innerHTML = "<p role='status' class='p-6 text-sm text-[#A0B0C8]'>Loading knowledge constellation...</p>";
+  if (!knowledgeAreas.length) {
+    container.innerHTML = "<div class='w-full h-full flex flex-col items-center justify-center gap-4 px-6 text-center'><h2 class='text-xl font-medium text-[#EEF2F8]'>" + escapeHtml(t("no_ws_empty_t")) + "</h2><p class='text-sm text-[#A0B0C8] max-w-md'>" + escapeHtml(t("no_ws_empty_d")) + "</p><div class='flex flex-wrap items-center justify-center gap-2.5 pt-2'><button type='button' data-new-area class='px-4 py-2 rounded-xl bg-[#4BB8E8] text-[#04060F] text-xs font-semibold hover:brightness-110 transition'>" + escapeHtml(t("new_area_btn")) + "</button><button id='empty-graph-link-btn' type='button' class='px-4 py-2 rounded-xl bg-[#0B1020] border border-white/15 hover:border-[#4BB8E8] text-xs text-[#EEF2F8] transition'>" + escapeHtml(t("open_vault")) + "</button></div></div>";
+    bindAreaButtons(container);
+    const gb = document.getElementById("empty-graph-link-btn"); if (gb) { gb.addEventListener("click", linkExistingFolder); }
+    return;
+  }
+  container.innerHTML = "<p role='status' class='p-6 text-sm text-[#A0B0C8]'>" + escapeHtml(t("graph_loading")) + "</p>";
   let data;
   try {
     const response = await areaFetch("/api/graph?all_areas=" + String(graphScope === "universe"));
     if (!response.ok) { throw new Error("Graph could not be loaded. Select the area again and retry."); }
-    data = await response.json();
+    data = await safeJson(response);
   } catch (error) {
     if (operation === currentScrollId) { container.textContent = error.message; }
     return;
@@ -60,7 +66,7 @@ async function openGraphView(scope) {
   const controlsBtn = document.getElementById("graph-controls-toggle"), controlsPanel = document.getElementById("graph-controls-panel");
   const filterDot = document.getElementById("graph-filter-dot");
   const inspectorEl = document.getElementById("graph-inspector-line"), defaultInspectorHtml = inspectorEl ? inspectorEl.innerHTML : "";
-  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const isReduced = () => typeof prefersReducedMotion === "function" ? prefersReducedMotion() : window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const { centers, adj } = layoutConstellation(areas, nodes, links);
   nodes.forEach(function (n) {
     n.tx = n.x; n.ty = n.y; n.vx = 0; n.vy = 0;
@@ -98,6 +104,11 @@ async function openGraphView(scope) {
   }
   function fitNodes(subset, immediate) {
     const list = subset && subset.length ? subset : nodes;
+    if (!list.length) {
+      tZoom = 1; tCamX = 0; tCamY = 0; panVx = 0; panVy = 0;
+      if (immediate || reduced) { zoom = 1; camX = 0; camY = 0; animatingCam = false; syncZoomBadge(); }
+      return;
+    }
     const minX = Math.min(...list.map(n => n.x)) - 110, maxX = Math.max(...list.map(n => n.x)) + 110;
     const minY = Math.min(...list.map(n => n.y)) - 90, maxY = Math.max(...list.map(n => n.y)) + 100;
     tZoom = Math.max(0.24, Math.min(1.6, (width - 96) / Math.max(180, maxX - minX), (height - 135) / Math.max(180, maxY - minY)));
@@ -117,7 +128,7 @@ async function openGraphView(scope) {
     if (focused) {
       const nb = activeNeighborhood(focused), subset = nodes.filter(n => nb.has(n.id));
       const count = subset.filter(n => n.type === "doc").length;
-      if (focusLabelEl) { focusLabelEl.textContent = (focused.type === "hub" ? "Topic: " : "Cluster: ") + focused.label + " (" + count + " guides)"; }
+      if (focusLabelEl) { focusLabelEl.textContent = (focused.type === "hub" ? t("graph_topic_prefix") : t("graph_cluster_prefix")) + focused.label + " (" + t("graph_guides_n", { docs: count }) + ")"; }
       if (focusBanner) { focusBanner.hidden = false; }
       fitNodes(subset, false);
     } else {
@@ -190,7 +201,7 @@ async function openGraphView(scope) {
     });
     const placed = [], pri = { area: 0, hub: 1, doc: 2, section: 3 };
     const docFade = labelMode === "all" || !dense || Boolean(focused) || Boolean(term) ? 1 : labelMode === "hubs" ? 0 : Math.max(0, Math.min(1, (zoom - 0.85) / 0.45));
-    const ordered = nodes.slice().sort(function (a, b) {
+    const ordered = nodes.toSorted(function (a, b) {
       if (a === hovered) { return -1; } if (b === hovered) { return 1; }
       if (a === focused) { return -1; } if (b === focused) { return 1; }
       if (pri[a.type] !== pri[b.type]) { return pri[a.type] - pri[b.type]; }
@@ -236,7 +247,7 @@ async function openGraphView(scope) {
     list.innerHTML = nodes.filter(n => (n.type === "doc" || n.type === "section") && matchesFilter(n) && (!fSet || fSet.has(n.id))).map(function (n) {
       const lbl = areaTitle(n.area) + " · " + (n.type === "section" ? "Section: " : "") + n.label;
       return "<button type='button' data-graph-node='" + escapeHtml(n.id) + "' class='text-sm text-left text-[#A0B0C8] hover:text-[#EEF2F8] py-2'>" + escapeHtml(lbl) + "</button>";
-    }).join("") || "<p class='text-sm text-[#738196] py-2'>No matching guides. Upload a document to add one.</p>";
+    }).join("") || "<p class='text-sm text-[#738196] py-2'>" + escapeHtml(t("graph_no_guides")) + "</p>";
     list.querySelectorAll("[data-graph-node]").forEach(b => b.addEventListener("click", () => openGraphGuide(byId.get(b.dataset.graphNode))));
   }
   function position(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
@@ -249,7 +260,7 @@ async function openGraphView(scope) {
     const nextZoom = Math.max(0.22, Math.min(3.2, tZoom * factor));
     const wx = (pt.x - width / 2 - tCamX) / tZoom, wy = (pt.y - height / 2 - tCamY) / tZoom;
     tZoom = nextZoom; tCamX = pt.x - width / 2 - wx * tZoom; tCamY = pt.y - height / 2 - wy * tZoom;
-    if (reduced) { zoom = tZoom; camX = tCamX; camY = tCamY; draw(); } else { animatingCam = true; }
+    if (isReduced()) { zoom = tZoom; camX = tCamX; camY = tCamY; draw(); } else { animatingCam = true; }
   }
   canvas.addEventListener("wheel", function (e) {
     e.preventDefault();
@@ -258,9 +269,7 @@ async function openGraphView(scope) {
   }, { passive: false });
   function setControlsOpen(open) {
     if (!controlsPanel || !controlsBtn) { return; }
-    controlsPanel.hidden = !open;
-    controlsBtn.setAttribute("aria-expanded", String(open));
-    controlsBtn.classList.toggle("text-[#4BB8E8]", open);
+    controlsPanel.hidden = !open; controlsBtn.setAttribute("aria-expanded", String(open)); controlsBtn.classList.toggle("text-[#4BB8E8]", open);
   }
   if (controlsBtn && controlsPanel) { controlsBtn.addEventListener("click", () => setControlsOpen(controlsPanel.hidden)); }
   canvas.addEventListener("pointerdown", function (e) {
@@ -281,9 +290,9 @@ async function openGraphView(scope) {
       if (next !== hovered) { hovered = next; syncInspector(hovered || focused); }
       canvas.style.cursor = hovered ? "pointer" : "grab";
     }
-    if (reduced) { draw(); }
+    if (isReduced()) { draw(); }
   });
-  canvas.addEventListener("pointerleave", function () { if (hovered) { hovered = null; syncInspector(focused); if (reduced) { draw(); } } });
+  canvas.addEventListener("pointerleave", function () { if (hovered) { hovered = null; syncInspector(focused); if (isReduced()) { draw(); } } });
   canvas.addEventListener("pointerup", function () {
     const target = dragging; dragging = null; panning = false;
     if (moved) { return; }
@@ -295,7 +304,7 @@ async function openGraphView(scope) {
   canvas.addEventListener("pointercancel", function () { dragging = null; panning = false; panVx = 0; panVy = 0; });
   filter.addEventListener("input", function () { term = filter.value.toLowerCase().trim(); if (filterDot) { filterDot.hidden = !term; } guideList(); draw(); });
   if (labelsBtn) {
-    const modes = [["smart", "Labels: Smart"], ["all", "Labels: All"], ["hubs", "Labels: Hubs"]];
+    const modes = [["smart", t("graph_lbl_smart")], ["all", t("graph_lbl_all")], ["hubs", t("graph_lbl_hubs")]];
     labelsBtn.addEventListener("click", function () {
       const next = modes[(modes.findIndex(m => m[0] === labelMode) + 1) % modes.length];
       labelMode = next[0]; labelsBtn.textContent = next[1]; draw();
@@ -306,19 +315,16 @@ async function openGraphView(scope) {
   document.getElementById("graph-zoom-out").addEventListener("click", () => smoothZoomAt({ x: width / 2, y: height / 2 }, 1 / 1.18));
   document.getElementById("graph-reset-btn").addEventListener("click", function () { term = ""; filter.value = ""; if (filterDot) { filterDot.hidden = true; } setFocus(null); });
   const onKey = function (e) {
-    if (container.classList.contains("hidden")) { return; }
-    if (e.key === "Escape") {
-      if (controlsPanel && !controlsPanel.hidden) { setControlsOpen(false); }
-      else if (focused) { setFocus(null); }
-    } else if (e.key === "/" && document.activeElement !== filter) {
-      e.preventDefault(); setControlsOpen(true); filter.focus();
-    }
+    if (container.classList.contains("hidden") || document.querySelector("dialog[open]")) { return; }
+    const ae = document.activeElement, tag = ae && ae.tagName;
+    if (e.key === "Escape") { if (controlsPanel && !controlsPanel.hidden) { setControlsOpen(false); if (controlsBtn) { controlsBtn.focus({ preventScroll: true }); } } else if (focused) { setFocus(null); } }
+    else if (e.key === "/" && ae !== filter && tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT" && !(ae && ae.isContentEditable)) { e.preventDefault(); setControlsOpen(true); filter.focus(); }
   };
   const observer = new ResizeObserver(resize); observer.observe(container); window.addEventListener("resize", resize); window.addEventListener("keydown", onKey);
-  graphResizeCleanup = function () { observer.disconnect(); window.removeEventListener("resize", resize); window.removeEventListener("keydown", onKey); };
+  graphResizeCleanup = function () { observer.disconnect(); window.removeEventListener("resize", resize); window.removeEventListener("keydown", onKey); window.syncGraphMotion = null; };
   graphRunning = true; for (let i = 0; i < 45; i++) { physics(); } resize(); guideList();
   function tick(ts) {
-    if (!graphRunning) { return; }
+    if (!graphRunning || isReduced()) { graphAnimFrame = null; return; }
     if (document.hidden) { lastTs = 0; graphAnimFrame = requestAnimationFrame(tick); return; }
     const dt = lastTs ? Math.min(0.05, Math.max(0.001, (ts - lastTs) / 1000)) : 0.016;
     lastTs = ts; clock += dt;
@@ -332,6 +338,9 @@ async function openGraphView(scope) {
     }
     draw(); graphAnimFrame = requestAnimationFrame(tick);
   }
-  if (reduced) { draw(); } else { graphAnimFrame = requestAnimationFrame(tick); }
+  window.syncGraphMotion = function () {
+    if (!graphRunning) { return; }
+    if (isReduced()) { if (graphAnimFrame) { cancelAnimationFrame(graphAnimFrame); graphAnimFrame = null; } draw(); } else if (!graphAnimFrame) { lastTs = 0; graphAnimFrame = requestAnimationFrame(tick); }
+  }; window.syncGraphMotion();
 }
 """

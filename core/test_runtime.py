@@ -38,7 +38,19 @@ def test_bundle_root_resolves_meipass_when_frozen(monkeypatch: pytest.MonkeyPatc
 def test_seed_starter_vault_seeds_once_without_overwriting_existing(tmp_path: Path) -> None:
     vault = runtime.seed_starter_vault(tmp_path)
     welcome = vault / "welcome.md"
-    assert welcome.is_file()
+    assert welcome.is_file() and (tmp_path / runtime.STARTER_MARKER).is_file()
     welcome.write_text("# Custom User Edit\n", encoding="utf-8")
     runtime.seed_starter_vault(tmp_path)
     assert welcome.read_text(encoding="utf-8") == "# Custom User Edit\n"
+
+
+def test_seed_starter_vault_never_recreates_deleted_knowledge_base(tmp_path: Path) -> None:
+    import shutil
+
+    vault = runtime.seed_starter_vault(tmp_path)
+    assert vault.is_dir()
+    shutil.rmtree(vault)
+    runtime.seed_starter_vault(tmp_path)
+    assert not (tmp_path / "knowledge_base").exists()
+    custom = tmp_path / "my_guide"
+    assert runtime.copy_starter_welcome(custom) == custom / "welcome.md" and (custom / "welcome.md").is_file()

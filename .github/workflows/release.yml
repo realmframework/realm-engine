@@ -90,6 +90,9 @@ jobs:
             if [[ "${{ needs.verify.outputs.is_tag }}" == "true" ]]; then
               echo "::warning::Apple signing/notarization secrets are not configured; release will be created as a DRAFT so unsigned macOS DMGs are never published accidentally."
             elif [[ "${{ inputs.allow_unsigned_macos }}" != "true" ]]; then
+              echo "::error::Apple signing secrets are not configured and allow_unsigned_macos is false."
+              exit 1
+            else
               echo "::warning::Apple signing secrets not configured; building ad-hoc signed dry-run artifact."
             fi
           fi
@@ -169,7 +172,7 @@ jobs:
 
       - name: Build, smoke-test, and package Windows installer & portable ZIP
         shell: pwsh
-        run: ./packaging/build_windows.ps1
+        run: ./packaging/build_windows.ps1 -RequireInstaller
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4

@@ -9,7 +9,8 @@ import httpx
 from fastapi import HTTPException, Request
 
 from core import contracts
-from core.runtime import data_root
+from core.db import atomic_write_text, backup_corrupt_file
+from core.runtime import data_root, is_loopback_url, ollama_base_url
 from features.ui import selection
 from features.ui.areas import area_path, list_areas
 from features.ui.folders import list_subfolders, resolve_document
@@ -19,54 +20,57 @@ REPO_ROOT = data_root()
 WORKSPACE_FILE = REPO_ROOT / "workspace.json"
 STATE_LOCK = RLock()
 ALLOWED_UPLOAD_EXTENSIONS = {".md", ".txt", ".html", ".pdf", ".docx", ".csv", ".tsv", ".xlsx", ".pptx"}
-EXCLUDED_REPO_DIRS = {"core", "features", "docs", "tests", "node_modules", "__pycache__"}
-OLLAMA_TAGS_URL = "http://127.0.0.1:11434/api/tags"
+EXCLUDED_REPO_DIRS = {"agents", "core", "features", "docs", "tests", "node_modules", "__pycache__"}
+OLLAMA_TAGS_URL = f"{ollama_base_url()}/api/tags"
+_ORIG_HTTPX_GET = httpx.get
 
 
 def load_workspace_config(path: Path | None = None) -> contracts.WorkspaceConfig:
     target = path or WORKSPACE_FILE
-    if target.is_file():
+    if target.is_file() and not target.is_symlink():
         try:
             return contracts.WorkspaceConfig.model_validate_json(target.read_text(encoding="utf-8"))
         except ValueError:
+            backup_corrupt_file(target)
+        except OSError:
             return contracts.WorkspaceConfig()
     return contracts.WorkspaceConfig()
-
 def save_workspace_config(config: contracts.WorkspaceConfig, path: Path | None = None) -> None:
-    (path or WORKSPACE_FILE).write_text(config.model_dump_json(indent=2), encoding="utf-8")
-
+    atomic_write_text(path or WORKSPACE_FILE, config.model_dump_json(indent=2))
 def build_tutor_config(provider: str | None, model: str | None, api_key: str | None, temperature: float = 0.2) -> contracts.TutorConfig:
     clamped = max(0.0, min(1.0, float(temperature)))
     try:
         return contracts.TutorConfig.model_validate({"provider": provider or "ollama", "model": model or "qwen3:8b", "api_key": api_key or None, "temperature": clamped})
     except ValueError:
         return contracts.TutorConfig(temperature=clamped)
-
 def build_search_query(q: str, tag: str | None, top_k: int = 5, retrieval_mode: str = "hybrid", rrf_k: int = 60) -> contracts.SearchQuery:
     mode: contracts.RetrievalMode = retrieval_mode if retrieval_mode in ("hybrid", "lexical", "vector") else "hybrid"
     return contracts.SearchQuery(query=q, tag_filter=tag, top_k=max(1, min(15, int(top_k))), retrieval_mode=mode, rrf_k=max(1, min(120, int(rrf_k))))
-
 def resolve_safe_knowledge_dir(knowledge_dir: str, repo_root: Path | None = None, create: bool = False) -> Path:
     return area_path(knowledge_dir, repo_root or REPO_ROOT, create)
-
 def resolve_guide_file(target_dir: Path, doc_id: str) -> Path:
     try:
         return resolve_document(target_dir, doc_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail="Guide not found") from exc
-
-def list_available_dirs(current_dir: str = "knowledge_base", repo_root: Path | None = None) -> list[str]:
+def list_available_dirs(current_dir: str = "", repo_root: Path | None = None) -> list[str]:
     names = [a.name for a in list_areas(repo_root or REPO_ROOT, current_dir)]
-    return list(dict.fromkeys(["knowledge_base", *names, current_dir]))
+    return list(dict.fromkeys([*names, *([current_dir] if current_dir else [])]))
+
+def _get_ollama_tags() -> httpx.Response:
+    url = OLLAMA_TAGS_URL if httpx.get is not _ORIG_HTTPX_GET else f"{ollama_base_url()}/api/tags"
+    if httpx.get is not _ORIG_HTTPX_GET:
+        return httpx.get(url, timeout=1.0)
+    with httpx.Client(trust_env=not is_loopback_url(url), follow_redirects=False, timeout=1.0) as client:
+        return client.get(url)
 
 def probe_system_status(chunks: list[contracts.KnowledgeChunk], workspace_file: Path | None = None) -> dict[str, object]:
     target_ws, ollama_online, ollama_models = workspace_file or WORKSPACE_FILE, False, []
     try:
-        res = httpx.get(OLLAMA_TAGS_URL, timeout=1.0)
-        if res.status_code == 200:
-            ollama_online = True
-            ollama_models = [str(m.get("name", "")) for m in res.json().get("models", []) if isinstance(m, dict) and m.get("name")]
-    except (httpx.HTTPError, ValueError, KeyError):
+        res = _get_ollama_tags()
+        if res.status_code == 200 and isinstance((raw := res.json()), dict):
+            ollama_online, ollama_models = True, [str(m.get("name", "")) for m in (raw.get("models") or []) if isinstance(m, dict) and m.get("name")]
+    except (httpx.HTTPError, ValueError, KeyError, TypeError):
         ollama_online = False
     has_nomic = any(m.startswith("nomic-embed-text") for m in ollama_models)
     embedded = sum(1 for c in chunks if c.embedding)
@@ -130,19 +134,17 @@ def build_workspace_payload(config: contracts.WorkspaceConfig, chunks: list[cont
     for area in areas:
         if len(config.active_dirs) == 1 and area["name"] == config.knowledge_dir:
             area["doc_count"] = len(guides)
-    return {"config": config.model_dump(), "areas": areas, "subfolders": selection.subfolders(config, REPO_ROOT) if len(config.active_dirs) > 1 else selection.filter_subfolders(list_subfolders(resolve_safe_knowledge_dir(config.knowledge_dir)), config.knowledge_dir, config), "unloaded_subfolders": selection.unloaded_subfolders(config), "available_dirs": list_available_dirs(config.knowledge_dir), "tags": sorted_tags, "starter_prompts": prompts, "doc_count": len(guides), "embeddings_active": any(bool(c.embedding) for c in chunks)}
+    avail = list(dict.fromkeys([*[str(a["name"]) for a in areas], *([config.knowledge_dir] if config.knowledge_dir else [])]))
+    subs = [] if not config.active_dirs else (selection.subfolders(config, REPO_ROOT) if len(config.active_dirs) > 1 else selection.filter_subfolders(list_subfolders(resolve_safe_knowledge_dir(config.knowledge_dir)), config.knowledge_dir, config))
+    return {"config": config.model_dump(), "areas": areas, "subfolders": subs, "unloaded_subfolders": selection.unloaded_subfolders(config), "available_dirs": avail, "tags": sorted_tags, "starter_prompts": prompts, "doc_count": len(guides), "embeddings_active": any(bool(c.embedding) for c in chunks)}
 
 
 def require_area(request: Request, config: contracts.WorkspaceConfig) -> None:
-    """Reject requests from a stale tab instead of applying them in another vault."""
     expected = request.headers.get("x-knowledge-area")
     if expected is not None and expected != config.knowledge_dir:
         raise HTTPException(status_code=409, detail="Knowledge area changed. Select the area again before continuing.")
-
     expected_selection = request.headers.get("x-knowledge-selection")
     if expected_selection is not None and expected_selection != ",".join(config.active_dirs):
         raise HTTPException(status_code=409, detail="Selected areas changed. Select the areas again before continuing.")
-
-
 def resolve_selected_guide(config: contracts.WorkspaceConfig, doc_id: str) -> tuple[Path, str]:
     return selection.document_source(config, REPO_ROOT, doc_id) if len(config.active_dirs) > 1 else (resolve_safe_knowledge_dir(config.knowledge_dir), doc_id)

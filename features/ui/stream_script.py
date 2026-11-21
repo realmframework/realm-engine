@@ -8,18 +8,24 @@ function scheduleStreamRender() {
   streamRenderScheduled = true;
   requestAnimationFrame(function () {
     streamRenderScheduled = false;
+    const idx = currentTurns.length - 1, last = idx >= 0 ? currentTurns[idx] : null;
+    const bodyEl = last && last.loadingTutor && last.streamingText ? document.getElementById("turn-" + idx + "-stream-body") : null;
+    if (bodyEl) {
+      bodyEl.innerHTML = formatMarkdown(last.streamingText, true, 3) + "<span class='stream-cursor' aria-hidden='true'></span>";
+      return;
+    }
     renderChatStream();
   });
 }
-async function runStreamingTurn(chatId, bodyObj, headers, signal, pendingTurn, turnIdx) {
+async function runStreamingTurn(chatId, bodyObj, headers, signal, pendingTurn, turnIdx, version) {
   const res = await areaFetch("/api/chats/" + encodeURIComponent(chatId) + "/turn/stream", {
     method: "POST", headers: headers, signal: signal, body: JSON.stringify(bodyObj)
   });
-  if (res.status === 499 || signal.aborted) { return { stopped: true }; }
+  const stale = function () { return signal.aborted || (version !== undefined && version !== areaVersion); };
+  if (res.status === 499 || stale()) { return { stopped: true }; }
   if (!res.ok) {
-    let detail = "Answer failed.";
-    try { const err = await res.json(); if (err && err.detail) { detail = err.detail; } } catch (_e) {}
-    throw new Error(detail);
+    const err = await safeJson(res);
+    throw new Error((err && err.detail) || "Answer failed.");
   }
   if (!res.body || !res.body.getReader) {
     return { fallback: true };
@@ -27,6 +33,7 @@ async function runStreamingTurn(chatId, bodyObj, headers, signal, pendingTurn, t
   const reader = res.body.getReader(), decoder = new TextDecoder();
   let buffer = "", doneSession = null, stoppedFlag = false;
   const handleEvent = function (rawEvent) {
+    if (stale()) { return; }
     const lines = rawEvent.split(/\r?\n/);
     let evName = "message", dataLines = [];
     for (const ln of lines) {
@@ -67,6 +74,7 @@ async function runStreamingTurn(chatId, bodyObj, headers, signal, pendingTurn, t
   while (true) {
     const step = await reader.read();
     if (step.done) { break; }
+    if (stale()) { try { await reader.cancel(); } catch (_e) {} return { stopped: true }; }
     buffer += decoder.decode(step.value, { stream: true });
     let idx;
     while ((idx = buffer.indexOf("\n\n")) !== -1) {
@@ -75,7 +83,9 @@ async function runStreamingTurn(chatId, bodyObj, headers, signal, pendingTurn, t
       if (chunk.trim()) { handleEvent(chunk); }
     }
   }
+  buffer += decoder.decode();
   if (buffer.trim()) { handleEvent(buffer); }
+  if (stale()) { return { stopped: true }; }
   if (doneSession) {
     const rLabel = (doneSession.router_decision && doneSession.router_decision.label) || pendingTurn.router_label || "";
     currentTurns = (doneSession.turns || []).map(function (t, i) {
@@ -85,9 +95,18 @@ async function runStreamingTurn(chatId, bodyObj, headers, signal, pendingTurn, t
       });
     });
     renderChatStream(); await loadRecentChats(); refreshBudget();
+    if (doneSession.notice && typeof showToast === "function") { showToast(doneSession.notice, 5200); }
+    if (typeof handleVoiceLoopAfterAnswer === "function") { handleVoiceLoopAfterAnswer(); }
     return { done: true };
   }
-  return { stopped: stoppedFlag };
+  if (!stoppedFlag) {
+    pendingTurn.loadingTutor = false;
+    const partial = String(pendingTurn.streamingText || "").trim();
+    pendingTurn.tutor = { answer: partial || "Stream ended unexpectedly before completing the answer.", cited_titles: [], knowledge_gap_detected: !partial, recommended_topics: [] };
+    renderChatStream();
+    return { done: true };
+  }
+  return { stopped: true };
 }
 async function readEntryFiles(entry, prefix, out) {
   if (!entry) { return; }
@@ -121,38 +140,33 @@ async function extractDroppedFiles(dataTransfer) {
 let revealAutoSyncPending = false;
 async function revealWorkspaceFolder(subfolder) {
   try {
-    const res = await areaFetch("/api/workspace/reveal-folder", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subfolder: subfolder || "" })
-    });
-    const data = await res.json();
+    const res = await areaFetch("/api/workspace/reveal-folder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subfolder: subfolder || "" }) });
+    const data = await safeJson(res);
     if (!res.ok) { throw new Error(data.detail || "Could not open folder."); }
     revealAutoSyncPending = true;
-    showToast("Opened " + (data.path || "workspace folder") + " — drop files or folders there, then click Sync.");
-  } catch (err) { areaStatus(err.message || "Could not open folder."); }
+    showToast(t("toast_opened_sync_hint", { path: data.path || "workspace" }));
+  } catch (err) { areaStatus(err.message || t("err_open_folder")); }
 }
 async function syncWorkspaceFolder(silent) {
   const version = areaVersion;
   try {
     const res = await areaFetch("/api/workspace/sync-folder", { method: "POST" });
-    const data = await res.json();
+    const data = await safeJson(res);
     if (!res.ok || version !== areaVersion) { return; }
-    applyWorkspacePayload(data);
-    await loadGuidesCatalog(null);
+    applyWorkspacePayload(data); await loadGuidesCatalog(null);
     if (version === areaVersion && isActiveView && !currentChatId) { await openLibraryCatalog(selectedTag); }
-    if (!silent) { showToast("Synced Library (" + (data.doc_count || 0) + " guides indexed)."); }
-  } catch (err) { if (!silent) { areaStatus(err.message || "Could not sync folder."); } }
+    if (!silent) { showToast(t("toast_synced_lib", { n: data.doc_count || 0 })); }
+  } catch (err) { if (!silent) { areaStatus(err.message || t("st_sync_err")); } }
 }
 function setUploadProgress(visible, title, countText, pct, fileText) {
   const panel = document.getElementById("upload-progress-panel");
   if (!panel) { return; }
   panel.hidden = !visible;
   if (!visible) { return; }
-  const tEl = document.getElementById("upload-progress-title"), cEl = document.getElementById("upload-progress-count");
-  const bEl = document.getElementById("upload-progress-bar"), fEl = document.getElementById("upload-progress-file");
+  const tEl = document.getElementById("upload-progress-title"), cEl = document.getElementById("upload-progress-count"), bEl = document.getElementById("upload-progress-bar"), fEl = document.getElementById("upload-progress-file");
   if (tEl && title !== undefined) { tEl.textContent = title; }
   if (cEl && countText !== undefined) { cEl.textContent = countText; }
-  if (bEl && pct !== undefined) { bEl.style.width = Math.max(2, Math.min(100, pct)) + "%"; }
+  if (bEl && pct !== undefined) { const clamped = Math.max(2, Math.min(100, pct)); bEl.style.width = clamped + "%"; bEl.setAttribute("aria-valuenow", String(Math.round(clamped))); }
   if (fEl && fileText !== undefined) { fEl.textContent = fileText; }
 }
 async function importNativeFolder() {
@@ -161,8 +175,7 @@ async function importNativeFolder() {
   const subfolder = destinationValue("upload"), saveArea = document.getElementById("upload-save-area").value || activeKnowledgeArea;
   if (subfolder === null) { return; }
   const anon = Boolean(document.getElementById("cfg-anonymize-uploads").checked), version = areaVersion;
-  if (btn) { btn.disabled = true; }
-  if (confirmBtn) { confirmBtn.disabled = true; }
+  if (btn) { btn.disabled = true; } if (confirmBtn) { confirmBtn.disabled = true; }
   if (statusEl) { statusEl.textContent = "Importing folder…"; }
   setUploadProgress(true, "Choose a folder in Finder / Explorer…", "", 8, "Waiting for folder selection");
   let donePayload = null, cancelled = false, folderName = "folder";
@@ -171,60 +184,44 @@ async function importNativeFolder() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ subfolder: subfolder, area: saveArea, anonymize: anon })
     });
-    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.detail || "Folder import failed."); }
+    if (!res.ok) { const err = await safeJson(res); throw new Error(err.detail || "Folder import failed."); }
+    if (!res.body || !res.body.getReader) { throw new Error("Streaming folder import is unavailable in this browser."); }
     const reader = res.body.getReader(), decoder = new TextDecoder();
     let buf = "";
     const handle = function (rawEv) {
       let ev = "message", lines = [];
-      for (const ln of rawEv.split(/\r?\n/)) {
-        if (ln.startsWith("event:")) { ev = ln.slice(6).trim(); }
-        else if (ln.startsWith("data:")) { lines.push(ln.slice(5).trim()); }
-      }
+      for (const ln of rawEv.split(/\r?\n/)) { if (ln.startsWith("event:")) { ev = ln.slice(6).trim(); } else if (ln.startsWith("data:")) { lines.push(ln.slice(5).trim()); } }
       if (!lines.length) { return; }
       let p = null; try { p = JSON.parse(lines.join("\n")); } catch (_e) { return; }
-      if (ev === "stage") {
-        setUploadProgress(true, p.message || "Working…", p.stage === "indexing" ? "Indexing…" : "", p.stage === "indexing" ? 95 : 10, p.stage === "indexing" ? "Building search index & vectors — almost done" : "Waiting for folder selection");
-      } else if (ev === "start") {
-        folderName = p.folder_name || "folder";
-        setUploadProgress(true, "Importing “" + folderName + "”…", "0 / " + (p.total || 0), 12, "Scanning files…");
-      } else if (ev === "progress") {
+      if (ev === "stage") { setUploadProgress(true, p.message || "Working…", p.stage === "indexing" ? "Indexing…" : "", p.stage === "indexing" ? 95 : 10, p.stage === "indexing" ? "Building search index & vectors — almost done" : "Waiting for folder selection"); }
+      else if (ev === "start") { folderName = p.folder_name || "folder"; setUploadProgress(true, "Importing “" + folderName + "”…", "0 / " + (p.total || 0), 12, "Scanning files…"); }
+      else if (ev === "progress") {
         const pct = p.total ? Math.round(12 + (p.done / p.total) * 78) : 50;
         setUploadProgress(true, "Importing “" + folderName + "”…", p.done + " / " + p.total, pct, p.current || "");
         if (statusEl) { statusEl.textContent = "Converted " + (p.imported || 0) + " guides (" + p.done + "/" + p.total + ")…"; }
-      } else if (ev === "cancelled") {
-        cancelled = true;
-      } else if (ev === "done") {
-        donePayload = p;
-        setUploadProgress(true, "Import complete!", (p.imported_count || 0) + " guides", 100, "");
-      } else if (ev === "error") {
-        throw new Error((p && p.detail) || "Could not import folder.");
-      }
+      } else if (ev === "cancelled") { cancelled = true; }
+      else if (ev === "done") { donePayload = p; setUploadProgress(true, "Import complete!", (p.imported_count || 0) + " guides", 100, ""); }
+      else if (ev === "error") { throw new Error((p && p.detail) || "Could not import folder."); }
     };
     while (true) {
       const step = await reader.read();
       if (step.done) { break; }
       buf += decoder.decode(step.value, { stream: true });
       let idx;
-      while ((idx = buf.indexOf("\n\n")) !== -1) {
-        const chunk = buf.slice(0, idx); buf = buf.slice(idx + 2);
-        if (chunk.trim()) { handle(chunk); }
-      }
+      while ((idx = buf.indexOf("\n\n")) !== -1) { const chunk = buf.slice(0, idx); buf = buf.slice(idx + 2); if (chunk.trim()) { handle(chunk); } }
     }
+    buf += decoder.decode();
     if (buf.trim()) { handle(buf); }
     if (version !== areaVersion) { return; }
     if (cancelled || !donePayload) { if (statusEl) { statusEl.textContent = ""; } return; }
     uploadModal.close(); stageUploadFiles([]); applyWorkspacePayload(donePayload);
     selectedSubfolder = selectedAreas().length > 1 ? saveArea + (subfolder ? "/" + subfolder : "") : subfolder;
-    showToast("Imported " + donePayload.imported_count + " guides from “" + (donePayload.folder_name || folderName) + "”" + (donePayload.skipped_count ? " (" + donePayload.skipped_count + " skipped)" : ""));
+    showToast(t("toast_imported_folder", { n: donePayload.imported_count, folder: donePayload.folder_name || folderName, skipped: donePayload.skipped_count ? " (" + donePayload.skipped_count + " skipped)" : "" }));
     await loadGuidesCatalog(null);
     if (version === areaVersion && isActiveView && !currentChatId) { await openLibraryCatalog(selectedTag); }
   } catch (err) {
     if (statusEl) { statusEl.textContent = err.message || "Could not import folder."; }
-  } finally {
-    setUploadProgress(false);
-    if (btn) { btn.disabled = false; }
-    if (confirmBtn) { confirmBtn.disabled = false; }
-  }
+  } finally { setUploadProgress(false); if (btn) { btn.disabled = false; } if (confirmBtn) { confirmBtn.disabled = false; } }
 }
 function bindGlobalDrop() {
   const nativeImportBtn = document.getElementById("import-native-folder-btn");
@@ -334,7 +331,7 @@ function bindWebSearchControls() {
       const url = searxIn.value.trim();
       workspaceConfig = Object.assign({}, workspaceConfig, { searxng_url: url });
       if (typeof persistAppearancePatch === "function") { persistAppearancePatch({ searxng_url: url }); }
-      areaStatus(url ? "SearXNG URL saved." : "SearXNG URL cleared.");
+      areaStatus(t(url ? "st_searx_saved" : "st_searx_cleared"));
     });
   }
 }

@@ -23,7 +23,7 @@ def test_embed_chunk_populates_embedding(monkeypatch: pytest.MonkeyPatch) -> Non
     chunk = embed_chunk(KnowledgeChunk(id="chunk-001", title="Hybrid Search", file_path="knowledge/folder/hybrid.md", doc_id="folder/hybrid", subfolder="folder", content="BM25 and dense embeddings combined.", tags=["rag"]))
     assert len(calls) == 1
     assert calls[0][0] == "http://127.0.0.1:11434/api/embed"
-    assert calls[0][1] == {"model": "nomic-embed-text:v1.5", "input": "BM25 and dense embeddings combined."}
+    assert calls[0][1] == {"model": "nomic-embed-text:v1.5", "input": "BM25 and dense embeddings combined.", "keep_alive": "30s"}
     assert chunk.embedding == [0.1, 0.2, 0.3]
     assert chunk.doc_id == "folder/hybrid" and chunk.subfolder == "folder"
 

@@ -58,7 +58,7 @@ def test_limits_persist_reset_is_explicit_and_stale_tabs_fail(area_client: TestC
     assert ui_app.budget.check_and_record_budget("openai") is None
     for invalid in ({"confirm": False}, {}):
         assert area_client.post("/api/budget/reset", json=invalid).status_code == 400
-    assert area_client.post("/api/budget/reset", data={"confirm": "true"}).status_code == 422
+    assert area_client.post("/api/budget/reset", data={"confirm": "true"}).status_code == 415
     stale = {"x-knowledge-area": "other"}
     assert area_client.get("/api/budget", headers=stale).status_code == 409
     assert area_client.post("/api/budget/reset", headers=stale, json={"confirm": True}).status_code == 409

@@ -23,7 +23,7 @@ def build_guard(config: Callable[[], WorkspaceConfig], record: Callable[..., str
 
 def build_embedder(embed: Callable[..., list[float]], guard: Callable[[str, str, str], None]) -> Callable[..., list[float]]:
     def guarded(text: str, provider: str = "ollama", api_key: str | None = None) -> list[float]:
-        if provider in {"openai", "mistral"}:
+        if provider != "ollama":
             guard(provider, text, "embedding")
         return embed(text, provider=provider, api_key=api_key)
     return guarded

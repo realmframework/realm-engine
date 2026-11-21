@@ -1,0 +1,26 @@
+name: Feature Request
+description: Propose an improvement or new capability for REALM Engine
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Use Case
+      description: What workflow or pain point does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: Describe how you envision this working while keeping the interface minimal and local-first.
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy & Local-First Alignment
+      options:
+        - label: Works offline / respects Strict Local-Only Lock by default
+        - label: Does not add clutter to the main hero or prompt pill

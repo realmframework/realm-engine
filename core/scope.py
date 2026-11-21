@@ -2,6 +2,7 @@
 
 import re
 import unicodedata
+from urllib.parse import quote, urlsplit, urlunsplit
 
 from core.contracts import KnowledgeChunk
 
@@ -31,7 +32,7 @@ def chunk_section_heading(title: str) -> str:
 
 
 def resolve_chunk_url(chunk: KnowledgeChunk, url_template: str = "") -> str:
-    """Resolve a canonical web URL + section anchor for a chunk."""
+    """Resolve a canonical web URL + section anchor safely without throwing on unknown templates."""
     section = chunk_section_heading(chunk.title)
     anchor = section_slug(section) if section and section.lower() not in {"overview", "body", "content"} else ""
     if chunk.url:
@@ -41,8 +42,18 @@ def resolve_chunk_url(chunk: KnowledgeChunk, url_template: str = "") -> str:
         return ""
     local_doc = chunk.doc_id.split("::", 1)[-1] if "::" in chunk.doc_id else chunk.doc_id
     area = chunk.area or "knowledge_base"
-    base = url_template.format(area=area, doc_id=local_doc, subfolder=chunk.subfolder, section_slug=anchor)
-    base = re.sub(r"/{2,}", "/", base) if base.startswith("/") else base
+    replacements = {
+        "{area}": quote(area, safe="/"),
+        "{doc_id}": quote(local_doc, safe="/"),
+        "{subfolder}": quote(chunk.subfolder, safe="/"),
+        "{section_slug}": quote(anchor, safe=""),
+    }
+    base = url_template
+    for token, value in replacements.items():
+        base = base.replace(token, value)
+    parsed = urlsplit(base)
+    clean_path = re.sub(r"/{2,}", "/", parsed.path)
+    base = urlunsplit((parsed.scheme, parsed.netloc, clean_path, parsed.query, parsed.fragment))
     if "{section_slug}" in url_template:
         return base.rstrip("#")
     return f"{base}#{anchor}" if anchor else base

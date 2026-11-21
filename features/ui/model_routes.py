@@ -7,12 +7,16 @@ import httpx
 from fastapi import APIRouter, HTTPException, Request
 
 from core.contracts import WorkspaceConfig
+from core.runtime import is_loopback_url, ollama_base_url
 from features.ui import workspace
 from features.ui.hardware import physical_ram_gb
 
-PULL_URL = "http://127.0.0.1:11434/api/pull"
 EMBEDDING_MODEL = "nomic-embed-text:v1.5"
 PULL_LOCK = Lock()
+
+
+def pull_url() -> str:
+    return f"{ollama_base_url()}/api/pull"
 
 
 def recommended_model(ram_gb: int) -> str:
@@ -36,9 +40,10 @@ def build_router(config: Callable[[], WorkspaceConfig], refresh: Callable[[], No
             raise HTTPException(status_code=409, detail="A model download is already running. Please wait for it to finish.")
         downloaded: list[str] = []
         try:
-            with httpx.Client(trust_env=False, follow_redirects=False, timeout=httpx.Timeout(1800, connect=2)) as client:
+            target_url = pull_url()
+            with httpx.Client(trust_env=not is_loopback_url(target_url), follow_redirects=False, timeout=httpx.Timeout(1800, connect=2)) as client:
                 for name in dict.fromkeys([selected, EMBEDDING_MODEL]):
-                    response = client.post(PULL_URL, json={"name": name, "model": name, "stream": False})
+                    response = client.post(target_url, json={"name": name, "model": name, "stream": False})
                     response.raise_for_status()
                     result = response.json()
                     if not isinstance(result, dict) or result.get("status") != "success":

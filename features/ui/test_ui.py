@@ -20,15 +20,15 @@ def test_markdown_citations_chunks_header_and_rag_modal_in_ui() -> None:
     for expected in (
         "formatMarkdown", "source passages", "How the RAG Pipeline Works", "RAG &amp; Search",
         "Reset Sliders to Default", 'id="settings-panel-rag"', '<dialog id="onboarding-modal" closedby="any"',
-        '<dialog id="upload-modal" closedby="any"', "Add Documents", "Anonymize personal names, emails, IBANs &amp; phones (DSGVO)",
+        '<dialog id="upload-modal" closedby="any"', "Add Documents", "Anonymize personal names, emails, IBANs &amp; phones (GDPR)",
         "Extracts text into a Markdown guide inside your active Library folder.", "Upload &amp; Index", "<span>Graph View</span>",
         "knowledge-graph-canvas", "graph-filter-input", "Reset View", "▶ Test", "Auto-Router: Deep Synthesis", "Alfie",
         "OpenAI TTS (tts-1 — Alloy / Nova / Echo)", "ElevenLabs TTS", "Disabled (Hide Voice Controls)",
-        "Voice Output (Phonon TTS)", 'id="tts-model"', 'id="tts-voice"', "Anonymize (DSGVO)", "guide-delete-btn",
+        "Voice Output (Phonon TTS)", 'id="tts-model"', 'id="tts-voice"', "Anonymize (GDPR)", "guide-delete-btn",
         "Local execution — data stays on this device", "Tutor Synthesis vs. Raw Search Only", 'placeholder="Ask anything..."',
         'id="mic-btn"', "data-speak-turn", "mode: hybrid · top-k: 5 · temp: 0.2", "upload-dropzone",
         "Reciprocal Rank Fusion (RRF)", "<span>Library</span>", "<span>Settings</span>",
-        "Privacy &amp; DSGVO Audit", "More ideas", 'id="settings-tabs"',
+        "Privacy &amp; GDPR Audit", "More ideas", 'id="settings-tabs"',
         '<dialog id="settings-modal" closedby="any"', "showModal()", "startViewTransition", "scrollIntoViewAsync", "<search ",
     ):
         assert expected in response.text

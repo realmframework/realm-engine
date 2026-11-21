@@ -1,6 +1,7 @@
 """Client-side JavaScript for the Google Stitch AI Engineering Knowledge Engine UI."""
 
 from features.ui.advisor_script import ADVISOR_SCRIPT
+from features.ui.agent_script import AGENT_SCRIPT
 from features.ui.ambient_script import AMBIENT_SCRIPT
 from features.ui.backup_script import BACKUP_SCRIPT
 from features.ui.budget_script import BUDGET_SCRIPT
@@ -20,6 +21,7 @@ from features.ui.stream_script import STREAM_SCRIPT
 from features.ui.studio_script import STUDIO_SCRIPT
 from features.ui.theme_script import THEME_SCRIPT
 from features.ui.topics_script import TOPICS_SCRIPT
+from features.ui.ux_bundle_script import UX_BUNDLE_SCRIPT
 from features.ui.workspace_menu_script import WORKSPACE_MENU_SCRIPT
 
 CLIENT_SCRIPT: str = (
@@ -31,7 +33,11 @@ const NON_CHAT_RE = /^(nomic-embed|mxbai-embed|bge-|all-minilm|text-embedding|mi
 const SPARKLE_SVG = "<svg aria-hidden='true' class='w-4 h-4 shrink-0' viewBox='0 0 24 24' fill='currentColor'><path d='M12 2L14.6 9.4L22 12L14.6 14.6L12 22L9.4 14.6L2 12L9.4 9.4L12 2Z'/></svg>";
 const PROVIDER_LABELS = { ollama: "Ollama (Local)", openai: "OpenAI", gemini: "Gemini", anthropic: "Anthropic", kimi: "Kimi", deepseek: "DeepSeek", xai: "xAI", mistral: "Mistral" };
 const PROVIDER_ORDER = ["ollama", "openai", "gemini", "anthropic", "kimi", "deepseek", "xai", "mistral"];
-let appKeyStatus = {};
+let appKeyStatus = {}, loadModelsOp = 0;
+async function safeJson(res) { try { return await res.json(); } catch (_e) { return {}; } }
+function safeStorageGet(k, fb) { try { const v = localStorage.getItem(k); return v !== null ? v : (fb === undefined ? null : fb); } catch (_e) { return fb === undefined ? null : fb; } }
+function safeStorageSet(k, v) { try { localStorage.setItem(k, v); } catch (_e) {} }
+function safeStorageRemove(k) { try { localStorage.removeItem(k); } catch (_e) {} }
 function getApiKey() { return apiKeyEl.value.trim(); }
 function hasSavedKey(provider) { return Boolean(appKeyStatus[provider] && appKeyStatus[provider].configured); }
 function renderProviderPills() {
@@ -61,17 +67,17 @@ function syncKeyStatusUI() {
   if (typeof syncWebSearchUI === "function") { syncWebSearchUI(workspaceConfig); }
   if (!el) { return; }
   if (info && info.configured) {
-    el.textContent = (info.source === "env" ? "Loaded from environment" : "Saved securely on this computer") + (info.hint ? " (" + info.hint + ")" : "") + " · persists across restarts";
-    apiKeyEl.placeholder = "Key saved (" + (info.hint || "configured") + ") — enter to replace";
+    el.textContent = (info.source === "env" ? t("api_key_from_env") : t("api_key_saved_local")) + (info.hint ? " (" + info.hint + ")" : "") + " · " + t("api_key_persists");
+    apiKeyEl.placeholder = t("api_key_saved_local") + (info.hint ? " (" + info.hint + ")" : "");
   } else {
-    el.textContent = "Not saved yet. Paste your key and click Save Key — you can save keys for multiple providers.";
-    apiKeyEl.placeholder = "Enter cloud provider API key";
+    el.textContent = t("api_key_not_saved");
+    apiKeyEl.placeholder = t("api_key_enter_ph");
   }
 }
 async function loadKeyStatus() {
   try {
     const res = await areaFetch("/api/keys/status");
-    if (res.ok) { const data = await res.json(); appKeyStatus = data.keys || {}; syncKeyStatusUI(); }
+    if (res.ok) { const data = await safeJson(res); appKeyStatus = data.keys || {}; syncKeyStatusUI(); }
   } catch (_e) {}
 }
 async function saveAppApiKey(provider, rawKey, inputEl) {
@@ -79,10 +85,9 @@ async function saveAppApiKey(provider, rawKey, inputEl) {
   if (!provider || provider === "ollama" || !key) { return false; }
   const res = await areaFetch("/api/keys", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider: provider, api_key: key }) });
   if (!res.ok) { return false; }
-  const data = await res.json(); appKeyStatus = data.keys || {};
+  const data = await safeJson(res); appKeyStatus = data.keys || {};
   if (inputEl) { inputEl.value = ""; }
-  syncKeyStatusUI();
-  return true;
+  syncKeyStatusUI(); return true;
 }
 function escapeHtml(value) { return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
 """
@@ -98,6 +103,7 @@ function escapeHtml(value) { return String(value).replace(/&/g, "&amp;").replace
     + CHAT_ACTIONS_SCRIPT
     + STREAM_SCRIPT
     + STUDIO_SCRIPT
+    + AGENT_SCRIPT
     + GRAPH_SCRIPT
     + INTERACTION_SCRIPT
     + SCOPE_SCRIPT
@@ -107,6 +113,7 @@ function escapeHtml(value) { return String(value).replace(/&/g, "&amp;").replace
     + BUDGET_SCRIPT
     + BACKUP_SCRIPT
     + INSTALL_SCRIPT
+    + UX_BUNDLE_SCRIPT
     + r"""
 function syncChunksToggle(tutorActive) {
   chunksHeader.classList.toggle("hidden", !tutorActive || chunkCount === 0); chunksHeader.classList.toggle("flex", tutorActive && chunkCount > 0);
@@ -115,6 +122,7 @@ function syncChunksToggle(tutorActive) {
 }
 function setLoadingState(loading) {
   promptBox.className = loading ? "w-full rounded-full bg-[#0B1020] shadow-[inset_0_0_0_1px_#4BB8E8,0_0_20px_rgba(75,184,232,0.22)] flex items-center py-3 px-4 gap-3 transition-all duration-200" : "w-full rounded-full bg-[#0B1020] shadow-[inset_0_0_0_1px_rgba(238,242,248,0.16)] focus-within:shadow-[inset_0_0_0_1px_#4BB8E8] flex items-center py-3 px-4 gap-3 transition-all duration-200";
+  if (typeof autoResizeQuery === "function") { autoResizeQuery(); }
   if (!submitBtn) { return; }
   if (loading) {
     submitBtn.type = "button"; submitBtn.innerHTML = STOP_SVG;
@@ -130,7 +138,7 @@ function setViewMode(active, hideDock) {
   if (typeof setAmbientDimmed === "function") { setAmbientDimmed(Boolean(active)); }
   const shell = document.getElementById("workspace-shell"), dock = document.getElementById("search-dock"), stream = document.getElementById("active-stream"), gv = document.getElementById("graph-view");
   shell.classList.remove("hidden"); if (gv) { gv.classList.add("hidden"); }
-  queryEl.placeholder = active ? "Ask a follow-up..." : defaultPlaceholder;
+  queryEl.placeholder = active ? t("ask_followup") : defaultPlaceholder;
   const chatLayout = Boolean(active && !hideDock);
   const applyLayout = function () {
     shell.className = chatLayout ? "flex flex-col w-full h-screen overflow-hidden items-center" : (active ? "flex flex-col w-full flex-1 items-center px-4 sm:px-6" : "flex flex-col w-full flex-1 justify-center items-center px-4 sm:px-6");
@@ -143,30 +151,29 @@ function setViewMode(active, hideDock) {
   return withViewTransition(applyLayout, active ? stream : queryEl);
 }
 async function toggleDictation() {
+  if (activeRecognition) { activeRecognition.stop(); activeRecognition = null; return; }
   const policyVersion = areaVersion;
   try {
     const response = await areaFetch("/api/workspace");
     if (!response.ok) { throw new Error("Refresh the workspace before starting dictation."); }
-    const data = await response.json();
+    const data = await safeJson(response);
     if (policyVersion !== areaVersion) { return; }
     applyWorkspacePayload(data);
   } catch (error) { areaStatus(error.message); return; }
-  if (localOnly()) { areaStatus("Browser dictation is blocked by the local-only lock. Use local Whisper for transcription."); return; }
+  if (localOnly()) { areaStatus(t("st_dict_locked")); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (activeRecognition) { activeRecognition.stop(); activeRecognition = null; return; }
-  if (!SR) { areaFetch("/api/audio/transcribe", { method: "POST" }); return; }
+  if (!SR) { areaStatus(t("st_dict_unavail")); return; }
   const rec = new SR(), version = areaVersion; activeRecognition = rec;
   micBtn.setAttribute("aria-pressed", "true"); micBtn.className = "w-9 h-9 rounded-full text-[#4BB8E8] bg-[#4BB8E8]/15 animate-pulse flex items-center justify-center shrink-0 transition";
-  rec.onresult = function (e) { if (version !== areaVersion) { return; } const t = e.results[0] && e.results[0][0] ? e.results[0][0].transcript : ""; if (t) { queryEl.value = (queryEl.value ? queryEl.value + " " : "") + t; queryEl.focus(); } };
-  rec.onend = rec.onerror = function () { activeRecognition = null; micBtn.setAttribute("aria-pressed", "false"); micBtn.className = "w-9 h-9 rounded-full text-[#A0B0C8] hover:text-[#EEF2F8] hover:bg-[#EEF2F8]/10 flex items-center justify-center shrink-0 transition"; };
+  rec.onresult = function (e) { if (version !== areaVersion) { return; } const t = e.results[0] && e.results[0][0] ? e.results[0][0].transcript : ""; if (t) { queryEl.value = (queryEl.value ? queryEl.value + " " : "") + t; if (typeof autoResizeQuery === "function") { autoResizeQuery(); } queryEl.focus(); } };
+  rec.onend = function () { activeRecognition = null; micBtn.setAttribute("aria-pressed", "false"); micBtn.className = "w-9 h-9 rounded-full text-[#A0B0C8] hover:text-[#EEF2F8] hover:bg-[#EEF2F8]/10 flex items-center justify-center shrink-0 transition"; if (typeof voiceLoopEnabled !== "undefined" && voiceLoopEnabled && queryEl.value.trim()) { askTutor(); } };
+  rec.onerror = function () { activeRecognition = null; micBtn.setAttribute("aria-pressed", "false"); micBtn.className = "w-9 h-9 rounded-full text-[#A0B0C8] hover:text-[#EEF2F8] hover:bg-[#EEF2F8]/10 flex items-center justify-center shrink-0 transition"; };
   rec.start();
 }
 function syncModelMirrors() {
   for (const id of ["settings-model", "onboarding-model"]) {
-    const mirror = document.getElementById(id); if (!mirror) { continue; }
-    mirror.innerHTML = modelEl.innerHTML;
-    if (modelEl.selectedIndex >= 0) { mirror.selectedIndex = modelEl.selectedIndex; }
-    mirror.disabled = modelEl.disabled;
+    const mirror = document.getElementById(id);
+    if (mirror) { mirror.innerHTML = modelEl.innerHTML; if (modelEl.selectedIndex >= 0) { mirror.selectedIndex = modelEl.selectedIndex; } mirror.disabled = modelEl.disabled; }
   }
 }
 function selectActiveModel(value, optProvider) {
@@ -177,22 +184,21 @@ function selectActiveModel(value, optProvider) {
     syncProviderPrivacyUI(optProvider, "onboarding-privacy-notice", "onboarding-api-key-group");
     syncKeyStatusUI();
   }
-  modelEl.value = value;
-  if (providerEl.value === "ollama") { localStorage.setItem("preferred_local_model", value); }
-  syncModelMirrors();
+  modelEl.value = value; if (providerEl.value === "ollama") { safeStorageSet("preferred_local_model", value); } syncModelMirrors();
 }
 async function fetchProviderChatModels(provider) {
   const apiKey = provider === providerEl.value ? getApiKey() : "";
   const res = await areaFetch("/api/models?provider=" + encodeURIComponent(provider), { headers: apiKey ? { "x-api-key": apiKey } : {} });
   if (!res.ok) { return []; }
-  const data = await res.json();
+  const data = await safeJson(res);
   return (data.chat_models || data.models || []).filter(function (m) { return !NON_CHAT_RE.test(m) && (!localOnly() || !/cloud/i.test(m)); });
 }
 async function loadModels() {
-  const activeProv = providerEl.value, prevModel = modelEl.value;
+  const op = ++loadModelsOp, version = areaVersion, activeProv = providerEl.value, prevModel = modelEl.value;
   const providers = localOnly() ? ["ollama"] : PROVIDER_ORDER.filter(function (p) { return p === "ollama" || p === activeProv || hasSavedKey(p); });
   const lists = await Promise.all(providers.map(function (p) { return fetchProviderChatModels(p).catch(function () { return []; }); }));
-  modelEl.innerHTML = "";
+  if (op !== loadModelsOp || version !== areaVersion) { return; }
+  modelEl.replaceChildren();
   const grouped = providers.length > 1;
   let activeModels = [];
   providers.forEach(function (prov, idx) {
@@ -208,7 +214,7 @@ async function loadModels() {
     }
   });
   const pool = activeModels.length ? activeModels : (lists.find(function (l) { return l.length; }) || []);
-  const preferred = activeProv === "ollama" ? localStorage.getItem("preferred_local_model") : null;
+  const preferred = activeProv === "ollama" ? safeStorageGet("preferred_local_model") : null;
   const recommended = pool.find(function (m) { return m.toLowerCase().startsWith("qwen3:") || m.toLowerCase().startsWith("qwen2.5:"); });
   const chosen = (prevModel && !NON_CHAT_RE.test(prevModel) && pool.includes(prevModel)) ? prevModel : ((preferred && pool.includes(preferred) ? preferred : null) || recommended || (PROVIDER_DEFAULTS[activeProv] && pool.includes(PROVIDER_DEFAULTS[activeProv]) ? PROVIDER_DEFAULTS[activeProv] : (pool[0] || "")));
   const match = Array.from(modelEl.options).find(function (o) { return o.value === chosen && o.dataset.provider === activeProv; }) || Array.from(modelEl.options).find(function (o) { return o.value === chosen; });
@@ -247,9 +253,12 @@ function stopActiveRequest() {
   if (changed) { renderChatStream(); }
   if (queryEl) { queryEl.focus(); }
 }
-function resetHome() { activeScope = { subfolder: null, doc_id: null }; renderScopeChoices(); abortActiveRequest(); if (activeRecognition) { activeRecognition.abort(); activeRecognition = null; } stopActiveAudio(); stopGraphSimulation(); currentChatId = null; currentTurns = []; if (typeof activeAttachedNotes !== "undefined") { activeAttachedNotes = []; lastContextUsage = null; inspectorOpen = false; } document.getElementById("chat-stream").innerHTML = ""; queryEl.value = ""; setActiveTag(null); setViewMode(false); renderTutor(null); renderResults([], false); renderRecentChats(); if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); } queryEl.focus(); }
-async function runSearch(withTutor) {
-  const q = queryEl.value.trim(), useTutor = appliedRunMode !== "search" && (withTutor !== undefined ? withTutor : (askTutorToggle.checked && q.length > 0));
+function resetHome() { activeScope = { subfolder: null, doc_id: null }; renderScopeChoices(); if (typeof resetXrayOverrides === "function") { resetXrayOverrides(); } if (typeof clearActiveSlashRecipe === "function") { clearActiveSlashRecipe(); } abortActiveRequest(); if (activeRecognition) { activeRecognition.abort(); activeRecognition = null; } stopActiveAudio(); stopGraphSimulation(); currentChatId = null; currentTurns = []; if (typeof activeAttachedNotes !== "undefined") { activeAttachedNotes = []; lastContextUsage = null; inspectorOpen = false; } if (typeof renderAttachedChips === "function") { renderAttachedChips(); } if (typeof restoreDefaultAgent === "function") { restoreDefaultAgent(); } document.getElementById("chat-stream").replaceChildren(); queryEl.value = ""; if (typeof autoResizeQuery === "function") { autoResizeQuery(); } setActiveTag(null); setViewMode(false); renderTutor(null); renderResults([], false); renderRecentChats(); if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); } queryEl.focus(); }
+async function runSearch(withTutor, opts) {
+  const opt = opts || {}, version = areaVersion, recipe = !opt.instructionPrefix && typeof consumeActiveSlashRecipe === "function" ? consumeActiveSlashRecipe() : null;
+  const q = (opt.displayQuery !== undefined ? String(opt.displayQuery) : queryEl.value).trim(), effInstr = String(opt.instructionPrefix || (recipe && recipe.prefix) || "").trim();
+  const effAgentId = opt.agentId || (typeof resolveMentionedAgent === "function" && resolveMentionedAgent(q)) || (typeof activeAgentId !== "undefined" && activeAgentId) || "saga", effAgentName = typeof agentNameById === "function" ? agentNameById(effAgentId) : activeAgentName();
+  const useTutor = appliedRunMode !== "search" && (withTutor !== undefined ? withTutor : (askTutorToggle.checked && q.length > 0));
   abortActiveRequest();
   if (areaSwitching) { return; }
   if (!q && !selectedTag) { resetHome(); return; }
@@ -257,44 +266,41 @@ async function runSearch(withTutor) {
   if (!currentChatId) { currentChatId = newChatId(); }
   const controller = new AbortController(), reqId = "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
   activeController = controller; activeRequestId = reqId; renderTutor(null); renderResults([], false);
-  const pendingTurn = { query: q, tag: selectedTag, ask_tutor: Boolean(useTutor), loadingTutor: Boolean(useTutor), tutor: null, results: [], collapsed: Boolean(useTutor), top_k: ragConfig.top_k, retrieval_mode: ragConfig.retrieval_mode, rrf_k: ragConfig.rrf_k, temperature: ragConfig.temperature };
+  const pendingTurn = { query: q, tag: selectedTag, ask_tutor: Boolean(useTutor), loadingTutor: Boolean(useTutor), agent_id: effAgentId, agent_name: effAgentName, tutor: null, results: [], collapsed: Boolean(useTutor), top_k: ragConfig.top_k, retrieval_mode: ragConfig.retrieval_mode, rrf_k: ragConfig.rrf_k, temperature: ragConfig.temperature };
   currentTurns.push(pendingTurn);
-  const turnIdx = currentTurns.length - 1; queryEl.value = ""; setViewMode(true); setLoadingState(true); renderChatStream();
+  const turnIdx = currentTurns.length - 1; queryEl.value = ""; if (typeof autoResizeQuery === "function") { autoResizeQuery(); } setViewMode(true); setLoadingState(true); renderChatStream();
   const newTurnEl = document.getElementById("turn-" + turnIdx); if (newTurnEl) { scrollIntoViewAsync(newTurnEl, { behavior: "smooth", block: "start" }); }
   try {
     const apiKey = getApiKey(), headers = Object.assign({ "Content-Type": "application/json", "x-request-id": reqId }, apiKey ? { "x-api-key": apiKey } : {});
     const useWeb = Boolean(typeof webSearchForMessage !== "undefined" && webSearchForMessage && !localOnly() && workspaceConfig && workspaceConfig.web_search_enabled);
-    const turnBody = { subfolder: activeScope.subfolder, doc_id: activeScope.doc_id, query: q, tag: selectedTag, ask_tutor: Boolean(useTutor), use_web_search: useWeb, free_chat: Boolean(typeof freeChatMode !== "undefined" && freeChatMode), format_id: (typeof pinnedFormatId !== "undefined" && pinnedFormatId) || null, provider: providerEl.value, model: modelEl.value.trim() || null, api_key: apiKey || null, top_k: ragConfig.top_k, retrieval_mode: ragConfig.retrieval_mode, rrf_k: ragConfig.rrf_k, temperature: ragConfig.temperature };
+    const turnBody = { subfolder: activeScope.subfolder, doc_id: activeScope.doc_id, query: q, tag: selectedTag, ask_tutor: Boolean(useTutor), use_web_search: useWeb, free_chat: Boolean(typeof freeChatMode !== "undefined" && freeChatMode), format_id: (typeof pinnedFormatId !== "undefined" && pinnedFormatId) || null, agent_id: effAgentId, instruction_prefix: effInstr, provider: providerEl.value, model: modelEl.value.trim() || null, api_key: apiKey || null, top_k: ragConfig.top_k, retrieval_mode: ragConfig.retrieval_mode, rrf_k: ragConfig.rrf_k, temperature: ragConfig.temperature, muted_doc_ids: typeof xrayMutedDocs !== "undefined" ? xrayMutedDocs.slice() : [], pinned_doc_ids: typeof xrayPinnedDocs !== "undefined" ? xrayPinnedDocs.slice() : [] };
     if (useTutor && typeof runStreamingTurn === "function") {
-      const outcome = await runStreamingTurn(currentChatId, turnBody, headers, controller.signal, pendingTurn, turnIdx);
-      if (outcome && (outcome.done || outcome.stopped)) { return; }
+      const outcome = await runStreamingTurn(currentChatId, turnBody, headers, controller.signal, pendingTurn, turnIdx, version);
+      if (!outcome || !outcome.fallback) { return; }
     }
     const fastParams = new URLSearchParams({ q: q, ask_tutor: "false", use_web_search: String(useWeb), top_k: String(ragConfig.top_k), retrieval_mode: ragConfig.retrieval_mode, rrf_k: String(ragConfig.rrf_k), temperature: String(ragConfig.temperature) });
     for (const [key, value] of Object.entries(activeScope)) { if (value !== null) { fastParams.set(key, value); } }
     if (providerEl.value !== "ollama") { fastParams.set("retrieval_mode", "lexical"); }
-    fastParams.set("provider", providerEl.value); fastParams.set("model", modelEl.value);
-    if (selectedTag) { fastParams.set("tag", selectedTag); }
+    fastParams.set("provider", providerEl.value); fastParams.set("model", modelEl.value); if (selectedTag) { fastParams.set("tag", selectedTag); }
     const fastResponse = await areaFetch("/api/search?" + fastParams.toString(), { headers: headers, signal: controller.signal });
-    if (fastResponse.status === 499 || controller.signal.aborted) { return; }
-    const fastData = await fastResponse.json();
+    if (fastResponse.status === 499 || controller.signal.aborted || version !== areaVersion) { return; }
+    const fastData = await safeJson(fastResponse);
     if (!fastResponse.ok) { throw new Error(fastData.detail || "Search failed."); }
-    if (controller.signal.aborted) { return; }
+    if (controller.signal.aborted || version !== areaVersion) { return; }
     pendingTurn.results = fastData.results || []; pendingTurn.router_label = (fastData.rag_config && fastData.rag_config.router_label) || ""; renderChatStream();
-    const sessionResponse = await areaFetch("/api/chats/" + encodeURIComponent(currentChatId) + "/turn", {
-      method: "POST", headers: headers, signal: controller.signal, body: JSON.stringify(turnBody)
-    });
-    if (sessionResponse.status === 499 || controller.signal.aborted) { return; }
-    const session = await sessionResponse.json();
+    const sessionResponse = await areaFetch("/api/chats/" + encodeURIComponent(currentChatId) + "/turn", { method: "POST", headers: headers, signal: controller.signal, body: JSON.stringify(turnBody) });
+    if (sessionResponse.status === 499 || controller.signal.aborted || version !== areaVersion) { return; }
+    const session = await safeJson(sessionResponse);
     if (!sessionResponse.ok) { throw new Error(session.detail || "Answer failed."); }
-    if (controller.signal.aborted) { return; }
+    if (controller.signal.aborted || version !== areaVersion) { return; }
     const rLabel = (session.router_decision && session.router_decision.label) || pendingTurn.router_label || "";
     currentTurns = (session.turns || []).map(function (t, i) { return Object.assign({}, t, { router_label: i === turnIdx ? rLabel : (currentTurns[i] && currentTurns[i].router_label) || "", collapsed: i === turnIdx ? Boolean(t.ask_tutor) : (currentTurns[i] ? currentTurns[i].collapsed : true) }); });
     renderChatStream(); await loadRecentChats(); refreshBudget();
-  } catch (err) { if (err && err.name === "AbortError") { return; } pendingTurn.loadingTutor = false; pendingTurn.tutor = { answer: err.message || "Request failed.", cited_titles: [], knowledge_gap_detected: true }; areaStatus(err.message || "Request failed."); renderChatStream(); }
+  } catch (err) { if ((err && err.name === "AbortError") || controller.signal.aborted || version !== areaVersion) { return; } pendingTurn.loadingTutor = false; pendingTurn.tutor = { answer: err.message || "Request failed.", cited_titles: [], knowledge_gap_detected: true }; areaStatus(err.message || "Request failed."); renderChatStream(); }
   finally { if (activeController === controller) { activeController = null; activeRequestId = null; setLoadingState(false); } }
 }
 async function askTutor() { askTutorToggle.checked = appliedRunMode !== "search"; await runSearch(askTutorToggle.checked); }
-function submitQuery() { if (queryEl.value.trim() || selectedTag) { runSearch(askTutorToggle.checked && queryEl.value.trim().length > 0); } else { queryEl.focus(); } }
+function submitQuery() { if (typeof tryExpandInlineSlashSubmit === "function" && tryExpandInlineSlashSubmit()) { return; } if (queryEl.value.trim() || selectedTag) { runSearch(askTutorToggle.checked && queryEl.value.trim().length > 0); } else { queryEl.focus(); } }
 document.getElementById("search-form").addEventListener("submit", function (e) { e.preventDefault(); if (activeController) { stopActiveRequest(); return; } submitQuery(); }); document.getElementById("model-refresh").addEventListener("click", loadModels);
 if (submitBtn) { submitBtn.addEventListener("click", function (e) { if (activeController) { e.preventDefault(); stopActiveRequest(); } }); }
 document.addEventListener("keydown", function (e) { if (e.key === "Escape" && activeController && !document.querySelector("dialog[open]")) { stopActiveRequest(); } });
@@ -323,7 +329,7 @@ document.getElementById("rag-reset-btn").addEventListener("click", function () {
 document.querySelectorAll("[data-retrieval-mode]").forEach(function (btn) { btn.addEventListener("click", function () { ragConfig.retrieval_mode = btn.getAttribute("data-retrieval-mode") || "hybrid"; syncRagStudioUI(); }); });
 document.getElementById("rag-top-k").addEventListener("input", function (e) { ragConfig.top_k = Number(e.target.value); syncRagStudioUI(); }); document.getElementById("rag-rrf-k").addEventListener("input", function (e) { ragConfig.rrf_k = Number(e.target.value); syncRagStudioUI(); }); document.getElementById("rag-temperature").addEventListener("input", function (e) { ragConfig.temperature = Number(e.target.value); syncRagStudioUI(); });
 document.getElementById("tts-model").addEventListener("change", syncTtsVoices); document.getElementById("tts-test-btn").addEventListener("click", previewVoice); document.getElementById("tts-api-key").addEventListener("input", function () { if (currentTurns.length) { renderChatStream(); } }); micBtn.addEventListener("click", toggleDictation);
-bindRunModes(); bindBudgetControls(); bindSettingsTabs(); bindAmbientBackdrop(); bindLanguageControls(); bindAppearanceControls(); bindOnboardingTour(); bindWorkspaceMenu(); bindBackupControls(); bindGlobalDrop(); bindWebSearchControls(); bindStudioControls();
+bindRunModes(); bindBudgetControls(); bindSettingsTabs(); bindAmbientBackdrop(); bindLanguageControls(); bindAppearanceControls(); bindAllUXBundles(); bindOnboardingTour(); bindWorkspaceMenu(); bindBackupControls(); bindGlobalDrop(); bindWebSearchControls(); bindStudioControls(); bindAgentControls();
 document.getElementById("download-local-model-btn").addEventListener("click", installRecommendedLocalAI); bindDialogFallbacks(); bindDestination("upload"); bindCardMoveDialog();
 document.getElementById("cfg-anonymize-uploads").addEventListener("change", function () { if (stagedFiles.length) { previewUploads(); } });
 providerEl.addEventListener("change", function () { document.getElementById("onboarding-provider").value = providerEl.value; syncProviderPrivacyUI(providerEl.value, "settings-privacy-notice", "settings-api-key-group"); syncProviderPrivacyUI(providerEl.value, "onboarding-privacy-notice", "onboarding-api-key-group"); apiKeyEl.value = ""; syncKeyStatusUI(); loadModels(); });
@@ -337,7 +343,7 @@ document.getElementById("onboarding-save-key-btn").addEventListener("click", asy
 document.getElementById("toggle-cloud-access-btn").addEventListener("click", async function () { await setCloudAccess(localOnly()); });
 document.getElementById("save-tts-key-btn").addEventListener("click", async function () { const mVal = document.getElementById("tts-model").value, prov = mVal.startsWith("elevenlabs") ? "elevenlabs" : "openai", el = document.getElementById("tts-api-key"); if (await saveAppApiKey(prov, el.value, el) && currentTurns.length) { renderChatStream(); } });
 document.querySelectorAll(".seed-chip").forEach(function (chip) { chip.addEventListener("click", function () { queryEl.value = chip.getAttribute("data-seed") || ""; askTutor(); }); });
-document.getElementById("sidebar-collapse-btn").addEventListener("click", function () { document.getElementById("sidebar").classList.add("-translate-x-full"); document.getElementById("main-shell").classList.replace("pl-[250px]", "pl-0"); document.getElementById("sidebar-open-btn").classList.replace("hidden", "flex"); }); document.getElementById("sidebar-open-btn").addEventListener("click", function () { document.getElementById("sidebar").classList.remove("-translate-x-full"); document.getElementById("main-shell").classList.replace("pl-0", "pl-[250px]"); document.getElementById("sidebar-open-btn").classList.replace("flex", "hidden"); });
+bindSidebarDrawer();
 syncProviderPrivacyUI(providerEl.value, "settings-privacy-notice", "settings-api-key-group"); syncRagStudioUI(); initializeWorkspace();
 </script>"""
 )

@@ -76,3 +76,11 @@ def test_workspace_templates_create_folders_without_mixing_guides(area_client: T
 def test_invalid_template_requests_leave_workspace_unchanged(area_client: TestClient, name: str, template: str) -> None:
     assert area_client.post("/api/workspace/create", json={"name": name, "template": template}).status_code == 400
     assert area_client.get("/api/workspace").json()["config"]["knowledge_dir"] == "knowledge_base"
+
+
+def test_starter_template_seeds_welcome_guide_under_any_name(area_client: TestClient, tmp_path: Path) -> None:
+    result = area_client.post("/api/workspace/create", json={"name": "my_guide", "template": "starter"})
+    assert result.status_code == 200
+    assert (tmp_path / "my_guide/welcome.md").is_file()
+    assert result.json()["config"]["knowledge_dir"] == "my_guide"
+    assert result.json()["doc_count"] == 1

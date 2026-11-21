@@ -9,3 +9,9 @@ if %errorlevel% neq 0 (
 )
 
 uv run python main.py --desktop %*
+if %errorlevel% neq 0 (
+    echo.
+    echo REALM Engine exited with error code %errorlevel%.
+    pause
+    exit /b %errorlevel%
+)

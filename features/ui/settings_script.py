@@ -8,7 +8,7 @@ async function refreshSearchStatus() {
     const response = await areaFetch("/api/system-status"), status = await response.json();
     if (version !== areaVersion || operation !== searchStatusOperation) { return; }
     if (!response.ok) { throw new Error(status.detail || "Search status is unavailable."); }
-    badge.textContent = status.retrieval_tier === "hybrid_local" ? "● Hybrid Vector + Keyword Search Active (nomic-embed-text)" : "● Fast Keyword Search Mode (No Embedding Model Needed)";
+    badge.textContent = status.retrieval_tier === "hybrid_local" ? t("rag_hybrid_active") : t("rag_keyword_active");
   } catch (error) { if (version === areaVersion && operation === searchStatusOperation) { badge.textContent = error.message; } }
 }
 function modeCopy(everyday, specialist) {

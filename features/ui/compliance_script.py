@@ -46,7 +46,7 @@ async function runComplianceAudit(scrub = false) {
 }
 async function scrubVault() {
   const version = areaVersion, area = activeKnowledgeArea;
-  if (!await confirmDeletion("Scrub entire vault?", "Replace detected PII in every Markdown file inside “" + area + "” and re-index it? Original matched values are permanently removed. Review the redaction preview first.")) { return; }
+  if (!await confirmDeletion(t("cf_scrub_t"), t("cf_scrub_m", { area: areaTitle(area) }), t("cf_scrub_btn"))) { return; }
   if (version === areaVersion) { await runComplianceAudit(true); }
 }
 function exportComplianceReport() {
@@ -77,4 +77,29 @@ function exportComplianceReport() {
 document.getElementById("run-audit-btn").addEventListener("click", () => runComplianceAudit());
 document.getElementById("export-compliance-btn").addEventListener("click", exportComplianceReport);
 document.getElementById("scrub-vault-btn").addEventListener("click", scrubVault);
+let lastDiagnostics = null;
+async function loadDiagnostics() {
+  const box = document.getElementById("diagnostics-summary");
+  if (!box) return;
+  box.textContent = "…";
+  try {
+    const res = await fetch("/api/diagnostics");
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.detail || "Failed");
+    lastDiagnostics = d;
+    const loaded = (d.ollama_loaded_models || []).join(", ") || "none";
+    box.innerHTML = [
+      `REALM Engine v${escapeHtml(d.version)} · Python ${escapeHtml(d.python_version)} · ${escapeHtml(d.platform)}`,
+      `RAM: ${escapeHtml(d.ram_gb)} GB · Free disk: ${escapeHtml(d.disk_free_mb)} MB · Chunks: ${escapeHtml(d.chunk_count)} · Watcher: ${d.watcher?.watching ? "ON" : "OFF"}`,
+      `Loaded local models: ${escapeHtml(loaded)} · Recent warnings/errors: ${(d.recent_events || []).length}`,
+    ].map(line => `<div>${line}</div>`).join("");
+  } catch (e) { box.textContent = e.message || "Diagnostics unavailable"; }
+}
+document.getElementById("system-diagnostics-details")?.addEventListener("toggle", (e) => { if (e.target.open) loadDiagnostics(); });
+document.getElementById("refresh-diagnostics-btn")?.addEventListener("click", loadDiagnostics);
+document.getElementById("copy-diagnostics-btn")?.addEventListener("click", async () => {
+  if (!lastDiagnostics) await loadDiagnostics();
+  if (!lastDiagnostics) return;
+  try { await navigator.clipboard.writeText(JSON.stringify(lastDiagnostics, null, 2)); showToast(t("diag_copied")); } catch {}
+});
 """

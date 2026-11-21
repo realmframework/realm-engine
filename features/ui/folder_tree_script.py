@@ -10,7 +10,7 @@ function folderSvg(documentIcon = false, classes = "w-4 h-4 shrink-0") {
   return "<svg aria-hidden='true' class='" + classes + "' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='" + path + "'/></svg>";
 }
 function buildFolderTree() {
-  const rootName = selectedAreas().length > 1 ? "Selected areas" : (typeof areaTitle === "function" ? areaTitle(activeKnowledgeArea || "knowledge_base") : (activeKnowledgeArea || "knowledge_base"));
+  const rootName = selectedAreas().length > 1 ? "Selected areas" : (typeof areaTitle === "function" ? areaTitle(activeKnowledgeArea || t("workspaces_lbl")) : (activeKnowledgeArea || t("workspaces_lbl")));
   const root = { name: rootName, fullPath: "", children: [], docs: [], fileCount: 0 }, nodes = new Map([["", root]]);
   for (const folder of workspaceFolders) {
     let parent = root, path = "";
@@ -98,8 +98,8 @@ function renderTreeNode(node, depth, index = { next: 0 }) {
             placeholder='patients' autocapitalize='none' spellcheck='false' aria-describedby='${id}-help'
             class='w-full rounded-lg border border-white/15 bg-[#04060F] px-3 py-2 text-sm'/>
           <p id='${id}-help' class='text-[11px] text-[#738196] mt-1'>Create inside ${label}</p>
-        </div><button type='submit' class='rounded-lg border border-white/15 px-3 py-2 text-xs'>Create</button>
-        <button type='button' data-cancel-child='${escapeHtml(path)}' class='text-xs text-[#A0B0C8] px-2 py-2'>Cancel</button>
+        </div><button type='submit' class='rounded-lg border border-white/15 px-3 py-2 text-xs'>${escapeHtml(t("create_btn"))}</button>
+        <button type='button' data-cancel-child='${escapeHtml(path)}' class='text-xs text-[#A0B0C8] px-2 py-2'>${escapeHtml(t("cancel"))}</button>
         <p data-child-status role='status' class='w-full text-xs text-[#A0B0C8]'></p>
       </form>
     </div>
@@ -109,10 +109,10 @@ function renderTreeNode(node, depth, index = { next: 0 }) {
 function subfolderLibraryHeader() {
   const unloadedStrip = Array.isArray(unloadedFolders) && unloadedFolders.length
     ? `<div class='mt-3 pt-2.5 border-t border-white/10 flex flex-wrap items-center gap-2 text-xs'>
-        <span class='text-[#738196] font-mono'>Unloaded (files kept on disk):</span>
+        <span class='text-[#738196] font-mono'>${escapeHtml(t("lib_unloaded_lbl"))}</span>
         ${unloadedFolders.map(u => `<button type='button' data-reload-folder='${escapeHtml(u.path)}' data-reload-area='${escapeHtml(u.area || "")}'
           class='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#04060F] border border-white/15 hover:border-[#4BB8E8] text-[#A0B0C8] hover:text-[#EEF2F8] transition'>
-          <span>${escapeHtml(u.full_path || u.path)}</span><span class='text-[#4BB8E8] font-medium'>↺ Reload</span></button>`).join("")}
+          <span>${escapeHtml(u.full_path || u.path)}</span><span class='text-[#4BB8E8] font-medium'>${escapeHtml(t("lib_reload"))}</span></button>`).join("")}
       </div>`
     : "";
   return `<section class='library-folders' aria-label='Workspace Folder Tree'>

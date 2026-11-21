@@ -1,32 +1,59 @@
-"""Obsidian-style linked external folders (in-place vaults) and native OS folder picker."""
+"""Obsidian-style linked external folders (in-place vaults) and non-polluting caches."""
 
 import json
+import os
 import re
-import subprocess
-import sys
 from pathlib import Path
 
+from core.db import atomic_write_text, backup_corrupt_file
+from core.native_picker import pick_native_folder
 from core.runtime import data_root
 
-LINKED_FILE = "linked_vaults.json"
-CACHE_DIR = ".vault_cache"
-_RESERVED = {"knowledge_base", "core", "features", "src", "docs", "tests", "node_modules", "__pycache__", "build", "dist", "wheels"}
+__all__ = [
+    "CACHE_DIR", "LINKED_FILE", "cache_index_for_dir", "cache_study_path",
+    "is_linked_vault", "link_folder", "linked_chats_path", "load_linked_vaults",
+    "pick_native_folder", "resolve_linked_path", "unlink_folder", "validate_external_folder",
+]
 
-
+LINKED_FILE, CACHE_DIR = "linked_vaults.json", ".vault_cache"
+_RESERVED = {"agents", "core", "features", "src", "docs", "tests", "node_modules", "__pycache__", "build", "dist", "wheels"}
+_MAC_OS_ALIASES = frozenset({"/var", "/tmp", "/etc"})
+_SYSTEM_ROOTS = frozenset({"/etc", "/private/etc", "/system", "/usr", "/bin", "/sbin", "/proc", "/sys", "/dev", "c:/windows", "c:/program files", "c:/program files (x86)", "c:/programdata"})
 def _registry_path(root: Path) -> Path:
     return root.resolve() / LINKED_FILE
 
+def _has_unsafe_symlink(target: Path) -> bool:
+    is_junc = getattr(os.path, "isjunction", lambda _p: False)
+    for anc in (target, *target.parents):
+        if anc == anc.parent:
+            break
+        if str(anc) in _MAC_OS_ALIASES and anc != target:
+            continue
+        if anc.is_symlink() or is_junc(anc):
+            return True
+    return False
 
-def load_linked_vaults(root: Path) -> dict[str, dict[str, str]]:
-    """Return {slug: {'path': abs_path, 'label': display_name}} stored under ``root``."""
+def _read_linked_vaults(root: Path, *, strict_io: bool) -> dict[str, dict[str, str]]:
     reg = _registry_path(root)
-    if reg.is_symlink() or not reg.is_file():
+    if reg.is_symlink():
+        if strict_io:
+            raise ValueError("Linked vault registry cannot be a symbolic link")
+        return {}
+    if not reg.is_file():
         return {}
     try:
         raw = json.loads(reg.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except OSError:
+        if strict_io:
+            raise
+        return {}
+    except ValueError:
+        if strict_io:
+            backup_corrupt_file(reg)
         return {}
     if not isinstance(raw, dict):
+        if strict_io:
+            backup_corrupt_file(reg)
         return {}
     out: dict[str, dict[str, str]] = {}
     for slug, info in raw.items():
@@ -37,73 +64,68 @@ def load_linked_vaults(root: Path) -> dict[str, dict[str, str]]:
         elif isinstance(info, dict) and isinstance(info.get("path"), str):
             out[slug] = {"path": info["path"], "label": str(info.get("label") or Path(info["path"]).name or slug)}
     return out
-
-
+def load_linked_vaults(root: Path) -> dict[str, dict[str, str]]:
+    return _read_linked_vaults(root, strict_io=False)
 def _save_linked_vaults(root: Path, data: dict[str, dict[str, str]]) -> None:
-    reg, tmp = _registry_path(root), _registry_path(root).with_suffix(".json.tmp")
-    if reg.is_symlink() or tmp.is_symlink():
+    reg = _registry_path(root)
+    if reg.is_symlink() or reg.with_suffix(".json.tmp").is_symlink():
         raise ValueError("Linked vault registry cannot be a symbolic link")
-    reg.parent.mkdir(parents=True, exist_ok=True)
-    tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    tmp.replace(reg)
-
-
+    atomic_write_text(reg, json.dumps(data, indent=2))
 def resolve_linked_path(name: str, root: Path) -> Path | None:
-    """Return the validated external directory for a linked vault slug, or None."""
     entry = load_linked_vaults(root).get(name)
-    if not entry:
-        return None
-    target = Path(entry["path"]).expanduser()
-    return target.resolve() if not target.is_symlink() and target.is_dir() else None
-
-
+    target = Path(entry["path"]).expanduser() if entry else None
+    return target.resolve() if target is not None and not _has_unsafe_symlink(target) and target.is_dir() else None
 def is_linked_vault(name: str, root: Path) -> bool:
     return name in load_linked_vaults(root)
-
 
 def _slugify(name: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "_", name.strip().lower()).strip("_")[:56]
     return slug if slug and slug not in _RESERVED else f"vault_{slug or 'folder'}"
 
 
-def link_folder(folder: Path, root: Path, label: str = "") -> tuple[str, Path]:
-    """Register an existing folder on disk as an in-place REALM vault without copying files."""
+def validate_external_folder(folder: Path, root: Path, *, action: str = "link", allow_under_root: bool = False) -> Path:
+    """Validate that an external directory is real, non-symlinked, non-system, non-hidden, and safe."""
     target = folder.expanduser()
-    if target.is_symlink() or not target.is_dir():
+    if _has_unsafe_symlink(target) or not target.is_dir():
         raise ValueError("Choose an existing folder (symbolic links are not allowed)")
     resolved, root_res = target.resolve(), root.resolve()
-    if resolved == resolved.parent or resolved == root_res:
-        raise ValueError("Cannot link the filesystem root or REALM internal storage directory")
-    data = load_linked_vaults(root)
+    if resolved == resolved.parent or root_res.is_relative_to(resolved) or (not allow_under_root and resolved.is_relative_to(root_res)):
+        raise ValueError(f"Cannot {action} the filesystem root or REALM internal storage directory")
+    if allow_under_root and resolved.is_relative_to(root_res) and resolved.relative_to(root_res).parts[:1] in {("agents",), (CACHE_DIR,)}:
+        raise ValueError(f"Cannot {action} REALM internal storage directories")
+    low = resolved.as_posix().lower()
+    if low in _SYSTEM_ROOTS or any(low.startswith(r + "/") for r in _SYSTEM_ROOTS) or any(p.startswith(".") for p in resolved.parts if p not in {".", ".."}):
+        raise ValueError(f"Cannot {action} system or hidden directories")
+    return resolved
+
+
+def link_folder(folder: Path, root: Path, label: str = "") -> tuple[str, Path]:
+    """Register an existing folder on disk as an in-place REALM vault without copying files."""
+    resolved, root_res = validate_external_folder(folder, root, action="link"), root.resolve()
+    data = _read_linked_vaults(root, strict_io=True)
     for existing_slug, info in data.items():
         if Path(info["path"]).expanduser().resolve() == resolved:
             return existing_slug, resolved
-    base_slug = _slugify(label or resolved.name)
-    slug, suffix = base_slug, 2
+    base_slug, suffix = _slugify(label or resolved.name), 2
+    slug = base_slug
     while slug in data or (root_res / slug).exists():
         slug, suffix = f"{base_slug[:58]}_{suffix}", suffix + 1
     data[slug] = {"path": str(resolved), "label": (label or resolved.name).strip() or slug}
     _save_linked_vaults(root, data)
     return slug, resolved
-
-
 def unlink_folder(name: str, root: Path) -> bool:
-    """Unlink a vault from REALM and remove only local cache files — NEVER deletes user files."""
-    data = load_linked_vaults(root)
+    data = _read_linked_vaults(root, strict_io=True)
     if name not in data:
         return False
     data.pop(name, None)
     _save_linked_vaults(root, data)
     cache_root = root.resolve() / CACHE_DIR
-    for suffix in (".index.json", ".chats.json"):
+    for suffix in (".index.json", ".chats.json", ".study_deck.json", ".study_progress.json"):
         item = cache_root / f"{name}{suffix}"
         if item.is_file() and not item.is_symlink():
             item.unlink(missing_ok=True)
     return True
-
-
 def cache_index_for_dir(directory: Path, root: Path) -> Path:
-    """Keep index.json inside managed vaults, or under .vault_cache for linked external folders."""
     resolved, root_res = directory.resolve(), root.resolve()
     if resolved.parent == root_res:
         return directory / "index.json"
@@ -113,34 +135,15 @@ def cache_index_for_dir(directory: Path, root: Path) -> Path:
             cache_dir.mkdir(parents=True, exist_ok=True)
             return cache_dir / f"{slug}.index.json"
     return directory / "index.json"
-
-
 def linked_chats_path(name: str, root: Path | None = None) -> Path:
     base = (root or data_root()).resolve() / CACHE_DIR
     base.mkdir(parents=True, exist_ok=True)
     return base / f"{name}.chats.json"
-
-
-def pick_native_folder(prompt: str = "Choose a folder") -> Path | None:
-    """Open the native macOS/Windows/Linux folder picker so directories are selectable."""
-    safe = re.sub(r'["\\\r\n]', " ", prompt).strip() or "Choose a folder"
-    if sys.platform == "darwin":
-        proc = subprocess.run(["osascript", "-e", f'POSIX path of (choose folder with prompt "{safe}")'], capture_output=True, text=True, check=False)
-        return Path(proc.stdout.strip()) if proc.returncode == 0 and proc.stdout.strip() else None
-    if sys.platform == "win32":
-        ps = (
-            "Add-Type -AssemblyName System.Windows.Forms;"
-            "$d=New-Object System.Windows.Forms.FolderBrowserDialog;"
-            f"$d.Description='{safe.replace(chr(39), '')}';$d.UseDescriptionForTitle=$true;"
-            "if($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){Write-Output $d.SelectedPath}"
-        )
-        proc = subprocess.run(["powershell", "-NoProfile", "-STA", "-Command", ps], capture_output=True, text=True, check=False)
-        return Path(proc.stdout.strip()) if proc.returncode == 0 and proc.stdout.strip() else None
-    for cmd in (["zenity", "--file-selection", "--directory", f"--title={safe}"], ["kdialog", "--getexistingdirectory", str(Path.home())]):
-        try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
-            if proc.returncode == 0 and proc.stdout.strip():
-                return Path(proc.stdout.strip())
-        except FileNotFoundError:
-            continue
-    return None
+def cache_study_path(area_name: str, filename: str, root: Path | None = None) -> Path:
+    """Store study decks/progress in .vault_cache for linked vaults so external folders stay clean."""
+    resolved_root = (root or data_root()).resolve()
+    if is_linked_vault(area_name, resolved_root):
+        cache_dir = resolved_root / CACHE_DIR
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        return cache_dir / f"{area_name}.{filename}"
+    return (resolved_root / area_name) / filename

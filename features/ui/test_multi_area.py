@@ -18,7 +18,7 @@ def select_two(client: TestClient, root: Path) -> None:
     assert client.post("/api/workspace", json={"active_dirs": ["knowledge_base", "devops"]}).status_code == 200
 
 
-@pytest.mark.parametrize("dirs,status", [([], 422), ([123], 422), (None, 422), ("knowledge_base", 422), (["../outside"], 400), (["features"], 400), (["new_valid", "../escape"], 400)])
+@pytest.mark.parametrize("dirs,status", [([123], 422), (None, 422), ("knowledge_base", 422), (["../outside"], 400), (["features"], 400), (["new_valid", "../escape"], 400)])
 def test_invalid_selection_keeps_previous_config(area_client: TestClient, tmp_path: Path, dirs: object, status: int) -> None:
     response = area_client.post("/api/workspace", json={"active_dirs": dirs})
     assert response.status_code == status

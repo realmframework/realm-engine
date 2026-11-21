@@ -1,21 +1,34 @@
 """Physical subfolder discovery and safe document paths within one knowledge area."""
 
+import os
 import re
 from pathlib import Path, PurePosixPath
 
 EXTENSIONS = (".md", ".txt", ".html", ".docx", ".pdf", ".csv", ".tsv", ".xlsx", ".pptx")
+_WIN_RESERVED = frozenset({"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))})
+
+
+def _is_reparse(path: Path) -> bool:
+    is_junction = getattr(os.path, "isjunction", None)
+    return path.is_symlink() or (callable(is_junction) and bool(is_junction(path)))
+
+
+def _is_unsafe_segment(part: str) -> bool:
+    if part in {"", ".", ".."} or part.startswith(".") or part.endswith((".", " ")):
+        return True
+    return part.split(".", 1)[0].upper() in _WIN_RESERVED
 
 
 def contained_path(base: Path, relative: str) -> Path:
     if not relative or relative.startswith("/") or re.search(r"[\\\x00-\x1f]", relative):
         raise ValueError("Use a relative path inside this knowledge area")
     parts = relative.split("/")
-    if any(part in {"", ".", ".."} or part.startswith(".") for part in parts):
-        raise ValueError("Hidden folders and parent paths are not allowed")
+    if any(_is_unsafe_segment(part) for part in parts):
+        raise ValueError("Hidden, reserved, trailing-dot/space, and parent paths are not allowed")
     candidate = base
     for part in parts:
         candidate = candidate / part
-        if candidate.is_symlink():
+        if _is_reparse(candidate):
             raise ValueError("Symbolic links cannot be used as subfolders or guides")
     if not candidate.resolve().is_relative_to(base.resolve()):
         raise ValueError("Path must stay inside the knowledge area")
@@ -27,8 +40,8 @@ def resolve_subfolder(base: Path, subfolder: object, create: bool = False) -> Pa
         raise TypeError("Subfolder must be a relative path")
     if subfolder == "":
         return base
-    if any(not re.fullmatch(r"[\w][\w .-]{0,63}", part) for part in subfolder.split("/")):
-        raise ValueError("Use folder names with letters, numbers, spaces, underscores or hyphens")
+    if any(not re.fullmatch(r"[\w][\w .-]{0,63}", part) or _is_unsafe_segment(part) for part in subfolder.split("/")):
+        raise ValueError("Use valid folder names with letters, numbers, spaces, underscores or hyphens")
     target = contained_path(base, subfolder)
     if create:
         target.mkdir(parents=True, exist_ok=True)
@@ -38,10 +51,21 @@ def resolve_subfolder(base: Path, subfolder: object, create: bool = False) -> Pa
 
 
 def resolve_document(base: Path, doc_id: str) -> Path:
-    for extension in EXTENSIONS:
-        path = contained_path(base, doc_id + extension)
-        if path.is_file():
-            return path
+    probe = contained_path(base, doc_id)
+    parent = probe.parent
+    if parent.is_dir():
+        stem_lower = probe.name.lower()
+        by_ext: dict[str, Path] = {}
+        for entry in sorted(parent.iterdir()):
+            if entry.stem.lower() != stem_lower or entry.suffix.lower() not in EXTENSIONS:
+                continue
+            if _is_reparse(entry):
+                raise ValueError("Symbolic links cannot be used as subfolders or guides")
+            if entry.is_file() and entry.resolve().is_relative_to(base.resolve()):
+                by_ext.setdefault(entry.suffix.lower(), entry)
+        for extension in EXTENSIONS:
+            if extension in by_ext:
+                return by_ext[extension]
     raise ValueError("Guide not found")
 
 

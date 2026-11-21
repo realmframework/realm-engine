@@ -2,8 +2,10 @@
 
 import re
 from collections import Counter
+from contextlib import suppress
 from pathlib import Path
 
+from core.db import atomic_write_text
 from features.ingestion.anonymizer import anonymize_text, collapse_redaction_tokens
 
 INVALID_TAGS = {"uploaded", "upload", "pdf", "docx", "txt", "html", "markdown", "general"}
@@ -46,7 +48,7 @@ def infer_document_tags(text: str) -> list[str]:
 
 def normalize_document_tags(text: str, filename: str = "", tags: list[str] | None = None) -> str:
     """Keep curated domain tags, replace placeholders, and clean repeated redactions."""
-    text = collapse_redaction_tokens(text)
+    text = collapse_redaction_tokens(text.lstrip("\ufeff"))
     lines = text.splitlines()
     if lines and lines[0].strip() == "---" and any(line.strip() in {"---", "..."} for line in lines[1:]):
         return text if text.endswith("\n") else text + "\n"
@@ -63,15 +65,28 @@ def normalize_document_tags(text: str, filename: str = "", tags: list[str] | Non
 
 
 def repair_directory_topics(directory: Path) -> None:
-    """Repair legacy Markdown metadata without parsing unrelated binary documents."""
+    """Repair legacy Markdown metadata safely while skipping hidden dirs and frontmatter files."""
+    resolved = directory.resolve()
     for path in directory.rglob("*.md"):
-        if not path.is_file() or path.is_symlink() or not path.resolve().is_relative_to(directory.resolve()):
+        try:
+            rel = path.relative_to(directory)
+        except ValueError:
             continue
-        text = path.read_text(encoding="utf-8")
-        if has_placeholder_tags(text):
-            path.write_text(normalize_document_tags(text, path.name), encoding="utf-8")
+        if any(part.startswith(".") for part in rel.parts):
+            continue
+        if not path.is_file() or path.is_symlink() or not path.resolve().is_relative_to(resolved):
+            continue
+        with suppress(OSError, UnicodeError, ValueError):
+            text = path.read_text(encoding="utf-8", errors="replace")
+            if has_placeholder_tags(text):
+                repaired = normalize_document_tags(text, path.name)
+                if repaired != text:
+                    atomic_write_text(path, repaired)
 
 
 def has_placeholder_tags(text: str) -> bool:
-    metadata = text.splitlines()[1:2]
+    lines = text.lstrip("\ufeff").splitlines()
+    if not lines or lines[0].strip() == "---":
+        return False
+    metadata = lines[1:2]
     return bool(metadata and metadata[0].startswith("Tags:") and any(tag.strip().lower() in INVALID_TAGS for tag in metadata[0][5:].split(",")))

@@ -8,13 +8,14 @@ const ambientRaw = { x: -9999, y: -9999, active: false };
 const ambientSmooth = { x: -9999, y: -9999, strength: 0 };
 const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 let ambientPaletteCache = null;
-let ambientAudioCtx = null, ambientAnalyser = null, ambientAudioData = null, ambientVoiceLevel = 0, ambientVoiceActive = false;
+let ambientAudioCtx = null, ambientAudioSrc = null, ambientAnalyser = null, ambientAudioData = null, ambientVoiceLevel = 0, ambientVoiceActive = false;
 
 function connectAmbientAudio(audioEl) {
+  disconnectAmbientAudio();
   const stage = ambientStageEl();
   ambientVoiceActive = Boolean(audioEl);
   if (stage) { stage.classList.toggle("is-speaking", ambientVoiceActive); }
-  if (!audioEl || reducedMotionQuery.matches) { return; }
+  if (!audioEl || (typeof prefersReducedMotion === "function" ? prefersReducedMotion() : reducedMotionQuery.matches)) { return; }
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) { return; }
@@ -24,13 +25,17 @@ function connectAmbientAudio(audioEl) {
     const analyser = ambientAudioCtx.createAnalyser();
     analyser.fftSize = 256; analyser.smoothingTimeConstant = 0.82;
     src.connect(analyser); analyser.connect(ambientAudioCtx.destination);
+    ambientAudioSrc = src;
     ambientAnalyser = analyser;
     ambientAudioData = new Uint8Array(analyser.frequencyBinCount);
     if (ambientShouldAnimate() && !ambientRaf) { startAmbientLoop(); }
-  } catch (_e) { ambientAnalyser = null; }
+  } catch (_e) { ambientAudioSrc = null; ambientAnalyser = null; }
 }
 function disconnectAmbientAudio() {
-  ambientVoiceActive = false; ambientAnalyser = null;
+  ambientVoiceActive = false;
+  if (ambientAudioSrc) { try { ambientAudioSrc.disconnect(); } catch (_e) {} ambientAudioSrc = null; }
+  if (ambientAnalyser) { try { ambientAnalyser.disconnect(); } catch (_e) {} ambientAnalyser = null; }
+  ambientAudioData = null;
   const stage = ambientStageEl();
   if (stage) { stage.classList.remove("is-speaking"); }
 }
@@ -53,7 +58,11 @@ function ambientStageEl() { return document.getElementById("ambient-stage"); }
 function ambientAuroraEl() { return document.getElementById("ambient-aurora-canvas"); }
 function ambientCanvasEl() { return document.getElementById("ambient-dots-canvas"); }
 function ambientShouldAnimate() {
-  return ambientEnabled && !ambientPausedByGraph && !ambientHiddenByBrowser && !document.hidden && !reducedMotionQuery.matches;
+  const red = typeof prefersReducedMotion === "function" ? prefersReducedMotion() : reducedMotionQuery.matches;
+  return ambientEnabled && !ambientPausedByGraph && !ambientHiddenByBrowser && !document.hidden && !red;
+}
+function syncAmbientMotion() {
+  if (!ambientShouldAnimate()) { stopAmbientDots(); drawAmbientFrame(0, true); } else { startAmbientLoop(); }
 }
 function parseHexRgb(hex, fallback) {
   const clean = /^#[0-9a-f]{6}$/i.test(hex || "") ? hex : fallback;
@@ -270,7 +279,7 @@ function setAmbientEffects(enabled, persistLocal) {
   for (const id of ["theme-ambient-toggle", "onboarding-ambient-toggle"]) {
     const chk = document.getElementById(id); if (chk) { chk.checked = ambientEnabled; }
   }
-  if (persistLocal !== false) { try { localStorage.setItem("realm_ambient_effects", ambientEnabled ? "1" : "0"); } catch (_e) {} }
+  if (persistLocal !== false) { safeStorageSet("realm_ambient_effects", ambientEnabled ? "1" : "0"); }
   if (ambientEnabled) { rebuildAmbientGrid(); startAmbientLoop(); }
   else { stopAmbientDots(); }
 }
@@ -284,8 +293,7 @@ function setAmbientGraphPause(paused) {
 }
 function bindAmbientBackdrop() {
   const stage = ambientStageEl(); if (!stage) { return; }
-  let saved = true;
-  try { saved = localStorage.getItem("realm_ambient_effects") !== "0"; } catch (_e) {}
+  const saved = safeStorageGet("realm_ambient_effects") !== "0";
   setAmbientEffects(saved, false);
   window.addEventListener("pointermove", function (e) {
     ambientRaw.x = e.clientX; ambientRaw.y = e.clientY; ambientRaw.active = true;

@@ -28,7 +28,7 @@ async function requestGuideMove(guide, subfolder, version) {
   const response = await areaFetch("/api/guides/" + encodeURIComponent(guide.doc_id) + "/move", {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subfolder })
   });
-  const data = await response.json();
+  const data = await safeJson(response);
   if (version !== areaVersion) { return null; }
   if (!response.ok) { throw new Error(data.detail || "Guide could not be moved."); }
   applyWorkspacePayload(data); await loadGuidesCatalog(null);
@@ -54,9 +54,10 @@ function bindCardMoveDialog() {
       dialog.close();
       if (context.operation !== currentScrollId) { return; }
       await openLibraryCatalog(context.tag);
-      if (context.version === areaVersion && document.getElementById("catalog-heading")) {
-        document.getElementById("subfolder-status").textContent = "Moved “" + data.guide.title + "” to /" + subfolder + ".";
-        document.getElementById("catalog-heading").focus({ preventScroll: true });
+      if (context.version === areaVersion) {
+        areaStatus(t("st_moved_doc", { title: (data.guide && data.guide.title) || context.guide.title, sub: subfolder }));
+        const heading = document.getElementById("catalog-heading");
+        if (heading) { heading.focus({ preventScroll: true }); }
       }
     } catch (error) {
       if (context.version === areaVersion) { if (dialog.open) { status.textContent = error.message; } else { areaStatus(error.message); } }

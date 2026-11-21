@@ -41,3 +41,18 @@ jobs:
 
       - name: Run Pytest suite
         run: uv run pytest
+
+      - name: Verify assembled client JS syntax
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          uv run python -c "import re; from pathlib import Path; from features.ui.script import CLIENT_SCRIPT; js = re.sub(r'^\s*<script>\s*|\s*</script>\s*$', '', CLIENT_SCRIPT); Path('/tmp/realm_ci_check.js').write_text(js, encoding='utf-8')"
+          node --check /tmp/realm_ci_check.js
+
+      - name: Verify Python wheel build
+        if: runner.os == 'Linux'
+        run: uv build --wheel
+
+      - name: Verify Docker image build
+        if: runner.os == 'Linux'
+        run: docker build --tag realm-engine:ci .

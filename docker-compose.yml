@@ -5,6 +5,12 @@ services:
     init: true
     ports:
       - "127.0.0.1:${REALM_PORT:-8000}:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # Optional: uncomment to connect container to Ollama running on the host machine
+    # environment:
+    #   - OLLAMA_HOST=http://host.docker.internal:11434
+    #   - REALM_ALLOW_REMOTE_OLLAMA=1
     volumes:
       - realm-data:/data
     restart: unless-stopped

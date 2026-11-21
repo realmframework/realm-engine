@@ -14,12 +14,15 @@ from core.contracts import (
     ReasoningEffort,
     SearchResult,
     TutorResponse,
+    WorkspaceConfig,
 )
 from core.db import load_chunks
+from core.http_guard import install_safe_error_handlers
 from core.runtime import data_root
 from core.scope import resolve_chunk_url
-from features.ui import areas, public_rate_limit, public_routes
-from features.ui.upload_guard import upload_body_guard
+from core.version import APP_VERSION
+from features.ui import areas, public_rate_limit, public_routes, selection
+from features.ui.upload_guard import public_body_guard
 
 VALID_PROVIDERS: set[str] = {"ollama", "openai", "kimi", "deepseek", "gemini", "anthropic", "xai", "mistral"}
 VALID_EFFORTS: set[str] = {"low", "medium", "high", "max"}
@@ -56,7 +59,8 @@ def load_public_settings() -> dict[str, object]:
         "ip_daily": max(1, int(os.environ.get("REALM_PUBLIC_IP_DAILY", "25"))),
         "global_daily": max(0, int(os.environ.get("REALM_PUBLIC_DAILY_LIMIT", "300"))),
         "global_usd": max(0.0, float(os.environ.get("REALM_PUBLIC_DAILY_USD", "1.0"))),
-        "trust_proxy": os.environ.get("REALM_PUBLIC_TRUST_PROXY", "1").strip().lower() not in {"0", "false", "no"},
+        "trust_proxy": os.environ.get("REALM_PUBLIC_TRUST_PROXY", "0").strip().lower() in {"1", "true", "yes"},
+        "trusted_hops": max(1, int(os.environ.get("REALM_PUBLIC_TRUSTED_HOPS", "1"))),
     }
 
 
@@ -64,12 +68,20 @@ def _load_readonly_area(directory: Path, ingest: Callable[[Path], list[Knowledge
     cache = directory / "index.json"
     if cache.is_file() and not cache.is_symlink():
         try:
-            cached = load_chunks(cache)
-            if cached:
+            if cached := load_chunks(cache):
                 return cached
         except (ValueError, OSError, TypeError, AttributeError):
             pass
     return ingest(directory)
+
+def _load_exclusions(root: Path) -> dict[str, list[str]]:
+    ws_path = root / "workspace.json"
+    if ws_path.is_file() and not ws_path.is_symlink():
+        try:
+            return WorkspaceConfig.model_validate_json(ws_path.read_text(encoding="utf-8")).excluded_subfolders
+        except (ValueError, OSError):
+            pass
+    return {}
 
 
 def load_public_snapshot(
@@ -78,25 +90,30 @@ def load_public_snapshot(
     url_template: str,
     ingest: Callable[[Path], list[KnowledgeChunk]],
 ) -> tuple[list[KnowledgeArea], list[KnowledgeChunk]]:
-    """Pre-load configured vaults read-only into memory with canonical web URLs attached."""
+    """Pre-load explicitly configured vaults read-only into memory (fail-closed if none configured)."""
+    if not configured_areas:
+        return [], []
     root.mkdir(parents=True, exist_ok=True)
-    discovered = areas.list_areas(root, configured_areas[0] if configured_areas else "knowledge_base")
-    selected_names = configured_areas or [a.name for a in discovered if (root / a.name).is_dir()]
+    discovered = areas.list_areas(root, configured_areas[0])
+    exclusions = _load_exclusions(root)
     color_by_name = {a.name: a.color for a in discovered}
     published_areas: list[KnowledgeArea] = []
     all_chunks: list[KnowledgeChunk] = []
 
-    for idx, name in enumerate(dict.fromkeys(selected_names)):
+    for idx, name in enumerate(dict.fromkeys(configured_areas)):
         try:
             directory = areas.area_path(name, root, create=False)
         except ValueError:
             continue
         raw_chunks = _load_readonly_area(directory, ingest)
+        excl = exclusions.get(name, [])
         enriched: list[KnowledgeChunk] = []
         for chunk in raw_chunks:
+            if excl and selection.is_excluded(chunk.subfolder, excl):
+                continue
             local_doc = chunk.doc_id or Path(chunk.file_path).stem
-            tagged = chunk.model_copy(update={"area": name, "id": f"{name}::{chunk.id}", "doc_id": local_doc})
-            url = resolve_chunk_url(tagged, url_template)
+            tagged = chunk.model_copy(update={"area": name, "id": f"{name}::{chunk.id}", "doc_id": local_doc, "file_path": ""})
+            url = public_routes.safe_public_url(resolve_chunk_url(tagged, url_template))
             enriched.append(tagged.model_copy(update={"url": url}))
         all_chunks.extend(enriched)
         doc_count = len({c.doc_id for c in enriched})
@@ -121,12 +138,13 @@ def build_public_fastapi(
     raw_areas = settings.get("areas")
     configured = [str(a) for a in raw_areas] if isinstance(raw_areas, list) else []
     published, snapshot = load_public_snapshot(root, configured, str(settings["url_template"]), ingest)
-    public_app = FastAPI(title="REALM Knowledge Engine — Public API")
+    public_app = FastAPI(title="REALM Engine — Public API", version=APP_VERSION)
+    install_safe_error_handlers(public_app)
+    public_app.add_middleware(public_body_guard)
     origins = settings.get("origins")
     if isinstance(origins, list) and origins:
         public_app.add_middleware(CORSMiddleware, allow_origins=[str(o) for o in origins], allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
-    public_app.add_middleware(upload_body_guard)
-    public_app.add_api_route("/healthz", lambda: {"status": "ok", "mode": "public"}, methods=["GET"])
+    public_app.add_api_route("/healthz", lambda: {"status": "ok", "mode": "public", "version": APP_VERSION}, methods=["GET"])
     limiter = quota_check or public_rate_limit.build_public_limiter(settings)
     public_app.include_router(public_routes.build_router(published, snapshot, settings, route_intent, search_fn, embed_fn, tutor_fn, estimate_fn, limiter))
     return public_app

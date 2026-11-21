@@ -9,7 +9,7 @@ function renderLibraryTopics() {
   const topics = Array.from(counts, ([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
   nav.innerHTML = [{ name: "", count: guides.length }, ...topics].map(topic => {
     const selected = (selectedTag || "") === topic.name;
-    return "<button type='button' data-library-tag='" + escapeHtml(topic.name) + "' aria-pressed='" + selected + "'>" + escapeHtml(topic.name || "All") + " (" + topic.count + ")</button>";
+    return "<button type='button' data-library-tag='" + escapeHtml(topic.name) + "' aria-pressed='" + selected + "'>" + escapeHtml(topic.name || t("lib_all_tag")) + " (" + topic.count + ")</button>";
   }).join("");
   nav.querySelectorAll("[data-library-tag]").forEach(button => button.addEventListener("click", async () => {
     const tag = button.dataset.libraryTag || null, version = areaVersion;

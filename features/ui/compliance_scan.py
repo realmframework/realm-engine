@@ -12,8 +12,11 @@ TOKEN = re.compile(r"\[REDACTED_([A-Z_]+)\]")
 def scan_vault(base: Path, inspect: Callable[[str, str], dict[str, object]], scrub: bool = False) -> dict[str, object]:
     counts = dict.fromkeys(CATEGORIES, 0)
     warnings = errors = files = redacted = 0
+    base_res = base.resolve()
     for path in sorted(p for p in base.rglob("*") if p.suffix.lower() == ".md"):
-        if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(base.resolve()):
+        if any(part.startswith(".") for part in path.relative_to(base).parts):
+            continue
+        if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(base_res):
             continue
         temporary: Path | None = None
         try:

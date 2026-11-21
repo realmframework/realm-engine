@@ -23,6 +23,19 @@ from features.ui.backup_archive import (
 from features.ui.backup_state import current_chats
 
 
+def _portable_chat_dump(chat: object) -> dict[str, object]:
+    """Strip absolute host paths and vector floats from exported chat turns."""
+    raw = chat.model_dump() if hasattr(chat, "model_dump") else {}  # type: ignore[attr-defined]
+    for turn in raw.get("turns", []):
+        if isinstance(turn, dict):
+            for res in turn.get("results", []):
+                if isinstance(res, dict) and isinstance((chunk := res.get("chunk")), dict):
+                    chunk["embedding"] = None
+                    doc_id = str(chunk.get("doc_id") or "")
+                    chunk["file_path"] = f"{doc_id}.md" if doc_id else ""
+    return raw
+
+
 def build_router(config: Callable[[], WorkspaceConfig], activate: Callable[[WorkspaceConfig], dict[str, object]]) -> APIRouter:
     router = APIRouter()
 
@@ -31,18 +44,24 @@ def build_router(config: Callable[[], WorkspaceConfig], activate: Callable[[Work
         with workspace.STATE_LOCK:
             active = config()
             workspace.require_area(request, active)
+            if not active.knowledge_dir:
+                raise HTTPException(status_code=400, detail="Create or link a workspace before exporting a backup.")
             target = workspace.resolve_safe_knowledge_dir(active.knowledge_dir)
             try:
-                portable = active.model_copy(update={"active_dirs": [active.knowledge_dir]})
-                entries = {"workspace.json": portable.model_dump_json(indent=2).encode(), "chats.json": json.dumps([c.model_dump() for c in current_chats(chat_store.area_chat_path(active.knowledge_dir)) if c.area == active.knowledge_dir and (c.active_dirs or [c.area]) == [active.knowledge_dir]]).encode()}
+                scoped_excl = {active.knowledge_dir: list(active.excluded_subfolders[active.knowledge_dir])} if active.knowledge_dir in active.excluded_subfolders else {}
+                portable = active.model_copy(update={"active_dirs": [active.knowledge_dir], "excluded_subfolders": scoped_excl, "searxng_url": "", "enable_local_api": False})
+                entries = {"workspace.json": portable.model_dump_json(indent=2).encode(), "chats.json": json.dumps([_portable_chat_dump(c) for c in current_chats(chat_store.area_chat_path(active.knowledge_dir)) if c.area == active.knowledge_dir and (c.active_dirs or [c.area]) == [active.knowledge_dir]]).encode()}
                 total = sum(map(len, entries.values()))
                 for path in target.rglob("*"):
-                    if any(part.startswith(".") for part in path.relative_to(target).parts):
+                    if path.is_symlink() or any(part.startswith(".") for part in path.relative_to(target).parts):
                         continue
                     if not path.is_dir() and (not path.is_file() or path.suffix.lower() != ".md"):
                         continue
                     name = path.relative_to(target).as_posix()
-                    folders.contained_path(target, name)
+                    try:
+                        folders.contained_path(target, name)
+                    except ValueError:
+                        continue
                     entries[name + "/" if path.is_dir() else name] = b"" if path.is_dir() else bounded_bytes(path)
                     total += len(entries[name + "/" if path.is_dir() else name])
                     if total > MAX_ARCHIVE_BYTES or len(entries) > MAX_MEMBERS:
@@ -70,6 +89,8 @@ def build_router(config: Callable[[], WorkspaceConfig], activate: Callable[[Work
         with workspace.STATE_LOCK:
             active = config()
             workspace.require_area(request, active)
+            if not active.knowledge_dir:
+                raise HTTPException(status_code=400, detail="Create or link a workspace before restoring a backup.")
             area = active.knowledge_dir
         form = await request.form()
         try:

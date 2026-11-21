@@ -1,4 +1,4 @@
-"""Appearance controls: System/Dark/Light scheme, futuristic dual-tone palettes, custom logo."""
+"""Appearance controls: System/Dark/Light scheme, dual-tone palettes, custom logo."""
 
 THEME_SCRIPT: str = r"""
 const THEME_PRESETS = [
@@ -21,10 +21,16 @@ const THEME_PRESETS = [
 const systemDarkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 let activeLogoUrl = "/static/logo-512.png";
 let activeAgentLabel = "Saga";
-let themeSaveTimer = null;
+let themeSaveTimer = null, pendingAppearancePatch = {}, appearanceSaveSeq = 0;
 
 function activeLogoSrc() { return activeLogoUrl || "/static/logo-512.png"; }
-function activeAgentName() { return (activeAgentLabel || "").trim() || "Saga"; }
+function activeAgentName() {
+  if (typeof activeAgentObj === "function") {
+    const ag = activeAgentObj();
+    if (ag && ag.name) { return ag.name; }
+  }
+  return (activeAgentLabel || "").trim() || "Saga";
+}
 function syncAgentNameUI(name) {
   activeAgentLabel = String(name || "").trim().slice(0, 40) || "Saga";
   for (const id of ["agent-name-input", "onboarding-agent-name"]) {
@@ -55,6 +61,18 @@ function computeHarmonicGlow(accentHex) {
   const [h, s, l] = hexToHsl(accentHex);
   return hslToHex(h + 48, Math.max(0.55, Math.min(0.92, s || 0.75)), Math.max(0.48, Math.min(0.68, l || 0.58)));
 }
+function applyTextOnAccentFallback(mode, accentHex) {
+  if (typeof CSS !== "undefined" && CSS.supports && (CSS.supports("color", "contrast-color(red)") || CSS.supports("color", "color(from red xyz-d65 0 0 0)"))) {
+    document.documentElement.style.removeProperty("--text-on-accent");
+    return;
+  }
+  const isDark = mode === "dark" || (mode === "system" && systemDarkQuery.matches);
+  const c = /^#[0-9a-f]{6}$/i.test(accentHex || "") ? accentHex : "#4BB8E8";
+  const rgb = [1, 3, 5].map(function (i) { const v = parseInt(c.slice(i, i + 2), 16) / 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+  const lum = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+  const approx = isDark ? (lum * 0.88 + 0.12) : (lum * 0.25);
+  document.documentElement.style.setProperty("--text-on-accent", approx > 0.179 ? "#04060F" : "#FFFFFF");
+}
 function applyThemeTokens(mode, accent, glow, persistLocal) {
   const safeMode = mode === "dark" || mode === "light" ? mode : "system";
   const safeAccent = /^#[0-9a-f]{6}$/i.test(accent || "") ? accent.toUpperCase() : "#4BB8E8";
@@ -63,12 +81,11 @@ function applyThemeTokens(mode, accent, glow, persistLocal) {
   if (meta) { meta.setAttribute("content", safeMode === "system" ? "light dark" : safeMode); }
   document.documentElement.style.setProperty("--accent-seed", safeAccent);
   document.documentElement.style.setProperty("--accent-glow", safeGlow);
+  applyTextOnAccentFallback(safeMode, safeAccent);
   if (persistLocal !== false) {
-    try {
-      if (safeMode === "system") { localStorage.removeItem("color-scheme"); } else { localStorage.setItem("color-scheme", safeMode); }
-      localStorage.setItem("realm_theme_accent", safeAccent);
-      localStorage.setItem("realm_theme_glow", safeGlow);
-    } catch (_e) {}
+    if (safeMode === "system") { safeStorageRemove("color-scheme"); } else { safeStorageSet("color-scheme", safeMode); }
+    safeStorageSet("realm_theme_accent", safeAccent);
+    safeStorageSet("realm_theme_glow", safeGlow);
   }
   syncThemeControlsUI(safeMode, safeAccent, safeGlow);
   if (typeof refreshAmbientPalette === "function") { refreshAmbientPalette(); }
@@ -76,7 +93,7 @@ function applyThemeTokens(mode, accent, glow, persistLocal) {
 function syncThemeControlsUI(mode, accent, glow) {
   const sysNow = systemDarkQuery.matches ? t("theme_dark") : t("theme_light");
   document.querySelectorAll('[data-theme-mode="system"]').forEach(function (sysBtn) {
-    sysBtn.textContent = "System (" + sysNow + ")";
+    sysBtn.textContent = t("theme_system") + " (" + sysNow + ")";
   });
   document.querySelectorAll("[data-theme-mode]").forEach(function (btn) {
     const active = btn.getAttribute("data-theme-mode") === mode;
@@ -96,12 +113,15 @@ function syncThemeControlsUI(mode, accent, glow) {
   });
 }
 function persistAppearancePatch(patch) {
+  pendingAppearancePatch = Object.assign({}, pendingAppearancePatch, patch || {});
   clearTimeout(themeSaveTimer);
   themeSaveTimer = setTimeout(async function () {
-    const version = areaVersion;
+    const body = pendingAppearancePatch;
+    pendingAppearancePatch = {};
+    const version = areaVersion, seq = ++appearanceSaveSeq;
     try {
-      const res = await areaFetch("/api/workspace/appearance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
-      if (res.ok && version === areaVersion) { const data = await res.json(); if (data && data.config) { workspaceConfig = data.config; } }
+      const res = await areaFetch("/api/workspace/appearance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (res.ok && version === areaVersion && seq === appearanceSaveSeq) { const data = await safeJson(res); if (data && data.config) { workspaceConfig = data.config; } }
     } catch (_e) {}
   }, 150);
 }
@@ -121,7 +141,7 @@ function applyLogoUrl(url, isCustom) {
 async function loadWorkspaceLogo() {
   try {
     const res = await areaFetch("/api/workspace/logo/status");
-    if (res.ok) { const data = await res.json(); applyLogoUrl(data.url, Boolean(data.custom)); }
+    if (res.ok) { const data = await safeJson(res); applyLogoUrl(data.url, Boolean(data.custom)); }
   } catch (_e) {}
 }
 async function uploadCustomLogo(file) {
@@ -131,7 +151,7 @@ async function uploadCustomLogo(file) {
   const form = new FormData(); form.append("file", file);
   try {
     const res = await areaFetch("/api/workspace/logo", { method: "POST", body: form });
-    const data = await res.json();
+    const data = await safeJson(res);
     if (!res.ok) { throw new Error(data.detail || "Could not upload logo."); }
     applyLogoUrl(data.url, true);
     if (status) { status.textContent = "Custom logo saved."; }
@@ -141,14 +161,14 @@ async function resetCustomLogo() {
   const status = document.getElementById("logo-upload-status");
   try {
     const res = await areaFetch("/api/workspace/logo", { method: "DELETE" });
-    const data = await res.json();
+    const data = await safeJson(res);
     if (res.ok) { applyLogoUrl(data.url, false); if (status) { status.textContent = "Restored default REALM logo."; } }
   } catch (_e) {}
 }
 function syncThemeFromWorkspace(cfg) {
-  const mode = (cfg && cfg.theme_mode) || localStorage.getItem("color-scheme") || "system";
-  const accent = (cfg && cfg.theme_accent) || localStorage.getItem("realm_theme_accent") || "#4BB8E8";
-  const glow = (cfg && cfg.theme_glow) || localStorage.getItem("realm_theme_glow") || "#6366F1";
+  const mode = (cfg && cfg.theme_mode) || safeStorageGet("color-scheme") || "system";
+  const accent = (cfg && cfg.theme_accent) || safeStorageGet("realm_theme_accent") || "#4BB8E8";
+  const glow = (cfg && cfg.theme_glow) || safeStorageGet("realm_theme_glow") || "#6366F1";
   applyThemeTokens(mode, accent, glow, true);
   if (typeof setAmbientEffects === "function" && cfg && typeof cfg.ambient_effects === "boolean") {
     setAmbientEffects(cfg.ambient_effects, true);
@@ -157,6 +177,13 @@ function syncThemeFromWorkspace(cfg) {
     applyLanguage(cfg.language, true);
   }
   syncAgentNameUI((cfg && cfg.agent_name) || "Saga");
+  if (typeof defaultAgentId !== "undefined" && cfg && cfg.active_agent) {
+    defaultAgentId = cfg.active_agent;
+    if (!currentChatId) { activeAgentId = defaultAgentId; }
+    if (typeof syncAgentPalette !== "undefined") { syncAgentPalette = cfg.sync_agent_palette !== false; }
+    if (typeof syncActiveAgentBadge === "function") { syncActiveAgentBadge(); }
+    if (currentChatId && typeof applyPaletteForAgent === "function" && typeof activeAgentObj === "function") { applyPaletteForAgent(activeAgentObj(), false); }
+  }
   if (typeof syncWebSearchUI === "function") { syncWebSearchUI(cfg || {}); }
 }
 function renderPresetBars() {
@@ -171,7 +198,7 @@ function renderPresetBars() {
     bar.innerHTML = markup;
     bar.querySelectorAll("[data-theme-preset]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        const mode = (workspaceConfig && workspaceConfig.theme_mode) || localStorage.getItem("color-scheme") || "system";
+        const mode = (workspaceConfig && workspaceConfig.theme_mode) || safeStorageGet("color-scheme") || "system";
         applyThemeTokens(mode, btn.dataset.accent, btn.dataset.glow, true);
         persistThemeWorkspace(mode, btn.dataset.accent, btn.dataset.glow);
       });
@@ -192,7 +219,7 @@ function bindAppearanceControls() {
   const accIn = document.getElementById("theme-accent-picker"), glowIn = document.getElementById("theme-glow-picker");
   if (accIn) {
     accIn.addEventListener("input", function () {
-      const mode = (workspaceConfig && workspaceConfig.theme_mode) || localStorage.getItem("color-scheme") || "system";
+      const mode = (workspaceConfig && workspaceConfig.theme_mode) || safeStorageGet("color-scheme") || "system";
       const accent = accIn.value.toUpperCase(), glow = computeHarmonicGlow(accent);
       applyThemeTokens(mode, accent, glow, true);
       persistThemeWorkspace(mode, accent, glow);
@@ -200,7 +227,7 @@ function bindAppearanceControls() {
   }
   if (glowIn) {
     glowIn.addEventListener("input", function () {
-      const mode = (workspaceConfig && workspaceConfig.theme_mode) || localStorage.getItem("color-scheme") || "system";
+      const mode = (workspaceConfig && workspaceConfig.theme_mode) || safeStorageGet("color-scheme") || "system";
       const accent = accIn ? accIn.value.toUpperCase() : "#4BB8E8", glow = glowIn.value.toUpperCase();
       applyThemeTokens(mode, accent, glow, true);
       persistThemeWorkspace(mode, accent, glow);
@@ -230,7 +257,8 @@ function bindAppearanceControls() {
       syncAgentNameUI("Saga");
       if (typeof currentTurns !== "undefined" && currentTurns.length && typeof renderChatStream === "function") { renderChatStream(); }
       if (typeof setAmbientEffects === "function") { setAmbientEffects(true, true); }
-      persistAppearancePatch({ theme_mode: "system", theme_accent: "#4BB8E8", theme_glow: "#6366F1", ambient_effects: true, agent_name: "Saga" });
+      if (typeof applyReadingComfort === "function") { applyReadingComfort({ reading_font: "default", reading_scale: "md", reading_width: "standard", high_contrast_focus: false, reduce_motion: false }, true); }
+      persistAppearancePatch({ theme_mode: "system", theme_accent: "#4BB8E8", theme_glow: "#6366F1", ambient_effects: true, agent_name: "Saga", reading_font: "default", reading_scale: "md", reading_width: "standard", high_contrast_focus: false, reduce_motion: false });
       await resetCustomLogo();
     });
   }
@@ -245,6 +273,7 @@ function bindAppearanceControls() {
         }
         const rBtn = document.getElementById("reset-agent-name-btn"); if (rBtn) { rBtn.hidden = clean === "Saga"; }
         if (typeof workspaceConfig === "object" && workspaceConfig) { workspaceConfig.agent_name = clean; }
+        if (typeof agentTeam !== "undefined" && Array.isArray(agentTeam)) { const sg = agentTeam.find(a => a.id === "saga"); if (sg) { sg.name = clean; } if (typeof syncActiveAgentBadge === "function") { syncActiveAgentBadge(); } }
         if (typeof currentTurns !== "undefined" && currentTurns.length && typeof renderChatStream === "function") { renderChatStream(); }
         persistAppearancePatch({ agent_name: clean });
       });
@@ -256,6 +285,7 @@ function bindAppearanceControls() {
       syncAgentNameUI("Saga");
       const inp = document.getElementById("agent-name-input"); if (inp) { inp.value = "Saga"; }
       if (typeof workspaceConfig === "object" && workspaceConfig) { workspaceConfig.agent_name = "Saga"; }
+      if (typeof agentTeam !== "undefined" && Array.isArray(agentTeam)) { const sg = agentTeam.find(a => a.id === "saga"); if (sg) { sg.name = "Saga"; } if (typeof syncActiveAgentBadge === "function") { syncActiveAgentBadge(); } }
       if (typeof currentTurns !== "undefined" && currentTurns.length && typeof renderChatStream === "function") { renderChatStream(); }
       persistAppearancePatch({ agent_name: "Saga" });
     });
@@ -263,15 +293,16 @@ function bindAppearanceControls() {
   const resetAllBtn = document.getElementById("reset-all-settings-btn");
   if (resetAllBtn) {
     resetAllBtn.addEventListener("click", async function () {
-      const ok = await confirmDeletion("Reset all settings to REALM defaults?", "This restores the default title, English language, original REALM logo, System theme, Realm colors, Supernova effects, Local-Only privacy lock, budget caps, and search sliders. Your documents, folders, and chat history stay completely untouched.", "Reset Defaults");
+      const ok = await confirmDeletion(t("cf_reset_all_t"), t("cf_reset_all_m"), t("cf_reset_all_btn"));
       if (!ok) { return; }
       const status = document.getElementById("reset-all-status");
       resetAllBtn.disabled = true;
       try {
         const res = await areaFetch("/api/workspace/reset-defaults", { method: "POST" });
-        const data = await res.json();
+        const data = await safeJson(res);
         if (!res.ok) { throw new Error(data.detail || "Could not reset settings."); }
-        try { for (const k of ["color-scheme", "realm_theme_accent", "realm_theme_glow", "realm_ambient_effects", "realm_lang", "preferred_local_model"]) { localStorage.removeItem(k); } } catch (_e) {}
+        for (const k of ["color-scheme", "realm_theme_accent", "realm_theme_glow", "realm_ambient_effects", "realm_lang", "preferred_local_model"]) { safeStorageRemove(k); }
+        if (typeof resetReadingComfortLocal === "function") { resetReadingComfortLocal(); }
         ragConfig = { retrieval_mode: "hybrid", top_k: 5, rrf_k: 60, temperature: 0.2 }; syncRagStudioUI();
         applyLogoUrl(data.logo_url || "/static/logo-512.png", false);
         await loadWorkspace(); await loadModels(); await refreshBudget();
@@ -291,17 +322,18 @@ function bindAppearanceControls() {
   const resetLogoBtn = document.getElementById("reset-logo-btn");
   if (resetLogoBtn) { resetLogoBtn.addEventListener("click", resetCustomLogo); }
   systemDarkQuery.addEventListener("change", function () {
-    const mode = (workspaceConfig && workspaceConfig.theme_mode) || localStorage.getItem("color-scheme") || "system";
+    const mode = (workspaceConfig && workspaceConfig.theme_mode) || safeStorageGet("color-scheme") || "system";
     const accent = document.getElementById("theme-accent-picker") ? document.getElementById("theme-accent-picker").value.toUpperCase() : "#4BB8E8";
     const glow = document.getElementById("theme-glow-picker") ? document.getElementById("theme-glow-picker").value.toUpperCase() : "#6366F1";
+    applyTextOnAccentFallback(mode, accent);
     syncThemeControlsUI(mode, accent, glow);
     if (typeof refreshAmbientPalette === "function") { refreshAmbientPalette(); }
   });
   window.addEventListener("storage", function (e) {
     if (e.key === "color-scheme" || e.key === "realm_theme_accent" || e.key === "realm_theme_glow") {
-      applyThemeTokens(localStorage.getItem("color-scheme") || "system", localStorage.getItem("realm_theme_accent") || "#4BB8E8", localStorage.getItem("realm_theme_glow") || "#6366F1", false);
+      applyThemeTokens(safeStorageGet("color-scheme") || "system", safeStorageGet("realm_theme_accent") || "#4BB8E8", safeStorageGet("realm_theme_glow") || "#6366F1", false);
     }
-    if (e.key === "realm_lang" && typeof applyLanguage === "function") { applyLanguage(localStorage.getItem("realm_lang") || "en", false); }
+    if (e.key === "realm_lang" && typeof applyLanguage === "function") { applyLanguage(safeStorageGet("realm_lang") || "en", false); }
   });
   loadWorkspaceLogo();
 }

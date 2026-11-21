@@ -73,23 +73,42 @@ def test_in_flight_answer_stays_in_its_original_area(area_client: TestClient, mo
     assert area_client.get("/api/chats/pending").json()["turns"][0]["tutor"]["answer"] == "Default-area answer"
 
 
-def test_area_deletion_protects_default_source_and_aliases(area_client: TestClient, tmp_path: Path) -> None:
+def test_area_deletion_protects_source_unmanaged_and_aliases(area_client: TestClient, tmp_path: Path) -> None:
     (tmp_path / "core").mkdir()
     sentinel = tmp_path / "core/source.py"
     sentinel.write_text("preserved", encoding="utf-8")
+    (tmp_path / "unmanaged").mkdir()
+    (tmp_path / "unmanaged/note.md").write_text("# Unmanaged\n", encoding="utf-8")
     (tmp_path / "alias").symlink_to(tmp_path / "knowledge_base", target_is_directory=True)
     for name in ("core", "alias", "../outside", ".git", "knowledge_base/nested"):
         assert area_client.post("/api/workspace", json={"knowledge_dir": name}).status_code == 400
-    assert area_client.delete("/api/workspace/knowledge_base").status_code == 403
-    assert area_client.delete("/api/workspace/core").status_code == 400
-    assert area_client.delete("/api/workspace/alias").status_code == 400
-    assert sentinel.read_text() == "preserved"
+    for blocked in ("core", "alias", "unmanaged"):
+        assert area_client.delete(f"/api/workspace/{blocked}").status_code == 400
+    assert sentinel.read_text() == "preserved" and (tmp_path / "unmanaged/note.md").is_file()
     assert area_client.post("/api/workspace", json={"knowledge_dir": "custom_area"}).status_code == 200
     assert area_client.post("/api/chats/local/turn", json={"query": "Hello", "ask_tutor": False}).status_code == 200
     response = area_client.delete("/api/workspace/custom_area")
     assert response.status_code == 200 and response.json()["config"]["knowledge_dir"] == "knowledge_base"
     assert not (tmp_path / "custom_area").exists() and (tmp_path / "knowledge_base/shared.md").is_file()
     assert "custom_area" not in response.json()["available_dirs"]
+
+
+def test_deleting_knowledge_base_and_zero_workspace_free_chat(area_client: TestClient, tmp_path: Path) -> None:
+    assert area_client.post("/api/chats/default/turn", json={"query": "Hi", "ask_tutor": False}).status_code == 200
+    assert area_client.post("/api/workspace", json={"knowledge_dir": "my_notes"}).status_code == 200
+    assert area_client.post("/api/workspace", json={"knowledge_dir": "knowledge_base"}).status_code == 200
+    deleted_kb = area_client.delete("/api/workspace/knowledge_base")
+    assert deleted_kb.status_code == 200 and deleted_kb.json()["config"]["knowledge_dir"] == "my_notes"
+    assert not (tmp_path / "knowledge_base").exists() and not (tmp_path / "chats.json").exists()
+    assert "knowledge_base" not in deleted_kb.json()["available_dirs"]
+    empty = area_client.delete("/api/workspace/my_notes")
+    assert empty.status_code == 200 and empty.json()["config"]["knowledge_dir"] == "" and empty.json()["config"]["active_dirs"] == []
+    assert empty.json()["areas"] == [] and empty.json()["doc_count"] == 0
+    assert area_client.get("/api/guides").json() == [] and area_client.get("/api/graph").json()["nodes"] == []
+    assert area_client.get("/api/chats").status_code == 200
+    assert area_client.get("/api/backup/export").status_code == 400 and area_client.post("/api/compliance/audit").status_code == 400
+    reset = area_client.post("/api/workspace/reset-defaults")
+    assert reset.status_code == 200 and reset.json()["config"]["knowledge_dir"] == "" and not (tmp_path / "knowledge_base").exists()
 
 
 def test_guide_alias_cannot_read_or_mutate_another_area(area_client: TestClient, tmp_path: Path) -> None:

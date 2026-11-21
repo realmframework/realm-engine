@@ -49,8 +49,10 @@ def build_router(config: Callable[[], WorkspaceConfig], snapshot: Callable[..., 
         api_key = str(payload.get("api_key") or "")
         try:
             updated = secrets.save_api_key(provider, api_key)
-        except (ValueError, OSError) as exc:
+        except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except OSError as exc:
+            raise HTTPException(status_code=400, detail="Could not save API key to local storage") from exc
         return JSONResponse({"keys": updated}, headers={"Cache-Control": "no-store"})
 
     @router.delete("/api/keys")
@@ -59,8 +61,10 @@ def build_router(config: Callable[[], WorkspaceConfig], snapshot: Callable[..., 
             workspace.require_area(request, config())
         try:
             updated = secrets.delete_api_keys(provider.strip().lower() if provider else None)
-        except (ValueError, OSError) as exc:
+        except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except OSError as exc:
+            raise HTTPException(status_code=400, detail="Could not remove API key from local storage") from exc
         return JSONResponse({"keys": updated}, headers={"Cache-Control": "no-store"})
 
     return router

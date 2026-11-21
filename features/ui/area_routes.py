@@ -8,7 +8,19 @@ from fastapi.concurrency import run_in_threadpool
 
 from core.contracts import KnowledgeChunk, WorkspaceConfig
 from core.linked_vaults import is_linked_vault, link_folder, pick_native_folder
-from features.ui import areas, workspace
+from features.ui import areas, workflow_routes, workspace
+
+
+async def _json_dict(request: Request, *, required: bool = True) -> dict[str, object]:
+    if not required and "application/json" not in request.headers.get("content-type", ""):
+        return {}
+    try:
+        body = await request.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Provide valid JSON") from exc
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="Provide a JSON object")
+    return body
 
 
 def build_router(config: Callable[[], WorkspaceConfig], activate: Callable[[WorkspaceConfig], dict[str, object]], chunks: Callable[[], list[KnowledgeChunk]], ingest: Callable[[Path], list[KnowledgeChunk]]) -> APIRouter:
@@ -44,52 +56,41 @@ def build_router(config: Callable[[], WorkspaceConfig], activate: Callable[[Work
 
     @router.post("/api/workspace/link-folder")
     async def link_existing_folder(request: Request) -> dict[str, object]:
-        raw_path = ""
-        raw_label = ""
-        if "application/json" in request.headers.get("content-type", ""):
-            try:
-                body = await request.json()
-            except ValueError:
-                body = {}
-            if isinstance(body, dict):
-                raw_path = str(body.get("path") or "").strip()
-                raw_label = str(body.get("label") or "").strip()
-        picked = (
-            Path(raw_path).expanduser()
-            if raw_path
-            else await run_in_threadpool(pick_native_folder, "Choose a local folder to link in REALM")
-        )
+        body = await _json_dict(request, required=False)
+        raw_path, raw_label = str(body.get("path") or "").strip(), str(body.get("label") or "").strip()
+        picked = Path(raw_path).expanduser() if raw_path else await run_in_threadpool(pick_native_folder, "Choose a local folder to link in REALM")
         if picked is None:
             return {"cancelled": True}
-        with workspace.STATE_LOCK:
-            active = config()
-            workspace.require_area(request, active)
-            try:
-                slug, resolved = link_folder(picked, workspace.REPO_ROOT, label=raw_label)
-            except (ValueError, OSError) as exc:
-                raise HTTPException(status_code=400, detail=str(exc)) from exc
-            payload = activate(active.model_copy(update={"knowledge_dir": slug, "active_dirs": [slug]}))
-            return {**payload, "cancelled": False, "linked_area": slug, "linked_path": str(resolved)}
 
+        def _apply() -> dict[str, object]:
+            with workspace.STATE_LOCK:
+                active = config()
+                workspace.require_area(request, active)
+                try:
+                    slug, resolved = link_folder(picked, workspace.REPO_ROOT, label=raw_label)
+                except ValueError as exc:
+                    raise HTTPException(status_code=400, detail=str(exc)) from exc
+                except OSError as exc:
+                    raise HTTPException(status_code=400, detail="Could not link the selected folder") from exc
+                return {**activate(active.model_copy(update={"knowledge_dir": slug, "active_dirs": [slug]})), "cancelled": False, "linked_area": slug, "linked_path": str(resolved)}
+        return await run_in_threadpool(_apply)
     @router.delete("/api/workspace/{folder_name}")
     def delete(folder_name: str, request: Request) -> dict[str, object]:
         with workspace.STATE_LOCK:
             active = config()
             workspace.require_area(request, active)
-            if folder_name == "knowledge_base":
-                raise HTTPException(status_code=403, detail="The default knowledge_base area cannot be deleted")
             try:
                 linked = is_linked_vault(folder_name, workspace.REPO_ROOT)
-                if not linked:
-                    directory = areas.area_path(folder_name, workspace.REPO_ROOT)
-                    if not (directory / areas.AREA_MARKER).is_file():
-                        raise ValueError("Only managed custom knowledge areas can be deleted")
-                if folder_name in active.active_dirs:
-                    remaining = [name for name in active.active_dirs if name != folder_name] or ["knowledge_base"]
-                    activate(active.model_copy(update={"knowledge_dir": remaining[0], "active_dirs": remaining}))
+                if not linked and folder_name != "knowledge_base" and not (areas.area_path(folder_name, workspace.REPO_ROOT) / areas.AREA_MARKER).is_file():
+                    raise ValueError("Only managed knowledge areas can be deleted")
                 areas.delete_area(folder_name, workspace.REPO_ROOT)
-            except (ValueError, OSError) as exc:
+                if folder_name in active.active_dirs:
+                    remaining = [n for n in active.active_dirs if n != folder_name] or ([a.name for a in areas.list_areas(workspace.REPO_ROOT, "") if a.name != folder_name][:1])
+                    activate(active.model_copy(update={"knowledge_dir": remaining[0] if remaining else "", "active_dirs": remaining}))
+            except ValueError as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
+            except OSError as exc:
+                raise HTTPException(status_code=400, detail="Could not delete workspace area") from exc
             return {**workspace.build_workspace_payload(config(), chunks()), "deleted_area": folder_name, "unlinked": linked}
 
     def _split_folder_target(active: WorkspaceConfig, raw_path: str, explicit_area: str = "") -> tuple[str, str]:
@@ -107,34 +108,39 @@ def build_router(config: Callable[[], WorkspaceConfig], activate: Callable[[Work
 
     @router.post("/api/subfolders/unload")
     async def unload_subfolder(request: Request) -> dict[str, object]:
-        body = await request.json()
-        raw_path = str(body.get("path") or "") if isinstance(body, dict) else ""
-        with workspace.STATE_LOCK:
-            active = config()
-            workspace.require_area(request, active)
-            area, rel = _split_folder_target(active, raw_path)
-            updated_map = {k: list(v) for k, v in active.excluded_subfolders.items()}
-            items = updated_map.setdefault(area, [])
-            if rel not in items:
-                items.append(rel)
-            items.sort()
-            payload = activate(active.model_copy(update={"excluded_subfolders": updated_map}))
-            return {**payload, "unloaded": rel, "area": area}
+        raw_path = str((await _json_dict(request)).get("path") or "")
+
+        def _apply() -> dict[str, object]:
+            with workspace.STATE_LOCK:
+                active = config()
+                workspace.require_area(request, active)
+                area, rel = _split_folder_target(active, raw_path)
+                updated_map = {k: list(v) for k, v in active.excluded_subfolders.items()}
+                items = updated_map.setdefault(area, [])
+                if rel not in items:
+                    items.append(rel)
+                items.sort()
+                return {**activate(active.model_copy(update={"excluded_subfolders": updated_map})), "unloaded": rel, "area": area}
+
+        return await run_in_threadpool(_apply)
 
     @router.post("/api/subfolders/reload")
     async def reload_subfolder(request: Request) -> dict[str, object]:
-        body = await request.json()
-        raw_path = str(body.get("path") or "") if isinstance(body, dict) else ""
-        explicit_area = str(body.get("area") or "") if isinstance(body, dict) else ""
-        with workspace.STATE_LOCK:
-            active = config()
-            workspace.require_area(request, active)
-            area, rel = _split_folder_target(active, raw_path, explicit_area)
-            updated_map = {k: list(v) for k, v in active.excluded_subfolders.items()}
-            updated_map[area] = [p for p in updated_map.get(area, []) if p != rel]
-            if not updated_map[area]:
-                updated_map.pop(area, None)
-            payload = activate(active.model_copy(update={"excluded_subfolders": updated_map}))
-            return {**payload, "reloaded": rel, "area": area}
+        body = await _json_dict(request)
+        raw_path, explicit_area = str(body.get("path") or ""), str(body.get("area") or "")
 
+        def _apply() -> dict[str, object]:
+            with workspace.STATE_LOCK:
+                active = config()
+                workspace.require_area(request, active)
+                area, rel = _split_folder_target(active, raw_path, explicit_area)
+                updated_map = {k: list(v) for k, v in active.excluded_subfolders.items()}
+                updated_map[area] = [p for p in updated_map.get(area, []) if p != rel]
+                if not updated_map[area]:
+                    updated_map.pop(area, None)
+                return {**activate(active.model_copy(update={"excluded_subfolders": updated_map})), "reloaded": rel, "area": area}
+
+        return await run_in_threadpool(_apply)
+
+    router.include_router(workflow_routes.build_router(config, chunks))
     return router

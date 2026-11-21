@@ -10,8 +10,8 @@ function folderOptions(selected) {
   const area = selectedAreas().length > 1 ? selected.split("/")[0] : null;
   return [{ path: area || "", doc_count: 0 }].concat(workspaceFolders.filter(f => f.path && (!area || f.area === area && f.path !== area))).map(function (folder) {
     return "<option value='" + escapeHtml(folder.path) + "'" + (folder.path === selected ? " selected" : "") + ">"
-      + escapeHtml(folder.path && folder.path !== area ? folder.path : "Area root") + "</option>";
-  }).join("") + "<option value=':new:'>+ New Subfolder...</option>";
+      + escapeHtml(folder.path && folder.path !== area ? folder.path : t("up_area_root")) + "</option>";
+  }).join("") + "<option value=':new:'>" + escapeHtml(t("up_new_sub_opt")) + "</option>";
 }
 function applySubfolders(ws) {
   const area = selectedAreas().join(",");
@@ -32,22 +32,22 @@ function refreshUploadFolders() {
   const area = document.getElementById("upload-save-area").value, select = document.getElementById("upload-subfolder");
   const prefix = selectedAreas().length > 1 ? area + "/" : "", selected = selectedSubfolder.startsWith(prefix) ? selectedSubfolder.slice(prefix.length) : "";
   const paths = selectedAreas().length > 1 ? workspaceFolders.filter(f => f.area === area).map(f => f.path === area ? "" : f.path.slice(prefix.length)) : workspaceFolders.map(f => f.path);
-  select.innerHTML = [...new Set(["", ...paths])].map(path => "<option value='" + escapeHtml(path) + "'>" + escapeHtml(path || "Area root") + "</option>").join("") + "<option value=':new:'>+ New Subfolder...</option>";
+  select.innerHTML = [...new Set(["", ...paths])].map(path => "<option value='" + escapeHtml(path) + "'>" + escapeHtml(path || t("up_area_root")) + "</option>").join("") + "<option value=':new:'>" + escapeHtml(t("up_new_sub_opt")) + "</option>";
   select.value = paths.includes(selected) ? selected : "";
   document.getElementById("upload-new-subfolder-group").classList.add("hidden"); document.getElementById("upload-new-subfolder").required = false;
 }
 document.getElementById("upload-save-area").addEventListener("change", refreshUploadFolders);
 function destinationControls(prefix, selected) {
   return `<div class='flex flex-col gap-1.5 min-w-0'>
-    <label for='${prefix}-subfolder' class='text-xs text-[#A0B0C8]'>Save in subfolder</label>
+    <label for='${prefix}-subfolder' class='text-xs text-[#A0B0C8]'>${escapeHtml(t("up_save_sub"))}</label>
     <select id='${prefix}-subfolder' name='subfolder' class='rounded-lg bg-[#04060F] border border-white/15 px-3 py-2 text-sm'>${folderOptions(selected)}</select>
     <div id='${prefix}-new-subfolder-group' class='hidden'>
-      <label for='${prefix}-new-subfolder' class='block text-xs text-[#A0B0C8] mb-1'>New subfolder path</label>
+      <label for='${prefix}-new-subfolder' class='block text-xs text-[#A0B0C8] mb-1'>${escapeHtml(t("up_new_sub_lbl"))}</label>
       <input id='${prefix}-new-subfolder' name='new_subfolder' type='text' maxlength='255' placeholder='architecture/backend'
         autocapitalize='none' spellcheck='false' aria-describedby='${prefix}-folder-help'
         class='w-full rounded-lg bg-[#04060F] border border-white/15 px-3 py-2 text-sm'/>
     </div>
-    <p id='${prefix}-folder-help' class='text-[11px] text-[#738196]'>Folders share this area's search and chats. Use / for nested folders.</p>
+    <p id='${prefix}-folder-help' class='text-[11px] text-[#738196]'>${escapeHtml(t("up_sub_help"))}</p>
   </div>`;
 }
 function bindDestination(prefix) {

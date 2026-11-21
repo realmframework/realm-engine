@@ -4,6 +4,7 @@ import json
 import re
 from pathlib import Path
 
+from core.db import atomic_write_text, backup_corrupt_file
 from core.format_presets import BUILTIN_FORMATS, OutputFormat
 
 FORMATS_FILE = "output_formats.json"
@@ -14,25 +15,48 @@ def _formats_path(root: Path) -> Path:
     return root.resolve() / FORMATS_FILE
 
 
-def load_custom_formats(root: Path) -> list[OutputFormat]:
+def _read_custom_formats(root: Path, *, strict_io: bool) -> list[OutputFormat]:
     path = _formats_path(root)
-    if path.is_symlink() or not path.is_file():
+    if path.is_symlink():
+        if strict_io:
+            raise ValueError("Output formats storage cannot be a symbolic link")
+        return []
+    if not path.is_file():
         return []
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        raw_text = path.read_text(encoding="utf-8")
+    except OSError:
+        if strict_io:
+            raise
         return []
+    try:
+        raw = json.loads(raw_text)
+    except ValueError:
+        if strict_io:
+            backup_corrupt_file(path)
+        return []
+    if isinstance(raw, dict) and isinstance(raw.get("formats"), list):
+        raw = raw["formats"]
     if not isinstance(raw, list):
+        if strict_io:
+            backup_corrupt_file(path)
         return []
     out: list[OutputFormat] = []
+    had_corrupt = False
     for item in raw:
         try:
             fmt = OutputFormat.model_validate({**item, "builtin": False})
             if fmt.id not in _BUILTIN_IDS:
                 out.append(fmt)
         except (ValueError, TypeError):
-            continue
+            had_corrupt = True
+    if had_corrupt and strict_io:
+        backup_corrupt_file(path)
     return out
+
+
+def load_custom_formats(root: Path) -> list[OutputFormat]:
+    return _read_custom_formats(root, strict_io=False)
 
 
 def list_formats(root: Path) -> list[OutputFormat]:
@@ -64,29 +88,20 @@ def save_custom_format(
         description=description.strip()[:220], sections=clean_sections,
         instructions=instructions.strip()[:1200], builtin=False,
     )
-    existing = [f for f in load_custom_formats(root) if f.id != slug]
+    existing = [f for f in _read_custom_formats(root, strict_io=True) if f.id != slug]
     existing.append(item)
-    path = _formats_path(root)
-    tmp = path.with_suffix(".json.tmp")
-    if path.is_symlink() or tmp.is_symlink():
-        raise ValueError("Output formats storage cannot be a symbolic link")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp.write_text(json.dumps([f.model_dump() for f in existing], indent=2), encoding="utf-8")
-    tmp.replace(path)
+    atomic_write_text(_formats_path(root), json.dumps([f.model_dump() for f in existing], indent=2))
     return item
 
 
 def delete_custom_format(root: Path, format_id: str) -> bool:
     if format_id in _BUILTIN_IDS:
         raise ValueError("Built-in formats cannot be deleted.")
-    existing = load_custom_formats(root)
+    existing = _read_custom_formats(root, strict_io=True)
     remaining = [f for f in existing if f.id != format_id]
     if len(remaining) == len(existing):
         return False
-    path = _formats_path(root)
-    tmp = path.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps([f.model_dump() for f in remaining], indent=2), encoding="utf-8")
-    tmp.replace(path)
+    atomic_write_text(_formats_path(root), json.dumps([f.model_dump() for f in remaining], indent=2))
     return True
 
 

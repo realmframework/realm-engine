@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from core.version import APP_VERSION
 from features.ui import app as ui_app
 from features.ui.markdown_script import MARKDOWN_SCRIPT
 
@@ -26,13 +27,13 @@ def _run_js(expression: str) -> str:
 
 def test_healthz_works_in_both_local_and_public_modes(tmp_path: Path) -> None:
     local_res = TestClient(ui_app.app).get("/healthz")
-    assert local_res.status_code == 200 and local_res.json() == {"status": "ok", "mode": "local"}
+    assert local_res.status_code == 200 and local_res.json() == {"status": "ok", "mode": "local", "version": APP_VERSION}
 
     vault = tmp_path / "ai-engineering"
     vault.mkdir()
     (vault / "guide.md").write_text("# Guide\n\n## Intro\nHello.\n", encoding="utf-8")
     pub_res = TestClient(ui_app.build_public_app(data_dir=tmp_path)).get("/healthz")
-    assert pub_res.status_code == 200 and pub_res.json() == {"status": "ok", "mode": "public"}
+    assert pub_res.status_code == 200 and pub_res.json() == {"status": "ok", "mode": "public", "version": APP_VERSION}
 
 
 def test_markdown_renderer_styles_and_scripts_ship_in_html() -> None:

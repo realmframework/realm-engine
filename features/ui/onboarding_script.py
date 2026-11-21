@@ -10,12 +10,13 @@ function renderOnboardingSummary() {
   const titleVal = (document.getElementById("onboarding-title") && document.getElementById("onboarding-title").value.trim()) || "My Knowledge Base";
   const radio = document.querySelector('input[name="onboarding_run_mode"]:checked');
   const mode = radio ? radio.value : "local";
-  const modeLabel = mode === "cloud" ? "Local + Cloud AI" : mode === "search" ? "Search & Anonymize Only" : "100% Local AI Only";
+  const modeLabel = mode === "cloud" ? t("ob_sum_cloud") : mode === "search" ? t("ob_sum_search") : t("ob_sum_local");
   const themeMode = (workspaceConfig && workspaceConfig.theme_mode) || localStorage.getItem("color-scheme") || "system";
+  const themeLabel = themeMode === "dark" ? t("theme_dark") : (themeMode === "light" ? t("theme_light") : t("theme_system"));
   box.innerHTML = [
     [t("sum_lang"), langNames[activeLanguage] || "English"],
     [t("sum_workspace"), titleVal],
-    [t("sum_theme"), themeMode.charAt(0).toUpperCase() + themeMode.slice(1)],
+    [t("sum_theme"), themeLabel],
     [t("sum_ai"), modeLabel]
   ].map(function (row) {
     return "<div class='flex items-center justify-between py-1.5 border-b border-[rgba(238,242,248,0.08)] last:border-0 text-xs'><span class='text-[#738196]'>" + escapeHtml(row[0]) + "</span><span class='text-[#EEF2F8] font-medium'>" + escapeHtml(row[1]) + "</span></div>";

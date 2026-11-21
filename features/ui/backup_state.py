@@ -46,10 +46,17 @@ def portable_chat(chat: ChatSession, target: Path, area: str) -> ChatSession:
 def restored_state(entries: dict[str, bytes], active: WorkspaceConfig, target: Path, chat_path: Path) -> tuple[WorkspaceConfig, list[ChatSession]]:
     incoming = WorkspaceConfig.model_validate_json(entries["workspace.json"]) if "workspace.json" in entries else active
     strict = active.strict_local_only or incoming.strict_local_only
-    config = incoming.model_copy(update={"knowledge_dir": active.knowledge_dir, "active_dirs": list(active.active_dirs), "strict_local_only": strict, "anonymize_uploads": active.anonymize_uploads or incoming.anonymize_uploads,
+    config = incoming.model_copy(update={
+        "knowledge_dir": active.knowledge_dir, "active_dirs": list(active.active_dirs), "strict_local_only": strict,
+        "anonymize_uploads": active.anonymize_uploads or incoming.anonymize_uploads,
         "daily_cloud_request_limit": min(active.daily_cloud_request_limit, incoming.daily_cloud_request_limit),
         "daily_budget_usd_limit": min(active.daily_budget_usd_limit, incoming.daily_budget_usd_limit),
-        "run_mode": "local" if strict and incoming.run_mode == "cloud" else incoming.run_mode})
+        "run_mode": "local" if strict and incoming.run_mode == "cloud" else incoming.run_mode,
+        "enable_local_api": active.enable_local_api,
+        "web_search_enabled": active.web_search_enabled and incoming.web_search_enabled,
+        "web_search_provider": active.web_search_provider, "searxng_url": active.searxng_url,
+        "excluded_subfolders": active.excluded_subfolders,
+    })
     chats = {chat.chat_id: chat for chat in current_chats(chat_path)}
     for raw_chat in parse_chats(entries.get("chats.json", b"[]")):
         chat = portable_chat(raw_chat, target, active.knowledge_dir)

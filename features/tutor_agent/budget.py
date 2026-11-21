@@ -2,11 +2,11 @@
 
 import json
 import math
-import os
 import time
 from datetime import UTC, datetime
 from threading import RLock
 
+from core.db import atomic_write_text
 from core.runtime import data_root
 
 BUDGET_FILE = data_root() / "budget_state.json"
@@ -41,7 +41,7 @@ def _load(now: float) -> dict[str, object]:
                 raise ValueError("Invalid budget counter")
         cost = raw.get("estimated_cost_usd")
         timestamps = raw.get("minute_timestamps")
-        if not isinstance(cost, (int, float)) or not math.isfinite(cost) or cost < 0 or not isinstance(timestamps, list) or len(timestamps) > 12:
+        if not isinstance(cost, (int, float)) or not math.isfinite(cost) or cost < 0 or not isinstance(timestamps, list) or len(timestamps) > max(MAX_REQUESTS_PER_MINUTE, 60):
             raise ValueError("Invalid budget state")
         if any(type(t) not in (int, float) or not math.isfinite(t) for t in timestamps):
             raise ValueError("Invalid rate-limit state")
@@ -52,14 +52,9 @@ def _load(now: float) -> dict[str, object]:
 
 
 def _save(state: dict[str, object]) -> None:
-    BUDGET_FILE.parent.mkdir(parents=True, exist_ok=True)
-    temporary = BUDGET_FILE.with_suffix(".json.tmp")
-    if BUDGET_FILE.is_symlink() or temporary.is_symlink():
+    if BUDGET_FILE.is_symlink() or BUDGET_FILE.with_suffix(".json.tmp").is_symlink():
         raise ValueError("Budget storage cannot be a symbolic link")
-    with temporary.open("w", encoding="utf-8") as handle:
-        os.chmod(temporary, 0o600)
-        json.dump(state, handle)
-    temporary.replace(BUDGET_FILE)
+    atomic_write_text(BUDGET_FILE, json.dumps(state), mode=0o600)
 
 
 def budget_snapshot(request_limit: int = 50, usd_limit: float = 1.0, now: float | None = None) -> dict[str, object]:
@@ -81,7 +76,8 @@ def check_and_record_budget(provider: str, estimated_tokens: int = MAX_OUTPUT_TO
         try:
             if estimated_tokens < 0 or not math.isfinite(cost) or cost < 0:
                 raise ValueError("Invalid reservation")
-            state = _load(time.time() if now is None else now)
+            ts = time.time() if now is None else now
+            state = _load(ts)
             raw_timestamps = state["minute_timestamps"]
             timestamps = raw_timestamps if isinstance(raw_timestamps, list) else []
             used, spent = int(str(state["cloud_requests_today"])), float(str(state["estimated_cost_usd"]))
@@ -89,7 +85,7 @@ def check_and_record_budget(provider: str, estimated_tokens: int = MAX_OUTPUT_TO
             if reason:
                 guidance = "Wait up to 60 seconds or switch to Local Ollama." if len(timestamps) >= MAX_REQUESTS_PER_MINUTE else "Increase your limit in Settings or switch to Local Ollama."
                 return f"Cloud Budget Guardrail triggered: {reason} (${spent:.2f} / {used} requests; next estimate ${cost:.4f}). {guidance}"
-            state.update(cloud_requests_today=used + 1, estimated_tokens_today=int(str(state["estimated_tokens_today"])) + estimated_tokens, estimated_cost_usd=round(spent + cost, 8), minute_timestamps=[*timestamps, time.time() if now is None else now])
+            state.update(cloud_requests_today=used + 1, estimated_tokens_today=int(str(state["estimated_tokens_today"])) + estimated_tokens, estimated_cost_usd=round(spent + cost, 8), minute_timestamps=[*timestamps, ts])
             _save(state)
         except (OSError, ValueError, TypeError, KeyError):
             return "Cloud Budget Guardrail triggered: Usage state is unavailable. Reset the counter in Settings or switch to Local Ollama."
@@ -101,7 +97,7 @@ def reset_budget(now: float | None = None) -> None:
         timestamp = time.time() if now is None else now
         try:
             recent = _load(timestamp)["minute_timestamps"]
-        except (ValueError, TypeError, KeyError):
+        except (OSError, ValueError, TypeError, KeyError):
             recent = []
         if BUDGET_FILE.is_symlink():
             raise ValueError("Budget storage cannot be a symbolic link")

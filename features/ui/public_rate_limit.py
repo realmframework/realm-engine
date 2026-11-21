@@ -2,6 +2,7 @@
 
 import hashlib
 import os
+import secrets
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -9,11 +10,12 @@ from threading import RLock
 
 QuotaChecker = Callable[[str, float], str | None]
 MAX_TRACKED_IPS = 4096
+_PROCESS_SALT = secrets.token_hex(16)
 
 
 def hash_client_ip(client_ip: str, salt: str = "") -> str:
     """Hash visitor IPs before tracking so raw IP addresses are never stored."""
-    effective_salt = salt or os.environ.get("REALM_IP_SALT") or "realm-public"
+    effective_salt = salt or os.environ.get("REALM_IP_SALT") or _PROCESS_SALT
     return hashlib.sha256(f"{effective_salt}:{client_ip.strip() or 'unknown'}".encode()).hexdigest()[:24]
 
 
@@ -38,10 +40,12 @@ def create_memory_limiter(
             if state["day"] != today:
                 state.update(day=today, global_count=0, global_usd=0.0)
                 ip_days.clear()
-            if len(ip_minutes) > MAX_TRACKED_IPS:
+            if len(ip_minutes) >= MAX_TRACKED_IPS:
                 stale = [k for k, ts in ip_minutes.items() if not any(t > now - 60 for t in ts)]
                 for key in stale:
                     ip_minutes.pop(key, None)
+                while len(ip_minutes) >= MAX_TRACKED_IPS and ip_key not in ip_minutes:
+                    ip_minutes.pop(next(iter(ip_minutes)), None)
             recent = [t for t in ip_minutes.get(ip_key, []) if t > now - 60]
             if len(recent) >= ip_rpm:
                 return f"Rate limit reached ({ip_rpm} AI answers/minute). Instant search remains available."
@@ -53,6 +57,8 @@ def create_memory_limiter(
             if global_daily == 0 or g_count >= global_daily or g_usd + est_cost_usd > global_usd:
                 return "Daily public AI budget reached. Showing instant search results instead."
             ip_minutes[ip_key] = [*recent, now]
+            if ip_key not in ip_days and len(ip_days) >= MAX_TRACKED_IPS:
+                ip_days.pop(next(iter(ip_days)), None)
             ip_days[ip_key] = used_ip + 1
             state["global_count"] = g_count + 1
             state["global_usd"] = round(g_usd + est_cost_usd, 8)

@@ -63,7 +63,7 @@ def test_progressive_loading_and_abort_controller_in_ui() -> None:
     response = client.get("/")
     assert response.status_code == 200
     assert "Synthesizing answer with " in response.text
-    assert "from-[#0B1020] via-[#162240] to-[#0B1020] animate-pulse rounded-lg h-4" in response.text
+    assert "realm-skeleton animate-pulse rounded-lg h-4" in response.text
     assert "AbortController" in response.text
 
 

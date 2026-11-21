@@ -12,9 +12,9 @@ _STOPWORDS = frozenset([
     "a", "an", "and", "are", "as", "at", "be", "by", "can", "could", "did", "do", "does", "for", "from", "had", "has", "have", "how", "i", "in", "is", "it", "its", "me", "my",
     "of", "on", "or", "our", "should", "that", "the", "their", "them", "there", "these", "they", "this", "to", "was", "we", "were", "what", "when", "where", "which", "who", "why", "will", "with", "would", "you", "your",
     "aber", "als", "am", "auch", "auf", "aus", "bei", "bin", "bis", "das", "dem", "den", "der", "des", "die", "ein", "eine", "einem", "einen", "einer", "es", "fuer", "für", "hat", "ich", "im", "ist", "mit", "nach", "nicht", "oder", "sich", "sie", "sind", "und", "uns", "vom", "von", "war", "wie", "wir", "zu", "zum", "zur",
+    "al", "como", "con", "de", "del", "el", "en", "la", "las", "lo", "los", "para", "por", "que", "se", "su", "un", "una", "y",
 ])
-_BM25_K1 = 1.5
-_BM25_B = 0.75
+_BM25_K1, _BM25_B = 1.5, 0.75
 
 
 def tokenize(text: str) -> list[str]:
@@ -45,15 +45,16 @@ def _weighted_term_counts(chunk: KnowledgeChunk) -> tuple[dict[str, float], floa
 
 
 def cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
-    """Compute cosine similarity; return 0.0 for mismatched or zero vectors."""
+    """Compute finite cosine similarity; return 0.0 for mismatched, zero, or non-finite vectors."""
     if not vec_a or not vec_b or len(vec_a) != len(vec_b):
         return 0.0
-    dot_product = sum(a * b for a, b in zip(vec_a, vec_b))
+    dot_product = sum(a * b for a, b in zip(vec_a, vec_b, strict=True))
     magnitude_a = math.sqrt(sum(a * a for a in vec_a))
     magnitude_b = math.sqrt(sum(b * b for b in vec_b))
-    if magnitude_a == 0.0 or magnitude_b == 0.0:
+    if not (math.isfinite(dot_product) and math.isfinite(magnitude_a) and math.isfinite(magnitude_b)) or magnitude_a == 0.0 or magnitude_b == 0.0:
         return 0.0
-    return dot_product / (magnitude_a * magnitude_b)
+    sim = dot_product / (magnitude_a * magnitude_b)
+    return sim if math.isfinite(sim) else 0.0
 
 
 def keyword_score(query: str, chunk: KnowledgeChunk) -> float:
@@ -94,19 +95,14 @@ def _bm25_scores(query: str, chunks: list[KnowledgeChunk]) -> dict[str, float]:
 def _lexical_rank(query: str, chunks: list[KnowledgeChunk], top_k: int) -> list[SearchResult]:
     scores = _bm25_scores(query, chunks)
     scored = [SearchResult(chunk=c, score=scores[c.id]) for c in chunks if scores[c.id] > 0.0]
-    scored.sort(key=lambda result: result.score, reverse=True)
+    scored.sort(key=lambda result: (-result.score, result.chunk.id))
     return scored[:top_k]
 
 
-def hybrid_search(
-    search_query: SearchQuery,
-    chunks: list[KnowledgeChunk],
-    query_embedding: list[float] | None = None,
-) -> list[SearchResult]:
+def hybrid_search(search_query: SearchQuery, chunks: list[KnowledgeChunk], query_embedding: list[float] | None = None) -> list[SearchResult]:
     """Run BM25 lexical, dense cosine vector, or RRF hybrid search and return up to ``top_k``."""
     candidates = [
-        chunk
-        for chunk in chunks
+        chunk for chunk in chunks
         if matches_scope(chunk, search_query.doc_id, search_query.subfolder)
         and (not search_query.tag_filter or search_query.tag_filter.lower() in {tag.lower() for tag in chunk.tags})
     ]
@@ -128,7 +124,7 @@ def hybrid_search(
             for chunk in candidates
             if chunk.embedding and (sim := cosine_similarity(q_vec, chunk.embedding)) > 0.0
         ]
-        vec_scored.sort(key=lambda result: result.score, reverse=True)
+        vec_scored.sort(key=lambda result: (-result.score, result.chunk.id))
         return vec_scored[: search_query.top_k] or _lexical_rank(query, candidates, search_query.top_k)
 
     lex_map = _bm25_scores(query, candidates)
@@ -136,13 +132,15 @@ def hybrid_search(
     active = [c for c in candidates if lex_map[c.id] > 0.0 or vec_map[c.id] > 0.0]
     if not active:
         return []
-    lex_ranks = {c.id: idx + 1 for idx, c in enumerate(sorted(active, key=lambda c: lex_map[c.id], reverse=True))}
-    vec_ranks = {c.id: idx + 1 for idx, c in enumerate(sorted(active, key=lambda c: vec_map[c.id], reverse=True))}
+    lex_ranks = {c.id: idx + 1 for idx, c in enumerate(sorted((c for c in active if lex_map[c.id] > 0.0), key=lambda c: (-lex_map[c.id], c.id)))}
+    vec_ranks = {c.id: idx + 1 for idx, c in enumerate(sorted((c for c in active if vec_map[c.id] > 0.0), key=lambda c: (-vec_map[c.id], c.id)))}
 
     fused: list[tuple[float, float, SearchResult]] = []
     for chunk in active:
-        rrf = (1.0 / (search_query.rrf_k + lex_ranks[chunk.id])) + (1.0 / (search_query.rrf_k + vec_ranks[chunk.id]))
+        rrf = (1.0 / (search_query.rrf_k + lex_ranks[chunk.id]) if chunk.id in lex_ranks else 0.0) + (
+            1.0 / (search_query.rrf_k + vec_ranks[chunk.id]) if chunk.id in vec_ranks else 0.0
+        )
         total = lex_map[chunk.id] + vec_map[chunk.id] + rrf
         fused.append((rrf, total, SearchResult(chunk=chunk, score=total)))
-    fused.sort(key=lambda item: (item[0], item[1]), reverse=True)
+    fused.sort(key=lambda item: (-item[0], -item[1], item[2].chunk.id))
     return [item[2] for item in fused[: search_query.top_k]]

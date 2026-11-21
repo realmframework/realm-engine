@@ -6,8 +6,14 @@ import struct
 import subprocess
 import sys
 
+_CACHED_RAM_GB: int | None = None
+
 
 def physical_ram_gb() -> int:
+    global _CACHED_RAM_GB
+    in_pytest = bool(os.environ.get("PYTEST_CURRENT_TEST"))
+    if not in_pytest and _CACHED_RAM_GB is not None:
+        return _CACHED_RAM_GB
     try:
         if sys.platform == "win32":
             memory = ctypes.create_string_buffer(64)
@@ -21,7 +27,10 @@ def physical_ram_gb() -> int:
             size = int(result.stdout.strip())
         else:
             size = os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE")
-        return max(0, round(size / 1024**3))
+        detected = max(0, round(size / 1024**3))
+        if not in_pytest:
+            _CACHED_RAM_GB = detected
+        return detected
     except (OSError, ValueError, AttributeError, subprocess.SubprocessError):
         try:
             if sys.platform == "win32":

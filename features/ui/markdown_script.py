@@ -3,7 +3,7 @@
 MARKDOWN_SCRIPT: str = r"""
 function safeMarkdownHref(raw) {
   const url = String(raw || "").trim();
-  if (!url || /^javascript:|^data:|^vbscript:/i.test(url)) { return null; }
+  if (!url || /[\u0000-\u001f"'<>`]/.test(url) || /^javascript:|^data:|^vbscript:/i.test(url)) { return null; }
   if (/^https?:\/\//i.test(url)) { return { kind: "external", href: url }; }
   if (/\.md(?:#[^#]*)?$/i.test(url) && !url.startsWith("/") && !url.startsWith("//")) { return { kind: "guide", href: url }; }
   return null;
@@ -21,15 +21,15 @@ function resolveRelativeGuideId(currentDocId, relativeHref) {
 }
 function formatInline(rawText) {
   const codeSpans = [];
-  let text = String(rawText || "").replace(/`([^`\n]+)`/g, function (_m, code) {
+  let text = String(rawText || "").replace(/\u0000/g, "").replace(/`([^`\n]+)`/g, function (_m, code) {
     const idx = codeSpans.push("<code class='md-code-inline'>" + escapeHtml(code) + "</code>") - 1;
     return "\u0000C" + idx + "\u0000";
   });
   const linkSpans = [];
   text = text.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (_m, label, href) {
     const safe = safeMarkdownHref(href);
+    if (!safe) { return label; }
     const renderedLabel = escapeHtml(label);
-    if (!safe) { return renderedLabel; }
     const html = safe.kind === "external"
       ? "<a href='" + escapeHtml(safe.href) + "' target='_blank' rel='noopener noreferrer' class='md-link'>" + renderedLabel + " ↗</a>"
       : "<button type='button' data-md-doc='" + escapeHtml(safe.href) + "' class='md-link'>" + renderedLabel + "</button>";
@@ -40,9 +40,9 @@ function formatInline(rawText) {
   escaped = escaped.replace(/\*\*([^*]+)\*\*/g, "<strong class='text-[#EEF2F8] font-semibold'>$1</strong>");
   escaped = escaped.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em class='text-[#EEF2F8]/90 italic'>$2</em>");
   escaped = escaped.replace(/(^|[\s(])_([^_\n]+)_(?=$|[\s.,;:!?)\]])/g, "$1<em class='text-[#EEF2F8]/90 italic'>$2</em>");
-  escaped = escaped.replace(/\u0000L(\d+)\u0000/g, function (_m, i) { return linkSpans[Number(i)] || ""; });
-  escaped = escaped.replace(/\u0000C(\d+)\u0000/g, function (_m, i) { return codeSpans[Number(i)] || ""; });
-  return escaped;
+  return escaped.replace(/\u0000([LC])(\d+)\u0000/g, function (_m, kind, i) {
+    return (kind === "L" ? linkSpans : codeSpans)[Number(i)] || "";
+  });
 }
 function parseTableRow(line) {
   return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(function (cell) { return cell.trim(); });
@@ -59,9 +59,14 @@ function renderMarkdownTable(lines) {
   }).join("") + "</tbody>";
   return "<div class='md-table-wrap'><table class='md-table'>" + thead + tbody + "</table></div>";
 }
-function formatMarkdown(raw) {
-  const cleaned = String(raw || "").replace(/\r\n?/g, "\n").replace(/\n+\s*(?:\*\*|#{1,3}\s*)?(?:Sources|Cited Sources|References|Knowledge Gap)\s*(?:\*\*)?\s*:[\s\S]*$/i, "").trim();
+function formatMarkdown(raw, stripFooter, baseHeading) {
+  let cleaned = String(raw || "").replace(/\r\n?/g, "\n");
+  if (stripFooter) {
+    cleaned = cleaned.replace(/\n+[ \t]*(?:\*\*|#{1,3}[ \t]*)?(?:Sources|Cited Sources|References|Knowledge Gap)[ \t]*(?:\*\*)?[ \t]*:[\s\S]*$/i, "");
+  }
+  cleaned = cleaned.trim();
   if (!cleaned) { return ""; }
+  const hBase = Math.max(2, Math.min(5, Number(baseHeading) || 2));
   const lines = cleaned.split("\n"), out = [];
   let i = 0;
   while (i < lines.length) {
@@ -87,7 +92,8 @@ function formatMarkdown(raw) {
     const heading = trimmed.match(/^(#{1,4})\s+(.*)$/);
     if (heading) {
       const level = heading[1].length, cls = level <= 2 ? "text-lg font-semibold text-[#EEF2F8] mt-3 mb-1" : "text-base font-semibold text-[#EEF2F8] mt-3 mb-0.5";
-      out.push("<h" + Math.min(4, level + 1) + " class='" + cls + "'>" + formatInline(heading[2]) + "</h" + Math.min(4, level + 1) + ">");
+      const hTag = "h" + Math.min(6, hBase + level - 1);
+      out.push("<" + hTag + " class='" + cls + "'>" + formatInline(heading[2]) + "</" + hTag + ">");
       i++; continue;
     }
     if (trimmed.startsWith(">")) {
@@ -104,6 +110,7 @@ function formatMarkdown(raw) {
     }
     if (/^\s*(?:[-*+]|\d+\.)\s+/.test(line)) {
       const items = [];
+      let isOrdered = false, firstSet = false;
       while (i < lines.length) {
         const cur = lines[i];
         if (!cur.trim()) {
@@ -112,11 +119,13 @@ function formatMarkdown(raw) {
         }
         const m = cur.match(/^(\s*)(?:([-*+])|(\d+\.))\s+(.*)$/);
         if (!m) { break; }
+        if (!firstSet) { isOrdered = Boolean(m[3]); firstSet = true; }
         const depth = Math.min(3, Math.floor(m[1].length / 2)), marker = m[3] || "•";
-        items.push("<div class='md-list-item' style='padding-inline-start:" + (depth * 1.1) + "rem'><span class='md-list-marker'>" + escapeHtml(marker) + "</span><span class='flex-1 leading-relaxed'>" + formatInline(m[4]) + "</span></div>");
+        items.push("<li class='md-list-item' style='padding-inline-start:" + (depth * 1.1) + "rem'><span class='md-list-marker' aria-hidden='true'>" + escapeHtml(marker) + "</span><span class='flex-1 leading-relaxed'>" + formatInline(m[4]) + "</span></li>");
         i++;
       }
-      out.push("<div class='md-list'>" + items.join("") + "</div>");
+      const listTag = isOrdered ? "ol" : "ul";
+      out.push("<" + listTag + " role='list' class='md-list'>" + items.join("") + "</" + listTag + ">");
       continue;
     }
     const para = [];
@@ -133,11 +142,15 @@ function bindMarkdownLinks(root, currentDocId, previousTag) {
   root.querySelectorAll("[data-md-doc]").forEach(function (button) {
     button.addEventListener("click", async function (event) {
       event.preventDefault(); event.stopPropagation();
+      const version = areaVersion;
       const targetId = resolveRelativeGuideId(currentDocId, button.getAttribute("data-md-doc") || "");
-      const list = allGuides.length ? allGuides : await loadGuidesCatalog(null);
-      const target = list.find(function (g) { return g.doc_id === targetId || g.doc_id.endsWith("/" + targetId); });
-      if (target) { await renderGuideReader(target, previousTag); }
-      else { showToast("Linked guide not found in this area: " + targetId); }
+      try {
+        const list = allGuides.length ? allGuides : await loadGuidesCatalog(null);
+        if (version !== areaVersion) { return; }
+        const target = list.find(function (g) { return g.doc_id === targetId || g.doc_id.endsWith("/" + targetId); });
+        if (target) { await renderGuideReader(target, previousTag); }
+        else { showToast(t("toast_doc_not_found", { id: targetId })); }
+      } catch (_e) { showToast(t("toast_doc_open_err")); }
     });
   });
 }
