@@ -15,6 +15,8 @@ function exportMenuHtml(kind, idx, disabled, iconOnly) {
   const labelAttr = iconOnly ? (" title='" + escapeHtml(t("chat_export").replace(" ⌄", "")) + "' aria-label='" + escapeHtml(t("chat_export").replace(" ⌄", "")) + "'") : "";
   return "<details class='export-menu relative inline-block'><summary class='" + sumCls + "'" + labelAttr + ">" + EXPORT_SVG + (iconOnly ? "" : "<span>" + escapeHtml(t("chat_export")) + "</span>") + "</summary>"
     + "<div class='turn-popover-panel'" + posStyle + ">"
+    + "<button type='button' " + attr + " data-export-fmt='pptx' class='turn-popover-item'>" + escapeHtml(t("chat_exp_pptx")) + "</button>"
+    + "<button type='button' " + attr + " data-export-fmt='slides_pdf' class='turn-popover-item'>" + escapeHtml(t("chat_exp_slides_pdf")) + "</button>"
     + "<button type='button' " + attr + " data-export-fmt='pdf' class='turn-popover-item'>" + escapeHtml(t("chat_exp_pdf")) + "</button>"
     + "<button type='button' " + attr + " data-export-fmt='md' class='turn-popover-item'>" + escapeHtml(t("chat_exp_md")) + "</button>"
     + "<button type='button' " + attr + " data-export-fmt='txt' class='turn-popover-item'>" + escapeHtml(t("chat_exp_txt")) + "</button>"
@@ -61,6 +63,8 @@ function conversationMarkdown(session) {
 }
 function exportSingleTurn(tIdx, fmt) {
   const turn = currentTurns[tIdx]; if (!turn || !turn.tutor) { return; }
+  if (fmt === "pptx" && typeof exportTurnSlides === "function") { exportTurnSlides(tIdx, "pptx"); return; }
+  if (fmt === "slides_pdf" && typeof exportTurnSlides === "function") { exportTurnSlides(tIdx, "pdf"); return; }
   if (fmt === "pdf" && typeof exportTurnPdf === "function") { exportTurnPdf(tIdx); return; }
   const title = turn.format_name || turn.query.slice(0, 60) || "response", slug = chatSlug(title);
   const cited = Array.from(new Set(turn.tutor.cited_titles || []));
@@ -72,6 +76,8 @@ async function runChatAction(saveToLibrary, format) {
   const version = areaVersion, actionKey = activeKnowledgeArea + "::" + currentChatId;
   const chatId = currentChatId, status = document.getElementById("chat-action-status"), saveBtn = document.getElementById("chat-save-btn");
   if (!chatId || chatActionsInFlight.has(actionKey)) { return; }
+  if (!saveToLibrary && format === "pptx" && typeof exportFullChatSlides === "function") { exportFullChatSlides("pptx"); return; }
+  if (!saveToLibrary && format === "slides_pdf" && typeof exportFullChatSlides === "function") { exportFullChatSlides("pdf"); return; }
   if (!saveToLibrary && format === "pdf" && typeof exportFullChatPdf === "function") { exportFullChatPdf(); return; }
   chatActionsInFlight.add(actionKey);
   if (saveBtn) { saveBtn.disabled = true; }

@@ -1,6 +1,6 @@
 [project]
 name = "realm-engine"
-version = "0.3.0"
+version = "0.4.0"
 description = "Local-first Hybrid RAG & Multi-Turn AI Knowledge Engine with optional read-only public API mode."
 readme = "README.md"
 license = "MIT"
@@ -15,6 +15,7 @@ dependencies = [
     "pydantic>=2.14.3",
     "pypdf>=7.1.0",
     "python-multipart>=0.0.33",
+    "python-pptx>=1.0.2",
     "uvicorn>=0.54.0",
 ]
 

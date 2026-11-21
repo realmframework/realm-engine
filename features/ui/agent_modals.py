@@ -12,9 +12,10 @@ AGENT_MODAL_HTML: str = r"""<dialog id="agent-studio-modal" closedby="any" aria-
     </div>
   </div>
   <div class="shrink-0 flex items-center justify-between gap-3 flex-wrap">
-    <div role="tablist" aria-label="Agent Studio sections" class="inline-flex bg-[#04060F] p-1 rounded-xl border border-white/10 gap-1">
-      <button id="agent-tab-roster" type="button" role="tab" aria-selected="true" aria-controls="agent-roster-pane" tabindex="0" data-i18n="agents_tab_list" class="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-[#4BB8E8] text-[#04060F] transition">Your Agents</button>
-      <button id="agent-tab-editor" type="button" role="tab" aria-selected="false" aria-controls="agent-editor-form" tabindex="-1" data-i18n="agents_tab_create" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-[#A0B0C8] hover:text-[#EEF2F8] transition">+ Create Agent</button>
+    <div role="tablist" aria-label="Agent Studio sections" class="inline-flex bg-[#04060F] p-1 rounded-xl border border-white/10 gap-1 overflow-x-auto">
+      <button id="agent-tab-roster" type="button" role="tab" aria-selected="true" tabindex="0" data-i18n="agents_tab_list" class="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-[#4BB8E8] text-[#04060F] shrink-0 transition">Your Agents</button>
+      <button id="agent-tab-builder" type="button" role="tab" aria-selected="false" tabindex="-1" data-i18n="agents_tab_builder" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-[#A0B0C8] hover:text-[#EEF2F8] shrink-0 transition">✦ Build with Chat</button>
+      <button id="agent-tab-editor" type="button" role="tab" aria-selected="false" tabindex="-1" data-i18n="agents_tab_create" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-[#A0B0C8] hover:text-[#EEF2F8] shrink-0 transition">+ Create Agent</button>
     </div>
     <div class="flex items-center gap-3 flex-wrap">
       <label for="agent-sync-palette-toggle" class="inline-flex items-center gap-3.5 text-xs text-[#A0B0C8] cursor-pointer select-none">
@@ -27,6 +28,23 @@ AGENT_MODAL_HTML: str = r"""<dialog id="agent-studio-modal" closedby="any" aria-
   <div id="agent-roster-pane" role="tabpanel" aria-labelledby="agent-tab-roster" class="min-h-0 flex-1 overflow-y-auto overscroll-contain flex flex-col gap-3 pr-1">
     <div id="agent-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2"></div>
   </div>
+  <section id="agent-builder-pane" role="tabpanel" aria-labelledby="agent-tab-builder" hidden class="min-h-0 flex-1 flex flex-col gap-3 overflow-hidden">
+    <div id="agent-builder-messages" class="min-h-0 flex-1 overflow-y-auto overscroll-contain flex flex-col gap-2.5 pr-1"></div>
+    <div id="agent-builder-preview" hidden class="shrink-0 rounded-xl bg-[#04060F] border border-[#4BB8E8]/40 p-3.5 flex flex-col gap-2"></div>
+    <form id="agent-builder-form" class="shrink-0 flex flex-col gap-2 pt-2 border-t border-white/10">
+      <div class="flex items-end gap-2">
+        <textarea id="agent-builder-input" rows="2" maxlength="2000" aria-label="Describe your custom agent" data-i18n-placeholder="ab_placeholder" placeholder="Describe what this agent should do for you…" class="flex-1 rounded-xl bg-[#04060F] border border-white/15 focus:border-[#4BB8E8] px-3 py-2 text-sm text-[#EEF2F8] outline-none resize-none"></textarea>
+        <button id="ab-send-btn" type="submit" data-i18n="ab_send" class="px-4 py-2 rounded-xl bg-[#4BB8E8] text-[#04060F] font-semibold text-xs hover:brightness-110 shrink-0 transition">Send</button>
+      </div>
+      <div class="flex items-center justify-between gap-2 flex-wrap">
+        <span id="agent-builder-status" role="status" class="text-xs text-amber-300"></span>
+        <div class="flex items-center gap-2">
+          <button id="ab-reset-btn" type="button" data-i18n="ab_restart" class="px-2.5 py-1 rounded-lg border border-white/15 text-xs text-[#A0B0C8] hover:text-[#EEF2F8] transition">Restart</button>
+          <button id="ab-draft-btn" type="button" disabled data-i18n="ab_draft_now" class="px-3 py-1 rounded-lg bg-[#4BB8E8]/15 border border-[#4BB8E8]/40 text-xs font-medium text-[#4BB8E8] hover:bg-[#4BB8E8]/25 disabled:opacity-40 transition">Draft Now</button>
+        </div>
+      </div>
+    </form>
+  </section>
   <form id="agent-editor-form" role="tabpanel" aria-labelledby="agent-tab-editor" hidden class="min-h-0 flex-1 overflow-y-auto overscroll-contain flex flex-col gap-3 pr-1">
     <input id="agent-edit-id" type="hidden" value="" />
     <div class="flex items-center justify-between gap-2 flex-wrap">

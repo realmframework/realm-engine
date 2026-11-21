@@ -89,7 +89,12 @@ const I18N_EXTRA = {
     study_new_q_ph: "Question or prompt…", study_new_a_ph: "Concise answer…",
     study_generating: "Generating {n} flashcards with {model}…", study_gen_ready: "Generated and saved {n} AI flashcards!",
     study_card_added: "Custom flashcard added to this deck.", study_anki_exported: "Exported {n} flashcards for Anki (.tsv).",
-    study_mode_ai: "AI Deck", study_mode_quick: "Quick preview (headings)"
+    study_mode_ai: "AI Deck", study_mode_quick: "Quick preview (headings)",
+    chat_exp_pptx: "PowerPoint Slides (.pptx)", chat_exp_slides_pdf: "Slide Deck (16:9 .pdf)",
+    toast_exp_slides_gen: "Building 16:9 slide deck…", toast_exp_slides_ok: "Slide deck exported!", err_export_slides: "Could not export slide deck.",
+    agents_tab_builder: "✦ Build with Chat", ab_welcome: "Tell me what you want this agent to help with in your work — I'll ask a few quick questions and craft the full persona for you.",
+    ab_placeholder: "Describe what this agent should do for you…", ab_send: "Send", ab_draft_now: "Draft Now", ab_restart: "Restart",
+    ab_thinking: "Designing your agent…", ab_preview_lbl: "Ready to Save · Agent Preview", ab_save_btn: "Save to Agent Team", ab_edit_btn: "Fine-Tune in Editor"
   },
   de: {
     lib_new_note: "+ Neue Notiz",
@@ -178,7 +183,12 @@ const I18N_EXTRA = {
     study_new_q_ph: "Frage oder Begriff…", study_new_a_ph: "Präzise Antwort…",
     study_generating: "{n} Lernkarten werden mit {model} erstellt…", study_gen_ready: "{n} KI-Lernkarten erstellt und gespeichert!",
     study_card_added: "Eigene Lernkarte hinzugefügt.", study_anki_exported: "{n} Lernkarten für Anki (.tsv) exportiert.",
-    study_mode_ai: "KI-Stapel", study_mode_quick: "Schnellvorschau (Abschnitte)"
+    study_mode_ai: "KI-Stapel", study_mode_quick: "Schnellvorschau (Abschnitte)",
+    chat_exp_pptx: "PowerPoint-Folien (.pptx)", chat_exp_slides_pdf: "Folien-PDF (16:9 .pdf)",
+    toast_exp_slides_gen: "16:9-Folien werden erstellt…", toast_exp_slides_ok: "Folien exportiert!", err_export_slides: "Folien konnten nicht exportiert werden.",
+    agents_tab_builder: "✦ Per Chat bauen", ab_welcome: "Erzähl mir, wobei dir dieser Agent bei deiner Arbeit helfen soll — ich stelle dir ein paar kurze Fragen und erstelle den fertigen Agenten für dich.",
+    ab_placeholder: "Beschreibe, was dieser Agent für dich tun soll…", ab_send: "Senden", ab_draft_now: "Jetzt entwerfen", ab_restart: "Neu starten",
+    ab_thinking: "Agent wird entworfen…", ab_preview_lbl: "Bereit zum Speichern · Agenten-Vorschau", ab_save_btn: "Zum Team hinzufügen", ab_edit_btn: "Im Editor anpassen"
   },
   es: {
     lib_new_note: "+ Nueva nota",
@@ -267,7 +277,12 @@ const I18N_EXTRA = {
     study_new_q_ph: "Pregunta o concepto…", study_new_a_ph: "Respuesta concisa…",
     study_generating: "Generando {n} tarjetas con {model}…", study_gen_ready: "¡{n} tarjetas de IA generadas y guardadas!",
     study_card_added: "Tarjeta personalizada añadida al mazo.", study_anki_exported: "{n} tarjetas exportadas para Anki (.tsv).",
-    study_mode_ai: "Mazo IA", study_mode_quick: "Vista rápida (secciones)"
+    study_mode_ai: "Mazo IA", study_mode_quick: "Vista rápida (secciones)",
+    chat_exp_pptx: "Diapositivas PowerPoint (.pptx)", chat_exp_slides_pdf: "Presentación PDF (16:9 .pdf)",
+    toast_exp_slides_gen: "Creando presentación 16:9…", toast_exp_slides_ok: "¡Presentación exportada!", err_export_slides: "No se pudo exportar la presentación.",
+    agents_tab_builder: "✦ Crear por chat", ab_welcome: "Cuéntame en qué quieres que te ayude este agente en tu trabajo: te haré unas preguntas rápidas y lo diseñaré por ti.",
+    ab_placeholder: "Describe qué debe hacer este agente por ti…", ab_send: "Enviar", ab_draft_now: "Crear borrador", ab_restart: "Reiniciar",
+    ab_thinking: "Diseñando tu agente…", ab_preview_lbl: "Listo para guardar · Vista previa", ab_save_btn: "Guardar en el equipo", ab_edit_btn: "Ajustar en editor"
   }
 };
 for (const _lang of ["en", "de", "es"]) { Object.assign(I18N[_lang], I18N_EXTRA[_lang]); }

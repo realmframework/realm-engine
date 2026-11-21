@@ -19,12 +19,14 @@ from features.ingestion.embedder import embed_text
 from features.ingestion.service import ingest_directory
 from features.search.router import route_query_intent
 from features.search.service import hybrid_search
+from features.slides import router as slides_router
 from features.tutor_agent import budget, key_verify
 from features.tutor_agent.models_discovery import discover_models
 from features.tutor_agent.providers import list_provider_models
 from features.tutor_agent.service import ask_tutor as run_tutor
 from features.tutor_agent.streaming import stream_messages_events, stream_tutor_events
 from features.ui import (
+    agent_builder_routes,
     appearance_routes,
     area_routes,
     audio_routes,
@@ -39,6 +41,7 @@ from features.ui import (
     public_rate_limit,
     query_routes,
     selection,
+    slides_source,
     study_routes,
     workspace,
     workspace_templates,
@@ -50,11 +53,9 @@ from features.ui.startup import area_lifespan
 from features.ui.template import HTML_PAGE
 from features.ui.upload_guard import upload_body_guard
 
-STATIC_DIR = bundle_root() / "features" / "ui" / "static"
+STATIC_DIR, AUTO_EMBED = bundle_root() / "features" / "ui" / "static", os.environ.get("REALM_AUTO_EMBED", "1").strip().lower() not in {"0", "false", "no"}
 secrets.load_dotenv_files()
-AUTO_EMBED = os.environ.get("REALM_AUTO_EMBED", "1").strip().lower() not in {"0", "false", "no"}
-WORKSPACE_CONFIG, INDEX = workspace.load_workspace_config(), []
-_INDEX_KEY: tuple[str, tuple[str, ...], int] | None = None
+WORKSPACE_CONFIG, INDEX, _INDEX_KEY = workspace.load_workspace_config(), [], None
 
 def _load_area(target: Path) -> list[contracts.KnowledgeChunk]:
     cache = cache_index_for_dir(target, workspace.REPO_ROOT)
@@ -119,9 +120,8 @@ def _build_local_app() -> FastAPI:
     cloud_guard = build_guard(lambda: WORKSPACE_CONFIG, budget.check_and_record_budget, budget.estimate_usage)
     audio_routes.privacy_config, audio_routes.cloud_admission = (lambda: WORKSPACE_CONFIG), cloud_guard
     for router in (
-        appearance_routes.build_router(lambda: WORKSPACE_CONFIG, _set_workspace_config),
-        backup_routes.build_router(lambda: WORKSPACE_CONFIG, activate_workspace),
-        workspace_templates.build_router(lambda: WORKSPACE_CONFIG, activate_workspace),
+        appearance_routes.build_router(lambda: WORKSPACE_CONFIG, _set_workspace_config), agent_builder_routes.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events),
+        backup_routes.build_router(lambda: WORKSPACE_CONFIG, activate_workspace), workspace_templates.build_router(lambda: WORKSPACE_CONFIG, activate_workspace),
         model_routes.build_router(lambda: WORKSPACE_CONFIG, embedder.reset_ollama_status), audio_routes.router,
         chat_routes.build_router(lambda: WORKSPACE_CONFIG, converters.convert_bytes_to_markdown, stream_messages_events, inspect_anonymization),
         document_routes.build_router(lambda: WORKSPACE_CONFIG, _reindex, converters.convert_bytes_to_markdown, inspect_anonymization, anonymize_slug),
@@ -129,8 +129,8 @@ def _build_local_app() -> FastAPI:
         query_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, route_query_intent, hybrid_search, build_embedder(lambda *a, **kw: embed_text(*a, **kw), cloud_guard), lambda *args, **kwargs: run_tutor(*args, **kwargs), stream_tutor_events),
         compliance_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, _reindex, inspect_anonymization, hybrid_search),
         budget_routes.build_router(lambda: WORKSPACE_CONFIG, budget.budget_snapshot, budget.reset_budget, key_verify.verify_provider_key),
-        power_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, _reindex),
-        study_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, stream_messages_events),
+        power_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, _reindex), study_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, stream_messages_events),
+        slides_router.build_router(slides_source.build_source_resolver(lambda: WORKSPACE_CONFIG, get_index)),
     ):
         local.include_router(router)
     local.add_api_route("/favicon.ico", lambda: FileResponse(STATIC_DIR / "favicon.ico"), methods=["GET"], include_in_schema=False)

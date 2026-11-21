@@ -98,12 +98,21 @@ async function loadAgentTeam() {
   } catch (_e) {}
 }
 function setAgentStudioTab(tab) {
-  const isEd = tab === "editor", rBtn = document.getElementById("agent-tab-roster"), eBtn = document.getElementById("agent-tab-editor");
-  const rPane = document.getElementById("agent-roster-pane"), eForm = document.getElementById("agent-editor-form");
-  if (rBtn) { rBtn.setAttribute("aria-selected", String(!isEd)); rBtn.tabIndex = isEd ? -1 : 0; rBtn.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium transition " + (!isEd ? "bg-[#4BB8E8] text-[#04060F]" : "text-[#A0B0C8] hover:text-[#EEF2F8]"); }
-  if (eBtn) { eBtn.setAttribute("aria-selected", String(isEd)); eBtn.tabIndex = isEd ? 0 : -1; eBtn.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium transition " + (isEd ? "bg-[#4BB8E8] text-[#04060F]" : "text-[#A0B0C8] hover:text-[#EEF2F8]"); }
-  if (rPane) { rPane.hidden = isEd; }
-  if (eForm) { eForm.hidden = !isEd; }
+  const active = tab === "editor" || tab === "builder" ? tab : "roster";
+  const map = [
+    ["roster", "agent-tab-roster", "agent-roster-pane"],
+    ["builder", "agent-tab-builder", "agent-builder-pane"],
+    ["editor", "agent-tab-editor", "agent-editor-form"],
+  ];
+  for (const [key, btnId, paneId] of map) {
+    const on = key === active, btn = document.getElementById(btnId), pane = document.getElementById(paneId);
+    if (btn) { btn.setAttribute("aria-selected", String(on)); btn.tabIndex = on ? 0 : -1; btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium shrink-0 transition " + (on ? "bg-[#4BB8E8] text-[#04060F]" : "text-[#A0B0C8] hover:text-[#EEF2F8]"); }
+    if (pane) { pane.hidden = !on; }
+  }
+  if (active === "builder") {
+    if (typeof renderAgentBuilderChat === "function") { renderAgentBuilderChat(); }
+    const inp = document.getElementById("agent-builder-input"); if (inp) { inp.focus(); }
+  }
 }
 function buildRawMarkdownFromGuided() {
   const name = document.getElementById("agent-ed-name").value.trim() || "Custom Agent";
@@ -220,7 +229,7 @@ async function openAgentStudio(tab) {
   if (!agentTeam.length) { await loadAgentTeam(); }
   if (typeof availableFormats !== "undefined" && !availableFormats.length && typeof loadOutputFormats === "function") { await loadOutputFormats(); }
   renderAgentRoster();
-  if (tab === "editor") { openAgentEditor(null); } else { setAgentStudioTab("roster"); }
+  if (tab === "editor") { openAgentEditor(null); } else if (tab === "builder") { setAgentStudioTab("builder"); } else { setAgentStudioTab("roster"); }
   const modal = document.getElementById("agent-studio-modal");
   if (modal && !modal.open) { modal.showModal(); }
 }
@@ -295,15 +304,16 @@ async function revealAgentsFolderUI() {
 }
 function bindAgentControls() {
   const sideBtn = document.getElementById("sidebar-agents-btn"), closeBtn = document.getElementById("close-agent-studio-modal");
-  const tabR = document.getElementById("agent-tab-roster"), tabE = document.getElementById("agent-tab-editor");
+  const tabR = document.getElementById("agent-tab-roster"), tabB = document.getElementById("agent-tab-builder"), tabE = document.getElementById("agent-tab-editor");
   const form = document.getElementById("agent-editor-form"), cancelBtn = document.getElementById("agent-ed-cancel-btn");
   const gBtn = document.getElementById("agent-mode-guided-btn"), rBtn = document.getElementById("agent-mode-raw-btn");
   const restoreBtn = document.getElementById("restore-agents-btn"), revBtn = document.getElementById("reveal-agents-folder-btn");
   if (sideBtn) { sideBtn.addEventListener("click", () => openAgentStudio("roster")); }
   if (closeBtn) { closeBtn.addEventListener("click", () => document.getElementById("agent-studio-modal").close()); }
   if (tabR) { tabR.addEventListener("click", () => setAgentStudioTab("roster")); }
+  if (tabB) { tabB.addEventListener("click", () => setAgentStudioTab("builder")); }
   if (tabE) { tabE.addEventListener("click", () => openAgentEditor(null)); }
-  if (typeof bindRovingTablist === "function") { bindRovingTablist("#agent-studio-modal [role='tab']", tab => { if (tab.id === "agent-tab-editor") { openAgentEditor(null); } else { setAgentStudioTab("roster"); } }); }
+  if (typeof bindRovingTablist === "function") { bindRovingTablist("#agent-studio-modal [role='tab']", tab => { if (tab.id === "agent-tab-editor") { openAgentEditor(null); } else if (tab.id === "agent-tab-builder") { setAgentStudioTab("builder"); } else { setAgentStudioTab("roster"); } }); }
   if (cancelBtn) { cancelBtn.addEventListener("click", () => setAgentStudioTab("roster")); }
   if (form) { form.addEventListener("submit", saveAgentUI); }
   if (gBtn) { gBtn.addEventListener("click", () => setAgentEditorMode(false)); }

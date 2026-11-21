@@ -1,5 +1,6 @@
 """Aggregator bundling modular UX scripts so script.py stays well below its line ceiling."""
 
+from features.ui.agent_builder_script import AGENT_BUILDER_SCRIPT
 from features.ui.comfort_script import COMFORT_SCRIPT
 from features.ui.command_script import COMMAND_SCRIPT
 from features.ui.eco_sync_script import ECO_SYNC_SCRIPT
@@ -20,6 +21,7 @@ UX_BUNDLE_SCRIPT: str = (
     + ECO_SYNC_SCRIPT
     + POWER_SCRIPT
     + GUIDE_SCRIPT
+    + AGENT_BUILDER_SCRIPT
     + r"""
 function bindAllUXBundles() {
   for (const fn of [
@@ -32,6 +34,7 @@ function bindAllUXBundles() {
     typeof bindEcoSyncUX === "function" && bindEcoSyncUX,
     typeof bindPowerUX === "function" && bindPowerUX,
     typeof bindGuideUX === "function" && bindGuideUX,
+    typeof bindAgentBuilderUX === "function" && bindAgentBuilderUX,
   ]) {
     if (fn) { try { fn(); } catch (err) { console.error("UX bundle init failed:", err); } }
   }

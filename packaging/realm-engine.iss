@@ -1,6 +1,6 @@
 ; Inno Setup installer script for REALM Engine (Windows 10/11 64-bit, per-user install — no Admin required)
 #ifndef AppVersion
-  #define AppVersion "0.3.0"
+  #define AppVersion "0.4.0"
 #endif
 
 [Setup]

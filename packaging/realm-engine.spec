@@ -95,6 +95,7 @@ assert "features.ui.app" in hiddenimports, "PyInstaller failed to discover featu
 datas = [
     (str(ROOT / "features" / "ui" / "static"), "features/ui/static"),
     (str(ROOT / "examples" / "starter_vault"), "examples/starter_vault"),
+    *collect_data_files("pptx"),
     *_platform_webview_datas(),
 ]
 
