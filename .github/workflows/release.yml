@@ -231,6 +231,7 @@ jobs:
           EOF
 
           gh release create "v${VERSION}" release-assets/* \
+            --repo "${{ github.repository }}" \
             --title "REALM Engine v${VERSION}" \
             --notes-file release-notes.md \
             ${DRAFT_FLAG}
