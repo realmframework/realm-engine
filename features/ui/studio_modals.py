@@ -42,5 +42,5 @@ STUDIO_MODAL_HTML: str = r"""<dialog id="format-studio-modal" closedby="any" ari
     <div class="flex items-center gap-2 text-sm font-medium text-[#EEF2F8]"><svg aria-hidden="true" class="w-4 h-4 text-[#4BB8E8] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span data-i18n="insp_title">Engine Inspector</span></div>
     <button id="close-inspector-btn" type="button" aria-label="Close Engine Inspector" data-i18n-aria-label="aria_close_inspector" class="h-8 w-8 rounded-full text-[#738196] hover:text-[#EEF2F8] hover:bg-white/[0.06] flex items-center justify-center text-sm shrink-0">✕</button>
   </div>
-  <div id="inspector-sidebar-body" class="flex flex-col gap-4 text-xs flex-1 min-h-0"></div>
+  <div id="inspector-sidebar-body" class="flex flex-col gap-4 text-sm shrink-0 pb-10"></div>
 </aside>"""

@@ -137,25 +137,27 @@ function renderInspectorXray() {
   const host = document.getElementById("inspector-xray-body");
   if (!host) { return; }
   if (!xrayRows.length) {
-    host.innerHTML = "<span class='text-[#738196]'>" + escapeHtml(t("xray_empty")) + "</span>";
+    host.innerHTML = "<span class='text-xs text-[#738196]'>" + escapeHtml(t("xray_empty")) + "</span>";
     return;
   }
   const hasOverrides = xrayMutedDocs.length > 0 || xrayPinnedDocs.length > 0;
-  host.innerHTML = xrayRows.map(function (r) {
-    const docId = r.doc_id || "";
-    const pinned = xrayPinnedDocs.includes(docId);
-    return "<div class='p-2.5 rounded-xl bg-[#04060F] border " + (pinned ? "border-[#4BB8E8]/50" : "border-white/10") + " flex flex-col gap-1.5'>"
-      + "<div class='flex items-center justify-between gap-2'><span class='text-xs font-medium text-[#EEF2F8] truncate'>" + escapeHtml(r.title) + "</span>"
+  const topScore = Math.max(0.0001, ...xrayRows.map(r => Number(r.rrf_score || 0)));
+  host.innerHTML = "<p class='text-xs text-[#738196] leading-relaxed'>" + escapeHtml(t("xray_hint")) + "</p>"
+  + xrayRows.map(function (r, idx) {
+    const docId = r.doc_id || "", pinned = xrayPinnedDocs.includes(docId);
+    const pct = Math.max(18, Math.min(100, Math.round((Number(r.rrf_score || 0) / topScore) * 100)));
+    const matchKind = (r.bm25_rank && r.vector_rank) ? t("xray_match_both") : (r.vector_rank ? t("xray_match_sem") : t("xray_match_kw"));
+    const techTip = "BM25: " + (r.bm25_rank ? "#" + r.bm25_rank + " (" + r.bm25_score + ")" : "—") + " · Vec: " + (r.vector_rank ? "#" + r.vector_rank + " (" + r.vector_score + ")" : "—") + " · RRF: " + r.rrf_score;
+    return "<div title='" + escapeHtml(techTip) + "' class='p-3 rounded-xl bg-[#04060F] border " + (pinned ? "border-[#4BB8E8]/50" : "border-white/10") + " flex flex-col gap-2'>"
+      + "<div class='flex items-start justify-between gap-2'><span class='text-xs font-medium text-[#EEF2F8] leading-snug break-words'>" + escapeHtml(r.title) + "</span>"
       + "<div class='flex items-center gap-1 shrink-0'>"
-      + "<button type='button' data-xray-pin='" + escapeHtml(docId) + "' class='px-1.5 py-0.5 rounded text-[10px] font-mono " + (pinned ? "bg-[#4BB8E8]/20 text-[#4BB8E8]" : "bg-white/5 text-[#A0B0C8] hover:text-[#EEF2F8]") + "'>" + escapeHtml(pinned ? t("xray_pinned") : t("xray_pin")) + "</button>"
-      + "<button type='button' data-xray-mute='" + escapeHtml(docId) + "' class='px-1.5 py-0.5 rounded text-[10px] font-mono bg-white/5 text-[#A0B0C8] hover:text-red-300'>" + escapeHtml(t("xray_mute")) + "</button>"
+      + "<button type='button' data-xray-pin='" + escapeHtml(docId) + "' class='px-2 py-0.5 rounded-md text-xs " + (pinned ? "bg-[#4BB8E8]/20 text-[#4BB8E8]" : "bg-white/5 text-[#A0B0C8] hover:text-[#EEF2F8]") + "'>" + escapeHtml(pinned ? t("xray_pinned") : t("xray_pin")) + "</button>"
+      + "<button type='button' data-xray-mute='" + escapeHtml(docId) + "' class='px-2 py-0.5 rounded-md text-xs bg-white/5 text-[#A0B0C8] hover:text-red-300'>" + escapeHtml(t("xray_mute")) + "</button>"
       + "</div></div>"
-      + "<div class='flex items-center gap-2 font-mono text-[10px] text-[#738196] flex-wrap'>"
-      + "<span>BM25: " + (r.bm25_rank ? "#" + r.bm25_rank + " (" + r.bm25_score + ")" : "—") + "</span>"
-      + "<span>Vec: " + (r.vector_rank ? "#" + r.vector_rank + " (" + r.vector_score + ")" : "—") + "</span>"
-      + "<span class='text-[#4BB8E8]'>RRF: " + r.rrf_score + "</span></div></div>";
+      + "<div class='flex items-center gap-2 text-xs text-[#738196]'><span class='shrink-0'>#" + (idx + 1) + " · " + escapeHtml(matchKind) + "</span>"
+      + "<div class='flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden'><div class='h-full rounded-full bg-[#4BB8E8]' style='width:" + pct + "%'></div></div></div></div>";
   }).join("")
-  + (hasOverrides ? "<div class='flex items-center justify-between gap-2 pt-1'><button id='xray-clear-overrides' type='button' class='text-[11px] text-[#A0B0C8] hover:text-[#EEF2F8] underline'>" + escapeHtml(t("xray_reset")) + "</button><button id='xray-rerun-btn' type='button' class='px-2.5 py-1 rounded-lg bg-[#4BB8E8]/15 border border-[#4BB8E8]/35 text-[11px] text-[#4BB8E8]'>" + escapeHtml(t("xray_rerun")) + "</button></div>" : "");
+  + (hasOverrides ? "<div class='flex items-center justify-between gap-2 pt-1'><button id='xray-clear-overrides' type='button' class='text-xs text-[#A0B0C8] hover:text-[#EEF2F8] underline'>" + escapeHtml(t("xray_reset")) + "</button><button id='xray-rerun-btn' type='button' class='px-3 py-1.5 rounded-lg bg-[#4BB8E8]/15 border border-[#4BB8E8]/35 text-xs text-[#4BB8E8]'>" + escapeHtml(t("xray_rerun")) + "</button></div>" : "");
   host.querySelectorAll("[data-xray-pin]").forEach(btn => btn.addEventListener("click", () => {
     const id = btn.getAttribute("data-xray-pin");
     if (!id) { return; }

@@ -1,7 +1,8 @@
 """Accessibility & Reading Comfort controller: fonts, scale, measure, high-contrast focus, reduced motion."""
 
 COMFORT_SCRIPT: str = r"""
-const READING_SCALES = { sm: "0.875rem", md: "1rem", lg: "1.15rem", xl: "1.3rem" };
+const ROOT_FONT_SCALES = { sm: "14.5px", md: "16px", lg: "18px", xl: "20px" };
+const READING_SCALES = { sm: "0.95rem", md: "1rem", lg: "1.05rem", xl: "1.1rem" };
 const READING_WIDTHS = { narrow: "40rem", standard: "48rem", wide: "62rem" };
 let readingComfort = { reading_font: "default", reading_scale: "md", reading_width: "standard", high_contrast_focus: false, reduce_motion: false };
 let activeSlashRecipe = null;
@@ -61,7 +62,7 @@ function openGuideModal() {
   const modal = document.getElementById("guide-modal");
   if (!modal) { return; }
   if (modal.open) { modal.close(); return; }
-  if (typeof setGuideTab === "function") { setGuideTab("shortcuts"); }
+  if (typeof setGuideTab === "function") { setGuideTab("chat"); }
   modal.showModal();
 }
 
@@ -94,6 +95,7 @@ function applyReadingComfort(cfg, persistLocal) {
   root.classList.toggle("realm-dyslexic", font === "dyslexic");
   root.classList.toggle("realm-hc-focus", hc);
   root.classList.toggle("realm-reduce-motion", rm);
+  root.style.fontSize = ROOT_FONT_SCALES[scale] || "16px";
   root.style.setProperty("--reading-size", READING_SCALES[scale] || "1rem");
   root.style.setProperty("--reading-width", READING_WIDTHS[width] || "48rem");
   if (persistLocal !== false) {

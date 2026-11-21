@@ -52,7 +52,7 @@ const I18N = {
     hero_greeting: "Womit sollen wir starten?", ask_placeholder: "Frag irgendetwas...", more_ideas: "↻ Mehr Ideen",
     browse_guides_pre: "Alle ", browse_guides_post: " Dokumente durchsuchen →",
     seed_1: "Fasse die wichtigsten Punkte meiner Dokumente zusammen", seed_2: "Extrahiere wichtige Aufgaben und Details", seed_3: "Worauf sollte ich mich als Nächstes konzentrieren?",
-    tab_workspace: "Arbeitsbereich", tab_appearance: "Erscheinungsbild", tab_ai: "KI & Sprache", tab_rag: "Suche & RAG", tab_privacy: "Datenschutz & DSGVO",
+    tab_workspace: "Arbeitsbereich", tab_appearance: "Erscheinungsbild", tab_ai: "KI & Stimme", tab_rag: "Suche & RAG", tab_privacy: "Datenschutz & DSGVO",
     setup_wizard: "Einrichtung", language_label: "Sprache der Oberfläche", workspace_title: "Titel des Arbeitsbereichs", knowledge_folder: "Wissensordner",
     save: "Speichern", new_folder: "+ Neuer Ordner",
     appearance_logo_title: "Arbeitsbereich-Logo", appearance_logo_sub: "Eigenes Symbol verwenden", change_logo: "Logo ändern", reset_logo: "Logo zurücksetzen",

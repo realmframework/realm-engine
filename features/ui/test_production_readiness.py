@@ -126,7 +126,6 @@ def test_query_engine_chat_store_and_backup_strip_embeddings_and_host_paths(tmp_
 def test_upgraded_four_tab_quick_guide_and_diagnostics_ui_markers() -> None:
     for marker in (
         'id="guide-modal"',
-        'data-guide-tab="shortcuts"',
         'data-guide-tab="chat"',
         'data-guide-tab="library"',
         'data-guide-tab="privacy"',
@@ -134,5 +133,7 @@ def test_upgraded_four_tab_quick_guide_and_diagnostics_ui_markers() -> None:
         'id="system-diagnostics-details"',
         'id="copy-diagnostics-btn"',
         "bindGuideUX",
+        "ROOT_FONT_SCALES",
+        "KI & Stimme",
     ):
         assert marker in HTML_PAGE

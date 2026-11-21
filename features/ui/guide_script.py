@@ -1,33 +1,38 @@
-"""Interactive tab navigation, global ? / Cmd+/ shortcuts, and quick-jump actions for #guide-modal."""
+"""Interactive tab navigation, OS-aware shortcut label, and quick-jump actions for #guide-modal."""
 
 GUIDE_SCRIPT: str = r"""
 function setGuideTab(name) {
   const modal = document.getElementById("guide-modal");
   if (!modal) { return; }
+  const target = ["chat", "library", "privacy"].includes(name) ? name : "chat";
   modal.querySelectorAll("[data-guide-tab]").forEach((btn) => {
-    const active = btn.getAttribute("data-guide-tab") === name;
+    const active = btn.getAttribute("data-guide-tab") === target;
     btn.setAttribute("aria-selected", active ? "true" : "false");
     btn.tabIndex = active ? 0 : -1;
   });
-  ["shortcuts", "chat", "library", "privacy"].forEach((id) => {
+  ["chat", "library", "privacy"].forEach((id) => {
     const panel = document.getElementById("guide-panel-" + id);
-    if (panel) { panel.hidden = id !== name; }
+    if (panel) { panel.hidden = id !== target; }
   });
 }
 
 function bindGuideUX() {
   const modal = document.getElementById("guide-modal");
   const tablist = document.getElementById("guide-tabs");
+  const searchKbd = document.getElementById("guide-kbd-search");
+  if (searchKbd && !/mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent || "")) {
+    searchKbd.textContent = "Ctrl+K";
+  }
   if (tablist) {
     tablist.querySelectorAll("[data-guide-tab]").forEach((btn) => {
-      btn.addEventListener("click", () => setGuideTab(btn.getAttribute("data-guide-tab") || "shortcuts"));
+      btn.addEventListener("click", () => setGuideTab(btn.getAttribute("data-guide-tab") || "chat"));
     });
     if (typeof bindRovingTablist === "function") {
-      bindRovingTablist("#guide-tabs [data-guide-tab]", (btn) => setGuideTab(btn.getAttribute("data-guide-tab") || "shortcuts"));
+      bindRovingTablist("#guide-tabs [data-guide-tab]", (btn) => setGuideTab(btn.getAttribute("data-guide-tab") || "chat"));
     }
   }
   const openGuide = () => {
-    setGuideTab("shortcuts");
+    setGuideTab("chat");
     if (typeof openGuideModal === "function") { openGuideModal(); }
     else if (modal && !modal.open) { modal.showModal(); }
   };
@@ -51,20 +56,5 @@ function bindGuideUX() {
       });
     });
   }
-  document.addEventListener("keydown", (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "/") {
-      e.preventDefault();
-      if (modal && modal.open) { modal.close(); }
-      else { openGuide(); }
-      return;
-    }
-    if (e.key === "?" && !e.metaKey && !e.ctrlKey && !e.altKey) {
-      const tag = (document.activeElement && document.activeElement.tagName || "").toUpperCase();
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (document.activeElement && document.activeElement.isContentEditable)) { return; }
-      if (document.querySelector("dialog[open]")) { return; }
-      e.preventDefault();
-      openGuide();
-    }
-  });
 }
 """

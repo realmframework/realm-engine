@@ -1,7 +1,7 @@
 """Living Northern Lights aurora ribbons + silky Stitch-style 3D depth dot-matrix."""
 
 AMBIENT_SCRIPT: str = r"""
-let ambientEnabled = true, ambientPausedByGraph = false, ambientHiddenByBrowser = false;
+let ambientEnabled = true, ambientPausedByGraph = false, ambientHiddenByBrowser = false, ambientDimmed = false;
 let ambientRaf = null, ambientDots = [], ambientW = 0, ambientH = 0, ambientDpr = 1;
 let ambientLastTs = 0, ambientClock = 4.2;
 const ambientRaw = { x: -9999, y: -9999, active: false };
@@ -59,7 +59,7 @@ function ambientAuroraEl() { return document.getElementById("ambient-aurora-canv
 function ambientCanvasEl() { return document.getElementById("ambient-dots-canvas"); }
 function ambientShouldAnimate() {
   const red = typeof prefersReducedMotion === "function" ? prefersReducedMotion() : reducedMotionQuery.matches;
-  return ambientEnabled && !ambientPausedByGraph && !ambientHiddenByBrowser && !document.hidden && !red;
+  return ambientEnabled && !ambientPausedByGraph && !ambientHiddenByBrowser && !document.hidden && !red && (!ambientDimmed || ambientVoiceActive);
 }
 function syncAmbientMotion() {
   if (!ambientShouldAnimate()) { stopAmbientDots(); drawAmbientFrame(0, true); } else { startAmbientLoop(); }
@@ -258,7 +258,8 @@ function drawAmbientFrame(dt, staticOnly) {
 }
 function ambientLoop(ts) {
   if (!ambientShouldAnimate()) { ambientRaf = null; ambientLastTs = 0; return; }
-  const dt = ambientLastTs ? Math.min(0.05, Math.max(0.001, (ts - ambientLastTs) / 1000)) : 0.016;
+  if (ambientLastTs && (ts - ambientLastTs) < 38) { ambientRaf = requestAnimationFrame(ambientLoop); return; }
+  const dt = ambientLastTs ? Math.min(0.06, Math.max(0.001, (ts - ambientLastTs) / 1000)) : 0.04;
   ambientLastTs = ts;
   drawAmbientFrame(dt, false);
   ambientRaf = requestAnimationFrame(ambientLoop);
@@ -284,7 +285,10 @@ function setAmbientEffects(enabled, persistLocal) {
   else { stopAmbientDots(); }
 }
 function setAmbientDimmed(dimmed) {
-  const stage = ambientStageEl(); if (stage) { stage.classList.toggle("is-dimmed", Boolean(dimmed)); }
+  ambientDimmed = Boolean(dimmed);
+  const stage = ambientStageEl(); if (stage) { stage.classList.toggle("is-dimmed", ambientDimmed); }
+  if (ambientDimmed && !ambientVoiceActive) { stopAmbientDots(); if (ambientEnabled && !ambientPausedByGraph) { drawAmbientFrame(0, true); } }
+  else if (ambientShouldAnimate()) { startAmbientLoop(); }
 }
 function setAmbientGraphPause(paused) {
   ambientPausedByGraph = Boolean(paused);
