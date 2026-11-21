@@ -6,7 +6,7 @@ COMPLIANCE_HTML = """<div class="flex flex-col gap-5">
 <h3 id="vault-heading" class="text-sm font-medium">Data Sovereignty &amp; DSGVO Vault Status</h3>
 <p class="text-xs text-[#738196] mt-2">GDPR Art. 25 &amp; 32 · pattern-based Markdown scan</p>
 <form id="governance-lock-form" action="/api/workspace" method="post" aria-label="Local execution policy" class="my-4">
-<div class="flex flex-wrap items-center gap-2"><input id="governance-local-only" name="strict_local_only" type="checkbox" checked aria-describedby="governance-lock-state"/>
+<div class="flex flex-wrap items-center gap-3"><input id="governance-local-only" name="strict_local_only" type="checkbox" switch checked aria-describedby="governance-lock-state"/>
 <label for="governance-local-only" class="text-sm">Strict Local-Only Lock (DSGVO Safe Mode)</label>
 <button type="submit" class="rounded-lg border border-white/15 px-3 py-1.5 text-xs">Save policy</button></div>
 <p id="governance-lock-state" class="text-xs text-[#A0B0C8] mt-2"></p></form>

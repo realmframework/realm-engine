@@ -1,9 +1,10 @@
 """Native destructive confirmations and document/chat delete handlers."""
 
 CONFIRM_SCRIPT: str = r"""
-function confirmDeletion(title, message) {
+function confirmDeletion(title, message, confirmLabel) {
   const dialog = document.getElementById("confirm-modal"); if (dialog.open) { return Promise.resolve(false); }
   document.getElementById("confirm-title").textContent = title; document.getElementById("confirm-message").textContent = message;
+  const confirmBtn = document.getElementById("confirm-delete-btn"); if (confirmBtn) { confirmBtn.textContent = confirmLabel || "Delete"; }
   dialog.returnValue = "";
   return new Promise(function (resolve) {
     dialog.addEventListener("close", function () { const confirmed = dialog.returnValue === "delete"; dialog.returnValue = ""; resolve(confirmed); }, { once: true });
@@ -15,7 +16,7 @@ async function deleteSavedChat(id) {
   if (!await confirmDeletion("Delete conversation?", "Permanently delete “" + (chat ? chat.title : "this conversation") + "” and every question, answer and citation in this area? This cannot be undone.")) { return; }
   if (version !== areaVersion) { return; }
   try {
-    const response = await areaFetch("/api/chats/" + encodeURIComponent(id), { method: "DELETE" }, area);
+    const response = await areaFetch("/api/chats/" + encodeURIComponent(id) + (typeof freeChatMode !== "undefined" && freeChatMode ? "?free_chat=true" : ""), { method: "DELETE" }, area);
     if (!response.ok) { throw new Error("Chat could not be deleted. Select the area again and retry."); }
     if (version !== areaVersion) { return; }
     if (currentChatId === id) { resetHome(); } await loadRecentChats(); areaStatus("Conversation deleted.");

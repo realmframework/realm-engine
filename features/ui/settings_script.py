@@ -23,6 +23,8 @@ function activateSettingsTab(name, focus = false) {
   });
   document.getElementById("settings-body").scrollTop = 0;
   if (focus) { selected.focus(); }
+  if (name === "appearance" && typeof loadWorkspaceLogo === "function") { loadWorkspaceLogo(); }
+  if (name === "ai") { refreshBudget(); loadKeyStatus(); }
   if (name === "rag") { syncRagStudioUI(); refreshSearchStatus(); }
   if (name === "privacy") { document.getElementById("compliance-area").textContent = activeKnowledgeArea || ""; runComplianceAudit(); }
 }

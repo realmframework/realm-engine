@@ -4,6 +4,7 @@ import json
 
 import httpx
 
+from core.cancellation import post_cancellable
 from core.contracts import ProviderName, TutorConfig, TutorResponse
 from core.secrets import get_api_key
 from features.tutor_agent.models_discovery import filter_chat_models
@@ -79,16 +80,16 @@ def call_provider(
     temp = config.temperature if temperature is None else temperature
     if config.provider == OLLAMA_PROVIDER:
         ollama_body = {"model": model, "messages": messages, "stream": False, "format": TutorResponse.model_json_schema(), "options": {"temperature": temp}}
-        response = httpx.post(url=endpoint_url, json=ollama_body, timeout=OLLAMA_TIMEOUT_SECONDS)
+        response = post_cancellable(endpoint_url, ollama_body, timeout=OLLAMA_TIMEOUT_SECONDS)
         _check_status(response)
         return str(response.json()["message"]["content"])
     if config.provider == ANTHROPIC_PROVIDER:
         schema_hint = f"\nJSON Schema: {json.dumps(TutorResponse.model_json_schema())}"
         system_prompt = messages[0]["content"] + schema_hint
         user_messages = [msg for msg in messages if msg["role"] != "system"]
-        response = httpx.post(
-            url=endpoint_url,
-            json={"model": model, "max_tokens": 1024, "temperature": temp, "system": system_prompt, "messages": user_messages},
+        response = post_cancellable(
+            endpoint_url,
+            {"model": model, "max_tokens": 1024, "temperature": temp, "system": system_prompt, "messages": user_messages},
             headers={"x-api-key": api_key or "", "anthropic-version": ANTHROPIC_VERSION},
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
@@ -102,12 +103,7 @@ def call_provider(
         body["temperature"] = temp
         if config.reasoning_effort:
             body["reasoning_effort"] = config.reasoning_effort
-    response = httpx.post(
-        url=endpoint_url,
-        json=body,
-        headers={"Authorization": f"Bearer {api_key or ''}"},
-        timeout=REQUEST_TIMEOUT_SECONDS,
-    )
+    response = post_cancellable(endpoint_url, body, headers={"Authorization": f"Bearer {api_key or ''}"}, timeout=REQUEST_TIMEOUT_SECONDS)
     _check_status(response)
     return str(response.json()["choices"][0]["message"]["content"])
 

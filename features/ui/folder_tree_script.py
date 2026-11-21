@@ -2,6 +2,7 @@
 
 FOLDER_TREE_SCRIPT: str = r"""
 const collapsedFolders = new Set();
+const expandedFolders = new Set();
 function folderSvg(documentIcon = false, classes = "w-4 h-4 shrink-0") {
   const path = documentIcon
     ? "M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9ZM14 3v6h6M8 13h8m-8 4h5"
@@ -9,46 +10,78 @@ function folderSvg(documentIcon = false, classes = "w-4 h-4 shrink-0") {
   return "<svg aria-hidden='true' class='" + classes + "' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='" + path + "'/></svg>";
 }
 function buildFolderTree() {
-  const root = { name: selectedAreas().length > 1 ? "Selected areas" : activeKnowledgeArea || "knowledge_base", fullPath: "", children: [], fileCount: 0 }, nodes = new Map([["", root]]);
+  const rootName = selectedAreas().length > 1 ? "Selected areas" : (typeof areaTitle === "function" ? areaTitle(activeKnowledgeArea || "knowledge_base") : (activeKnowledgeArea || "knowledge_base"));
+  const root = { name: rootName, fullPath: "", children: [], docs: [], fileCount: 0 }, nodes = new Map([["", root]]);
   for (const folder of workspaceFolders) {
     let parent = root, path = "";
     for (const name of folder.path.split("/").filter(Boolean)) {
       path = path ? path + "/" + name : name;
       if (!nodes.has(path)) {
-        const child = { name, fullPath: path, children: [], fileCount: 0 };
+        const child = { name, fullPath: path, children: [], docs: [], fileCount: 0 };
         nodes.set(path, child); parent.children.push(child);
       }
       parent = nodes.get(path);
     }
     parent.fileCount = Number(folder.doc_count || 0);
   }
+  if (Array.isArray(allGuides)) {
+    for (const g of allGuides) {
+      const target = nodes.get(g.subfolder || "") || root;
+      target.docs.push(g);
+    }
+  }
   function total(node) {
     node.children.sort((a, b) => a.name.localeCompare(b.name));
-    node.fileCount += node.children.reduce((sum, child) => sum + total(child), 0);
+    node.docs.sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
+    const directCount = Math.max(node.fileCount, node.docs.length);
+    node.fileCount = directCount + node.children.reduce((sum, child) => sum + total(child), 0);
     return node.fileCount;
   }
   total(root);
   return root;
 }
+function renderTreeDoc(guide, depth) {
+  const title = guide.title || guide.doc_id || "Document";
+  return `<li><div class='folder-tree-row' style='--folder-depth: ${depth}'>
+    <span aria-hidden='true' class='inline-flex items-center justify-center w-6 shrink-0'></span>
+    <button type='button' data-tree-doc='${escapeHtml(guide.doc_id)}' class='folder-filter text-[#A0B0C8] hover:text-[#EEF2F8]'>
+      ${folderSvg(true, "w-4 h-4 shrink-0 text-[#738196]")}<span class='truncate' title='${escapeHtml(title)}'>${escapeHtml(title)}</span>
+    </button></div></li>`;
+}
 function renderTreeNode(node, depth, index = { next: 0 }) {
   const path = node.fullPath, id = "folder-node-" + index.next++, selected = path === (selectedSubfolder || "");
-  const expanded = !collapsedFolders.has(path), isRoot = depth === 0;
-  const chevron = node.children.length
+  const isRoot = depth === 0, hasKids = node.children.length > 0 || node.docs.length > 0;
+  const expanded = isRoot ? !collapsedFolders.has(path) : expandedFolders.has(path);
+  const chevron = hasKids
     ? `<button type='button' data-folder-toggle='${escapeHtml(path)}' aria-expanded='${expanded}' aria-controls='${id}-children'
-        aria-label='Toggle subfolders of ${escapeHtml(path || node.name)}' class='folder-branch-toggle inline-flex items-center justify-center w-6 h-7 shrink-0 text-[#738196]'>
+        aria-label='Toggle contents of ${escapeHtml(path || node.name)}' class='folder-branch-toggle inline-flex items-center justify-center w-6 h-7 shrink-0 text-[#738196]'>
         <svg aria-hidden='true' width='14' height='14' viewBox='0 0 14 14' fill='none' stroke='currentColor' stroke-width='1.5'><path d='m4.5 2.5 4.5 4.5-4.5 4.5'/></svg></button>`
     : "<span aria-hidden='true' class='inline-flex items-center justify-center w-6 shrink-0'><span class='inline-block w-3.5 h-3.5 folder-chevron-spacer'></span></span>";
   const multi = selectedAreas().length > 1, areaRoot = multi && selectedAreas().includes(path);
-  const area = knowledgeAreas.find(a => a.name === (areaRoot ? path : activeKnowledgeArea));
-  const canDelete = isRoot ? !multi && Boolean(area && area.can_delete) : areaRoot ? Boolean(area && area.can_delete) : true;
+  const areaSlug = areaRoot ? path : (multi && path.includes("/") ? path.split("/")[0] : activeKnowledgeArea);
+  const area = knowledgeAreas.find(a => a.name === areaSlug);
+  const isLinkedArea = Boolean(area && area.linked);
+  const isSubfolder = !isRoot && !areaRoot;
+  const canDelete = isRoot ? !multi && Boolean(area && area.can_delete) : areaRoot ? Boolean(area && area.can_delete) : !isLinkedArea;
   const label = escapeHtml(path || node.name);
+  const unloadBtn = isSubfolder
+    ? `<button type='button' data-unload-folder='${escapeHtml(path)}' aria-label='Unload folder ${label} without deleting files'
+        title='Unload folder from REALM (keeps all files on disk)' class='folder-row-action hover:text-[#4BB8E8]'>
+        <svg aria-hidden='true' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M5 12h14M12 5l7 7-7 7' transform='rotate(-90 12 12)'/><path d='M5 19h14'/></svg></button>`
+    : "";
+  const deleteTitle = isLinkedArea && !isSubfolder
+    ? "Unload vault from REALM (keeps all files on disk)"
+    : (canDelete ? "Delete folder and its contents" : (isLinkedArea ? "Linked vault folders stay safe on disk — use Unload" : "This area root is protected"));
+  const deleteBtn = canDelete || !isLinkedArea
+    ? `<button type='button' data-delete-folder='${escapeHtml(path)}' aria-label='${isLinkedArea && !isSubfolder ? "Unload vault" : "Delete " + (isRoot ? "workspace" : "subfolder")} ${label}'
+        title='${deleteTitle}' ${canDelete ? "" : "disabled"}
+        class='folder-row-action hover:text-[#EF4444] disabled:opacity-30'>✕</button>`
+    : "";
   const actions = `<div class='folder-row-actions flex items-center gap-1 shrink-0'>
       <button type='button' data-create-child='${escapeHtml(path)}' ${isRoot && multi ? 'disabled' : ''} aria-label='Create subfolder in ${label}' title='+ Subfolder'
         aria-expanded='false' aria-controls='${id}-creator' class='folder-row-action'>+</button>
       ${folderChatButton(isRoot ? null : path)}
-      <button type='button' data-delete-folder='${escapeHtml(path)}' aria-label='Delete ${isRoot ? "workspace" : "subfolder"} ${label}'
-        title='${canDelete ? "Delete folder and its contents" : "This area root is protected"}' ${canDelete ? "" : "disabled"}
-        class='folder-row-action hover:text-[#EF4444] disabled:opacity-30'>✕</button>
+      ${unloadBtn}${deleteBtn}
     </div>`;
   return `<li data-folder-node='${escapeHtml(path)}' ${isRoot ? "data-area-root" : ""}>
     <div class='folder-tree-row ${selected ? "is-selected" : ""}' style='--folder-depth: ${depth}'>${chevron}
@@ -70,32 +103,54 @@ function renderTreeNode(node, depth, index = { next: 0 }) {
         <p data-child-status role='status' class='w-full text-xs text-[#A0B0C8]'></p>
       </form>
     </div>
-    ${node.children.length ? `<ul id='${id}-children' class='folder-branches' ${expanded ? "" : "hidden"}>${node.children.map(child => renderTreeNode(child, depth + 1, index)).join("")}</ul>` : ""}
+    ${hasKids ? `<ul id='${id}-children' class='folder-branches' ${expanded ? "" : "hidden"}>${node.children.map(child => renderTreeNode(child, depth + 1, index)).join("")}${node.docs.map(doc => renderTreeDoc(doc, depth + 1)).join("")}</ul>` : ""}
   </li>`;
 }
 function subfolderLibraryHeader() {
+  const unloadedStrip = Array.isArray(unloadedFolders) && unloadedFolders.length
+    ? `<div class='mt-3 pt-2.5 border-t border-white/10 flex flex-wrap items-center gap-2 text-xs'>
+        <span class='text-[#738196] font-mono'>Unloaded (files kept on disk):</span>
+        ${unloadedFolders.map(u => `<button type='button' data-reload-folder='${escapeHtml(u.path)}' data-reload-area='${escapeHtml(u.area || "")}'
+          class='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#04060F] border border-white/15 hover:border-[#4BB8E8] text-[#A0B0C8] hover:text-[#EEF2F8] transition'>
+          <span>${escapeHtml(u.full_path || u.path)}</span><span class='text-[#4BB8E8] font-medium'>↺ Reload</span></button>`).join("")}
+      </div>`
+    : "";
   return `<section class='library-folders' aria-label='Workspace Folder Tree'>
-    <nav aria-label='Library subfolders' class='folder-nav'><ul class='folder-tree'>${renderTreeNode(buildFolderTree(), 0)}</ul></nav>
+    <nav aria-label='Library subfolders' class='folder-nav'><ul class='folder-tree'>${renderTreeNode(buildFolderTree(), 0)}</ul></nav>${unloadedStrip}
   </section>`;
 }
 function bindFolderTree(root) {
   root.querySelectorAll("[data-folder-toggle]").forEach(function (button) {
     button.addEventListener("click", function () {
-      const expanded = button.getAttribute("aria-expanded") !== "true";
+      const path = button.dataset.folderToggle, expanded = button.getAttribute("aria-expanded") !== "true";
       button.setAttribute("aria-expanded", String(expanded));
       document.getElementById(button.getAttribute("aria-controls")).hidden = !expanded;
-      if (expanded) { collapsedFolders.delete(button.dataset.folderToggle); }
-      else { collapsedFolders.add(button.dataset.folderToggle); }
+      if (path === "") {
+        if (expanded) { collapsedFolders.delete(""); } else { collapsedFolders.add(""); }
+      } else {
+        if (expanded) { expandedFolders.add(path); } else { expandedFolders.delete(path); }
+      }
     });
   });
   root.querySelectorAll("[data-subfolder]").forEach(function (button) {
     button.addEventListener("click", async function () {
       const path = button.dataset.subfolder, version = areaVersion;
       selectedSubfolder = path;
+      if (path) {
+        const parts = path.split("/");
+        for (let i = 1; i <= parts.length; i++) { expandedFolders.add(parts.slice(0, i).join("/")); }
+      }
       await openLibraryCatalog(selectedTag);
       if (version !== areaVersion) { return; }
       const selected = Array.from(document.querySelectorAll("[data-subfolder]")).find(b => b.dataset.subfolder === path);
       if (selected) { selected.focus({ preventScroll: true }); }
+    });
+  });
+  root.querySelectorAll("[data-tree-doc]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const docId = button.dataset.treeDoc;
+      const guide = Array.isArray(allGuides) ? allGuides.find(g => g.doc_id === docId) : null;
+      if (guide) { renderGuideReader(guide, selectedTag); }
     });
   });
 }

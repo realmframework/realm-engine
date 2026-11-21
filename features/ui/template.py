@@ -1,18 +1,23 @@
 """HTML template for the AI Engineering Knowledge Engine search UI (Google Stitch design)."""
 
 from features.ui.experience_template import AREA_TEMPLATE_SELECT
+from features.ui.form_styles import FORM_STYLES_CSS
 from features.ui.modals import MODALS_HTML
 from features.ui.script import CLIENT_SCRIPT
 from features.ui.sidebar_template import SIDEBAR_HTML
+from features.ui.theme_styles import THEME_BRIDGE_CSS
 
 MIC_SVG = '<svg aria-hidden="true" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3m-3 0h6"/></svg>'
+GLOBE_SVG = '<svg aria-hidden="true" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>'
 
 HTML_PAGE: str = (
     """<!DOCTYPE html>
-<html class="dark" lang="en">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light dark" />
+<script>try{var m=localStorage.getItem("color-scheme");if(m==="dark"||m==="light"){document.querySelector('meta[name="color-scheme"]').content=m;}var a=localStorage.getItem("realm_theme_accent"),g=localStorage.getItem("realm_theme_glow");if(a&&/^#[0-9a-f]{6}$/i.test(a)){document.documentElement.style.setProperty("--accent-seed",a);}if(g&&/^#[0-9a-f]{6}$/i.test(g)){document.documentElement.style.setProperty("--accent-glow",g);}}catch(e){}</script>
 <meta name="shell-type" content="web_dashboard" />
 <title>REALM Engine</title>
 <link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png"><link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png"><link rel="apple-touch-icon" sizes="192x192" href="/static/logo-192.png">
@@ -42,7 +47,7 @@ HTML_PAGE: str = (
 dialog:modal { overscroll-behavior: contain; }
 dialog::backdrop { overflow: hidden; overscroll-behavior: contain; background: rgba(4, 6, 15, 0.8); backdrop-filter: blur(4px); }
 select { appearance: none; -webkit-appearance: none; padding-right: 2.25rem !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 0.75rem; }
-.chat-dock { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); background: linear-gradient(to bottom, transparent, #04060F 28%); }
+.chat-dock { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); background: transparent; }
 .library-folders { --folder-indent: 1.25rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-subtle); }
 .folder-nav { overflow-x: auto; padding: 2px; }
 .folder-tree { min-inline-size: 24rem; }
@@ -80,7 +85,7 @@ select { appearance: none; -webkit-appearance: none; padding-right: 2.25rem !imp
 .settings-tabs button[aria-selected="true"]::after { content: ""; position: absolute; inset: auto 0 0; border-block-end: 2px solid currentColor; }
 .settings-tabs button:focus-visible, .workspace-menu button:focus-visible, #workspace-switcher-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .workspace-menu nav { max-block-size: min(55vh, 24rem); overflow-y: auto; }
-.workspace-menu { position: fixed; inset: auto; margin: 0; inline-size: min(19rem, calc(100vw - 2rem)); max-block-size: var(--workspace-menu-height, 70vh); overflow-y: auto; }
+.workspace-menu { position: fixed; inset: auto; margin: 0; inline-size: min(22rem, calc(100vw - 2rem)); max-block-size: var(--workspace-menu-height, 70vh); overflow-y: auto; }
 .library-topics { display: flex; gap: .5rem; overflow-x: auto; padding-block: .25rem .75rem; margin-block-end: 1rem; scrollbar-width: thin; }
 .library-topics button { flex: none; border-radius: 999px; padding: .375rem .75rem; border: 1px solid var(--border); color: var(--text-muted); font-size: .75rem; white-space: nowrap; }
 .library-topics button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: rgba(75,184,232,.12); }
@@ -125,26 +130,31 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
 </style>
 <link rel="stylesheet" href="/static/ui.css" />
+"""
+    + THEME_BRIDGE_CSS
+    + FORM_STYLES_CSS
+    + """
 </head>
 <body class="bg-[#04060F] font-sans text-base text-[#EEF2F8] antialiased">
 <button id="sidebar-open-btn" aria-label="Expand rail" type="button" class="hidden fixed left-4 top-4 z-40 h-9 w-9 rounded-full bg-[#0B1020] text-[#A0B0C8] hover:text-[#EEF2F8] shadow-[inset_0_0_0_1px_var(--border)] items-center justify-center transition-colors"><svg aria-hidden="true" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>
 """
     + SIDEBAR_HTML
     + """
-<div id="main-shell" class="pl-[250px] min-h-screen bg-[#04060F] bg-[radial-gradient(circle_at_50%_42%,rgba(75,184,232,0.10),transparent_55%)] flex flex-col transition-all duration-200">
-  <main class="relative w-full flex-1 flex flex-col pt-0">
+<div id="main-shell" class="relative pl-[250px] min-h-screen bg-[#04060F] flex flex-col transition-all duration-200">
+  <div id="ambient-stage" aria-hidden="true" class="ambient-stage"><canvas id="ambient-aurora-canvas" class="supernova-beam"></canvas><canvas id="ambient-dots-canvas"></canvas></div>
+  <main class="relative z-10 w-full flex-1 flex flex-col pt-0">
     <div id="graph-view" class="graph-viewport hidden w-full relative overflow-hidden bg-[#04060F]"></div>
 """
     + """    <div id="workspace-shell" class="flex flex-col w-full flex-1 justify-center items-center px-4 sm:px-6">
-      <div id="active-stream" tabindex="-1" class="hidden w-full max-w-3xl flex-1 pt-8 pb-8 flex-col gap-8 outline-none">
-        <div id="chat-stream" class="flex flex-col gap-8 w-full"></div>
-        <div id="tutor"></div>
-        <div id="stream-divider" class="hidden w-full h-px bg-[rgba(238,242,248,0.08)] my-1"></div>
-        <div id="chunks-header" class="hidden w-full items-center justify-between gap-2"><button id="chunks-toggle-btn" type="button" class="text-sm text-[#A0B0C8] hover:text-[#EEF2F8] transition-colors focus:outline-none"><span id="chunks-title">▸ View 0 source passages from the handbook</span></button><span id="chunks-rag-pill" data-specialist-only class="px-2.5 py-0.5 rounded-full bg-[#0B1020] border border-[rgba(238,242,248,0.10)] text-[11px] font-mono text-[#738196]">mode: hybrid · top-k: 5 · temp: 0.2</span></div>
-        <div id="results" class="flex flex-col gap-4"></div>
+      <div id="active-stream" tabindex="-1" class="hidden w-full max-w-3xl flex-1 pt-8 pb-16 flex-col gap-8 outline-none">
+        <div id="chat-stream" class="flex flex-col gap-8 w-full max-w-3xl"></div>
+        <div id="tutor" class="w-full max-w-3xl"></div>
+        <div id="stream-divider" class="hidden w-full max-w-3xl h-px bg-[rgba(238,242,248,0.08)] my-1"></div>
+        <div id="chunks-header" class="hidden w-full max-w-3xl items-center justify-between gap-2"><button id="chunks-toggle-btn" type="button" class="text-sm text-[#A0B0C8] hover:text-[#EEF2F8] transition-colors focus:outline-none"><span id="chunks-title">▸ View 0 source passages from the handbook</span></button><span id="chunks-rag-pill" data-specialist-only class="px-2.5 py-0.5 rounded-full bg-[#0B1020] border border-[rgba(238,242,248,0.10)] text-[11px] font-mono text-[#738196]">mode: hybrid · top-k: 5 · temp: 0.2</span></div>
+        <div id="results" class="flex flex-col gap-4 w-full max-w-3xl"></div>
       </div>
       <div id="search-dock" class="w-full max-w-3xl mx-auto flex flex-col items-center justify-center relative z-30">
-        <div id="hero-heading" class="text-center"><img src="/static/logo-512.png" width="56" height="56" fetchpriority="high" class="w-14 h-14 mx-auto mb-5 drop-shadow-[0_0_18px_rgba(75,184,232,0.35)]" alt="Logo"><h1 id="hero-greeting-text" class="text-4xl font-normal tracking-tight mb-8 text-[#EEF2F8]">Where should we start?</h1></div>
+        <div id="hero-heading" class="text-center"><img id="hero-logo" src="/static/logo-512.png" width="56" height="56" fetchpriority="high" class="w-14 h-14 mx-auto mb-5" alt="Logo"><h1 id="hero-greeting-text" data-i18n="hero_greeting" class="text-4xl font-normal tracking-tight mb-8 text-[#EEF2F8]">Where should we start?</h1></div>
         <search class="w-full">
           <form id="search-form" class="w-full">
             <div id="prompt-container" class="w-full rounded-full bg-[#0B1020] shadow-[inset_0_0_0_1px_rgba(238,242,248,0.16)] focus-within:shadow-[inset_0_0_0_1px_#4BB8E8] flex items-center py-3 px-4 gap-3 transition-all duration-200">
@@ -154,9 +164,12 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
                   <span id="scope-chip-icon" aria-hidden="true" class="shrink-0"></span><span id="scope-chip-label"></span>
                   <button id="scope-reset-btn" type="button" aria-label="Clear scope and start a chat across the entire area" title="Clear scope" class="shrink-0 w-5 h-5 rounded-full flex items-center justify-center hover:bg-white/10"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
                 </span>
-                <input id="query" name="q" type="text" aria-label="Ask a question" autocomplete="off" spellcheck="false" placeholder="Ask anything..." class="bg-transparent border-0 outline-none text-[#EEF2F8] placeholder:text-[#738196] text-lg leading-none" />
+                <input id="query" name="q" type="text" aria-label="Ask a question" autocomplete="off" spellcheck="false" placeholder="Ask anything..." data-i18n-placeholder="ask_placeholder" class="bg-transparent border-0 outline-none text-[#EEF2F8] placeholder:text-[#738196] text-lg leading-none" />
               </div>
               <div class="flex items-center gap-2 pl-1 shrink-0">
+                <button id="web-search-chat-btn" type="button" hidden aria-pressed="false" aria-label="Toggle live web search for this message" title="Web search OFF for this message" class="w-9 h-9 rounded-full text-[#A0B0C8] hover:text-[#EEF2F8] hover:bg-[#EEF2F8]/10 flex items-center justify-center shrink-0 transition">"""
+    + GLOBE_SVG
+    + """</button>
                 <div class="relative flex items-center"><select id="model" aria-label="Model" class="appearance-none bg-transparent text-[#A0B0C8] hover:text-[#EEF2F8] text-sm font-medium pl-2.5 pr-6 py-1.5 rounded-full hover:bg-white/[0.04] outline-none transition-colors cursor-pointer"></select></div>
                 <button id="mic-btn" type="button" aria-pressed="false" aria-label="Voice dictation" title="Voice dictation" class="w-9 h-9 rounded-full text-[#A0B0C8] hover:text-[#EEF2F8] hover:bg-[#EEF2F8]/10 flex items-center justify-center shrink-0 transition">"""
     + MIC_SVG
@@ -174,8 +187,8 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
             <button class="seed-chip text-left text-[#A0B0C8] hover:text-[#EEF2F8] text-[15px] py-1.5 transition-colors flex items-center gap-2.5 group w-fit" data-seed="What should I focus on next?" type="button"><span class="text-[#738196] group-hover:text-[#4BB8E8] transition-colors">↳</span><span>What should I focus on next?</span></button>
           </div>
           <div class="flex flex-wrap items-center gap-5 mt-2 pt-1">
-            <button id="more-ideas-btn" type="button" class="text-xs font-medium text-[#738196] hover:text-[#4BB8E8] transition-colors flex items-center gap-1 focus:outline-none">↻ More ideas</button>
-            <button id="home-browse-btn" type="button" class="text-xs font-medium text-[#738196] hover:text-[#EEF2F8] transition-colors flex items-center gap-1.5 focus:outline-none"><span>Browse all <span id="home-guide-count">40</span> handbook guides →</span></button>
+            <button id="more-ideas-btn" type="button" data-i18n="more_ideas" class="text-xs font-medium text-[#738196] hover:text-[#4BB8E8] transition-colors flex items-center gap-1 focus:outline-none">↻ More ideas</button>
+            <button id="home-browse-btn" type="button" class="text-xs font-medium text-[#738196] hover:text-[#EEF2F8] transition-colors flex items-center gap-1.5 focus:outline-none"><span><span data-i18n="browse_guides_pre">Browse all </span><span id="home-guide-count">40</span><span data-i18n="browse_guides_post"> handbook guides →</span></span></button>
           </div>
         </div>
       </div>
@@ -187,7 +200,8 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
 <dialog id="area-modal" closedby="any" aria-labelledby="area-modal-title" class="m-auto w-[calc(100%_-_2rem)] max-w-md rounded-2xl bg-[#0B1020] text-[#EEF2F8] border border-white/15 p-6 shadow-2xl"><h2 id="area-modal-title" class="text-lg font-medium mb-4"><span data-everyday-only>New Workspace</span><span data-specialist-only>New Knowledge Area</span></h2><form id="new-area-form" class="flex flex-col gap-3"><label for="area-name" class="text-xs text-[#A0B0C8]">Workspace name</label><input id="area-name" name="area" autofocus required maxlength="64" placeholder="e.g. Care Notes" aria-describedby="area-name-help" class="rounded-lg bg-[#04060F] border border-white/15 px-3 py-2 text-sm"/><p id="area-name-help" class="text-xs text-[#738196]">Give it a name, like Care Notes. Each workspace keeps its documents and chats separate.</p>"""
     + AREA_TEMPLATE_SELECT
     + """<p id="new-area-status" role="status" class="text-xs text-[#A0B0C8]"></p><div class="flex justify-end gap-3"><button type="submit" formmethod="dialog" formnovalidate value="cancel" class="rounded-lg border border-white/15 px-4 py-2 text-sm">Cancel</button><button id="create-area-btn" type="submit" class="rounded-lg bg-[#4BB8E8] text-[#04060F] px-4 py-2 text-sm">Create Workspace</button></div></form></dialog>"""
-    + '<div id="upload-toast" role="status" aria-live="polite" class="hidden fixed bottom-5 right-5 z-50 max-w-sm rounded-xl border border-white/15 bg-[#0B1020] px-4 py-3 text-sm text-[#EEF2F8] shadow-xl"></div>'
+    + '<div id="upload-toast" role="status" aria-live="polite" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[70] max-w-md rounded-xl border border-white/15 bg-[#0B1020] px-4 py-2.5 text-sm text-[#EEF2F8] shadow-2xl pointer-events-none text-center"></div>'
+    + '<div id="global-drop-overlay" hidden aria-hidden="true" class="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-6"><div class="rounded-2xl border-2 border-dashed border-[#4BB8E8] bg-[#0B1020] px-8 py-6 flex flex-col items-center gap-2.5 shadow-2xl"><svg aria-hidden="true" class="w-8 h-8 text-[#4BB8E8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span data-i18n="drop_overlay_title" class="text-base font-medium text-[#EEF2F8]">Drop files or whole folders to add to your Library</span><span data-i18n="drop_overlay_sub" class="text-xs text-[#A0B0C8]">PDF, Word, Excel, PowerPoint, CSV, Markdown, or nested folders · Private &amp; local</span></div></div>'
     + MODALS_HTML
     + "\n"
     + CLIENT_SCRIPT

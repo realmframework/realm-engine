@@ -18,6 +18,7 @@ ENV_VARS: dict[str, str] = {
     "xai": "XAI_API_KEY",
     "mistral": "MISTRAL_API_KEY",
     "elevenlabs": "ELEVENLABS_API_KEY",
+    "ollama_web": "OLLAMA_API_KEY",
 }
 
 

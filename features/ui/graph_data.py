@@ -16,7 +16,7 @@ def area_graph(
         guides.setdefault(chunk.doc_id or Path(chunk.file_path).stem, []).append(chunk)
     area_id = f"{area.name}:area"
     common = {"area": area.name, "area_color": area.color}
-    nodes: list[dict[str, object]] = [{**common, "id": area_id, "label": area.name, "type": "area"}]
+    nodes: list[dict[str, object]] = [{**common, "id": area_id, "label": area.display_name or area.name, "type": "area"}]
     links: list[dict[str, str]] = []
     tags = sorted({tag for sections in guides.values() for tag in sections[0].tags})
     for tag in tags:

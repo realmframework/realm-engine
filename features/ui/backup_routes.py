@@ -37,6 +37,8 @@ def build_router(config: Callable[[], WorkspaceConfig], activate: Callable[[Work
                 entries = {"workspace.json": portable.model_dump_json(indent=2).encode(), "chats.json": json.dumps([c.model_dump() for c in current_chats(chat_store.area_chat_path(active.knowledge_dir)) if c.area == active.knowledge_dir and (c.active_dirs or [c.area]) == [active.knowledge_dir]]).encode()}
                 total = sum(map(len, entries.values()))
                 for path in target.rglob("*"):
+                    if any(part.startswith(".") for part in path.relative_to(target).parts):
+                        continue
                     if not path.is_dir() and (not path.is_file() or path.suffix.lower() != ".md"):
                         continue
                     name = path.relative_to(target).as_posix()

@@ -5,7 +5,7 @@ from features.ui.folder_tree_script import FOLDER_TREE_SCRIPT
 from features.ui.move_script import MOVE_SCRIPT
 
 FOLDER_SCRIPT: str = FOLDER_TREE_SCRIPT + FOLDER_ACTIONS_SCRIPT + MOVE_SCRIPT + r"""
-let workspaceFolders = [], selectedSubfolder = "", subfolderArea = null;
+let workspaceFolders = [], unloadedFolders = [], selectedSubfolder = "", subfolderArea = null;
 function folderOptions(selected) {
   const area = selectedAreas().length > 1 ? selected.split("/")[0] : null;
   return [{ path: area || "", doc_count: 0 }].concat(workspaceFolders.filter(f => f.path && (!area || f.area === area && f.path !== area))).map(function (folder) {
@@ -15,8 +15,9 @@ function folderOptions(selected) {
 }
 function applySubfolders(ws) {
   const area = selectedAreas().join(",");
-  if (area !== subfolderArea) { selectedSubfolder = ""; collapsedFolders.clear(); subfolderArea = area; }
+  if (area !== subfolderArea) { selectedSubfolder = ""; collapsedFolders.clear(); expandedFolders.clear(); subfolderArea = area; }
   if (Array.isArray(ws.subfolders)) { workspaceFolders = ws.subfolders; }
+  unloadedFolders = Array.isArray(ws.unloaded_subfolders) ? ws.unloaded_subfolders : [];
   if (selectedSubfolder && !workspaceFolders.some(f => f.path === selectedSubfolder)) { selectedSubfolder = ""; }
   syncUploadAreas();
 }
@@ -65,10 +66,14 @@ function destinationValue(prefix) {
   if (!input.reportValidity()) { return null; }
   return input.value.trim();
 }
-function openUploadDialog() {
+function openUploadDialog(preferredMode) {
   syncUploadAreas(true);
   document.getElementById("upload-new-subfolder-group").classList.add("hidden");
   document.getElementById("upload-new-subfolder").required = false;
+  if (typeof setUploadDestinationMode === "function") {
+    const mode = preferredMode || ((currentTurns.length > 0 || (typeof freeChatMode !== "undefined" && freeChatMode)) ? "chat" : "vault");
+    setUploadDestinationMode(mode);
+  }
   uploadModal.showModal();
 }
 function matchesSubfolder(guide) {

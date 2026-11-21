@@ -11,6 +11,7 @@ from pathlib import Path
 from pypdf import PdfReader
 
 from core.contracts import KnowledgeChunk
+from features.ingestion.office_extractors import extract_csv, extract_pptx, extract_xlsx
 from features.ingestion.parser import parse_markdown_text
 from features.ingestion.topics import (
     has_placeholder_tags,
@@ -21,7 +22,7 @@ from features.ingestion.topics import (
 
 __all__ = ["SUPPORTED_EXTENSIONS", "convert_bytes_to_markdown", "convert_file_to_chunks", "infer_document_tags", "repair_directory_topics"]
 
-SUPPORTED_EXTENSIONS = {".md", ".txt", ".html", ".docx", ".pdf"}
+SUPPORTED_EXTENSIONS = {".md", ".txt", ".html", ".docx", ".pdf", ".csv", ".tsv", ".xlsx", ".pptx"}
 SECTION_CHAR_TARGET = 1200
 MAX_DOCX_XML_BYTES = 20 * 1024 * 1024
 
@@ -122,6 +123,12 @@ def convert_bytes_to_markdown(filename: str, raw_bytes: bytes, tags: list[str] |
         title, sections = _extract_html(raw_bytes.decode("utf-8", errors="replace"), fallback_title)
     elif ext == ".docx":
         title, sections = _extract_docx(raw_bytes, fallback_title)
+    elif ext in {".csv", ".tsv"}:
+        title, sections = extract_csv(raw_bytes, fallback_title, delimiter="\t" if ext == ".tsv" else ",")
+    elif ext == ".xlsx":
+        title, sections = extract_xlsx(raw_bytes, fallback_title)
+    elif ext == ".pptx":
+        title, sections = extract_pptx(raw_bytes, fallback_title)
     else:
         title, sections = _extract_pdf(raw_bytes, fallback_title)
     sec_blocks = "\n\n".join(f"## {heading}\n{body}" for heading, body in sections)

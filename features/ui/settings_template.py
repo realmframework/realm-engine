@@ -1,16 +1,26 @@
-"""Three Settings panels reuse the existing live controls and route handlers."""
+"""Five focused Settings tabs keeping Workspace, Appearance, AI, RAG and Privacy cleanly separated."""
 
+from features.ui.appearance_template import APPEARANCE_FIELDS, RESET_ALL_PANEL
 from features.ui.compliance_template import COMPLIANCE_HTML
 from features.ui.experience_template import BACKUP_PANEL
 from features.ui.setup_template import BUDGET_PANEL_HTML
 
-WORKSPACE_FIELDS = r"""    <div class="flex flex-col gap-2.5 text-sm">
-      <div class="flex items-center justify-between"><span class="text-xs uppercase tracking-wider text-[#738196] font-mono">Workspace</span><button id="cfg-new-folder-btn" type="button" class="text-xs text-[#4BB8E8] hover:underline">+ New Folder</button></div>
-      <label class="flex flex-col gap-1"><span class="text-xs text-[#A0B0C8]">Workspace Title</span><input id="cfg-app-title" type="text" value="My Knowledge Base" class="bg-[#04060F] border border-[rgba(238,242,248,0.12)] focus:border-[#4BB8E8] rounded-lg px-3 py-1.5 text-sm text-[#EEF2F8] outline-none" /></label>
-      <div class="flex flex-col gap-1"><label for="cfg-folder-select" class="text-xs text-[#A0B0C8]">Knowledge Folder</label><select id="cfg-folder-select" class="bg-[#04060F] border border-[rgba(238,242,248,0.12)] focus:border-[#4BB8E8] rounded-lg px-3 py-1.5 text-sm font-mono text-[#EEF2F8] outline-none cursor-pointer"><option value="knowledge_base">knowledge_base</option></select><input id="cfg-knowledge-dir" type="text" value="knowledge_base" placeholder="new_folder_name" class="hidden bg-[#04060F] border border-[rgba(238,242,248,0.12)] focus:border-[#4BB8E8] rounded-lg px-3 py-1.5 text-sm font-mono text-[#EEF2F8] outline-none" /><span id="cfg-folder-helper" class="text-[11px] font-mono text-[#738196]">Saved locally in your library folder (knowledge_base/)</span></div>
-      <div class="flex items-center justify-between pt-1"><span id="workspace-status" class="text-xs text-[#738196]"></span><button id="save-workspace-btn" type="button" class="px-4 py-1.5 rounded-xl bg-[#4BB8E8] text-[#04060F] font-semibold text-xs hover:brightness-110 transition">Save</button></div>
-    </div>
-    <div class="flex flex-col gap-2.5 pt-2.5 border-t border-[rgba(238,242,248,0.08)] text-sm">
+WORKSPACE_FIELDS = r"""    <div class="flex flex-col gap-3 text-sm">
+      <div class="flex flex-col gap-1.5">
+        <span data-i18n="language_label" class="text-xs uppercase tracking-wider text-[#738196] font-mono">Interface Language</span>
+        <div role="group" aria-label="Interface Language" class="grid grid-cols-3 gap-1.5 bg-[#04060F] p-1 rounded-xl border border-[rgba(238,242,248,0.10)]">
+          <button type="button" data-lang-choice="en" aria-pressed="true" class="py-1.5 px-3 rounded-lg text-xs font-medium transition bg-[#4BB8E8] text-[#04060F]">English</button>
+          <button type="button" data-lang-choice="de" aria-pressed="false" class="py-1.5 px-3 rounded-lg text-xs font-medium transition text-[#A0B0C8] hover:text-[#EEF2F8]">Deutsch</button>
+          <button type="button" data-lang-choice="es" aria-pressed="false" class="py-1.5 px-3 rounded-lg text-xs font-medium transition text-[#A0B0C8] hover:text-[#EEF2F8]">Español</button>
+        </div>
+      </div>
+      <div class="flex items-center justify-between pt-2 border-t border-[rgba(238,242,248,0.08)]"><span data-i18n="tab_workspace" class="text-xs uppercase tracking-wider text-[#738196] font-mono">Workspace</span><button id="cfg-new-folder-btn" type="button" data-i18n="new_folder" class="text-xs text-[#4BB8E8] hover:underline">+ New Folder</button></div>
+      <label class="flex flex-col gap-1"><span data-i18n="workspace_title" class="text-xs text-[#A0B0C8]">Workspace Title</span><input id="cfg-app-title" type="text" value="My Knowledge Base" class="bg-[#04060F] border border-[rgba(238,242,248,0.12)] focus:border-[#4BB8E8] rounded-lg px-3 py-1.5 text-sm text-[#EEF2F8] outline-none" /></label>
+      <div class="flex flex-col gap-1"><label for="cfg-folder-select" data-i18n="knowledge_folder" class="text-xs text-[#A0B0C8]">Knowledge Folder</label><select id="cfg-folder-select" class="bg-[#04060F] border border-[rgba(238,242,248,0.12)] focus:border-[#4BB8E8] rounded-lg px-3 py-1.5 text-sm font-mono text-[#EEF2F8] outline-none cursor-pointer"><option value="knowledge_base">knowledge_base</option></select><input id="cfg-knowledge-dir" type="text" value="knowledge_base" placeholder="new_folder_name" class="hidden bg-[#04060F] border border-[rgba(238,242,248,0.12)] focus:border-[#4BB8E8] rounded-lg px-3 py-1.5 text-sm font-mono text-[#EEF2F8] outline-none" /><span id="cfg-folder-helper" class="text-[11px] font-mono text-[#738196]">Saved locally in your library folder (knowledge_base/)</span></div>
+      <div class="flex items-center justify-between gap-2 pt-1 flex-wrap"><div class="flex items-center gap-2 flex-wrap"><button id="settings-link-vault-btn" type="button" data-i18n="open_vault" class="px-3 py-1.5 rounded-xl bg-[#4BB8E8]/15 border border-[#4BB8E8]/40 hover:bg-[#4BB8E8]/25 text-xs font-medium text-[#4BB8E8] transition">Link Local Folder…</button><button id="settings-reveal-folder-btn" type="button" data-i18n-reveal class="px-3 py-1.5 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.14)] hover:border-[#4BB8E8] text-xs font-medium text-[#A0B0C8] hover:text-[#EEF2F8] transition">Show in Finder</button><button id="settings-sync-folder-btn" type="button" data-i18n="sync_folder" class="px-3 py-1.5 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.14)] hover:border-[#4BB8E8] text-xs font-medium text-[#A0B0C8] hover:text-[#EEF2F8] transition">↻ Sync Folder</button></div><div class="flex items-center gap-2"><span id="workspace-status" class="text-xs text-[#738196]"></span><button id="save-workspace-btn" type="button" data-i18n="save" class="px-4 py-1.5 rounded-xl bg-[#4BB8E8] text-[#04060F] font-semibold text-xs hover:brightness-110 transition">Save</button></div></div>
+    </div>"""
+
+AI_VOICE_FIELDS = r"""    <div class="flex flex-col gap-2.5 text-sm">
       <div class="flex items-center justify-between gap-2"><span class="text-xs uppercase tracking-wider text-[#738196] font-mono">AI Provider &amp; API Keys</span><button id="toggle-cloud-access-btn" type="button" class="px-2.5 py-1 rounded-lg bg-[#04060F] border border-[#4BB8E8]/40 text-xs font-medium text-[#4BB8E8] hover:bg-[#4BB8E8]/10 transition">Allow Cloud APIs</button></div>
       <div id="cloud-access-banner" role="status" class="rounded-lg bg-[#04060F] border border-[rgba(238,242,248,0.08)] px-3 py-2 text-xs text-[#A0B0C8]">Local-Only Lock is ON — click <strong class="text-[#EEF2F8]">Allow Cloud APIs</strong> to use paid API keys alongside free local Ollama.</div>
       <div id="saved-keys-bar" aria-label="AI providers and saved keys" class="flex flex-wrap gap-1.5"></div>
@@ -32,7 +42,7 @@ WORKSPACE_FIELDS = r"""    <div class="flex flex-col gap-2.5 text-sm">
 RAG_FIELDS = r"""    <div class="flex items-center justify-between gap-2 bg-[#04060F] border border-[rgba(238,242,248,0.08)] rounded-xl px-3.5 py-2.5">
       <span id="rag-engine-status-badge" role="status" class="text-xs font-mono text-[#4BB8E8]">● Fast Keyword Search Mode (No Embedding Model Needed)</span>
     </div>
-    <label for="ask-tutor-toggle" class="flex items-center justify-between bg-[#04060F] border border-[rgba(238,242,248,0.08)] rounded-xl px-3.5 py-2.5 cursor-pointer select-none"><span class="text-xs text-[#EEF2F8]">Tutor Synthesis vs. Raw Search Only</span><input id="ask-tutor-toggle" type="checkbox" checked class="rounded" /></label>
+    <label for="ask-tutor-toggle" class="flex items-center justify-between gap-3 bg-[#04060F] border border-[rgba(238,242,248,0.08)] rounded-xl px-4 py-3 cursor-pointer select-none"><span class="text-sm text-[#EEF2F8]">Tutor Synthesis vs. Raw Search Only</span><input id="ask-tutor-toggle" type="checkbox" switch checked class="shrink-0" /></label>
     <div class="flex flex-col gap-2">
       <span class="text-xs uppercase tracking-wider text-[#738196] font-mono">Retrieval Mode</span>
       <div role="group" aria-label="Retrieval Mode" class="grid grid-cols-3 gap-1.5 bg-[#04060F] p-1 rounded-xl border border-[rgba(238,242,248,0.10)]">
@@ -44,7 +54,20 @@ RAG_FIELDS = r"""    <div class="flex items-center justify-between gap-2 bg-[#04
     <div class="flex flex-col gap-1"><div class="flex items-center justify-between"><label for="rag-top-k" class="text-xs text-[#A0B0C8]">Top-K Chunks</label><span id="rag-top-k-badge" class="text-xs font-mono text-[#4BB8E8]">Top 5 chunks</span></div><input id="rag-top-k" type="range" min="1" max="15" step="1" value="5" aria-valuetext="Top 5 chunks" class="rag-slider" /></div>
     <div class="flex flex-col gap-1"><div class="flex items-center justify-between"><label for="rag-rrf-k" class="text-xs text-[#A0B0C8]">RRF Constant k</label><span id="rag-rrf-k-badge" class="text-xs font-mono text-[#4BB8E8]">k = 60</span></div><input id="rag-rrf-k" type="range" min="10" max="100" step="5" value="60" aria-valuetext="k = 60" class="rag-slider" /></div>
     <div class="flex flex-col gap-1"><div class="flex items-center justify-between"><label for="rag-temperature" class="text-xs text-[#A0B0C8]">Tutor Temperature</label><span id="rag-temperature-badge" class="text-xs font-mono text-[#4BB8E8]">0.2</span></div><input id="rag-temperature" type="range" min="0" max="1" step="0.1" value="0.2" aria-valuetext="0.2" class="rag-slider" /></div>
-    <div class="pt-3 border-t border-[rgba(238,242,248,0.08)] flex justify-end"><button id="rag-reset-btn" type="button" class="text-xs text-[#A0B0C8] hover:text-[#EEF2F8] border border-[rgba(238,242,248,0.12)] hover:border-[#4BB8E8]/50 px-3.5 py-1.5 rounded-xl transition">Reset Sliders to Default</button></div>"""
+    <div class="pt-3 border-t border-[rgba(238,242,248,0.08)] flex justify-end"><button id="rag-reset-btn" type="button" class="text-xs text-[#A0B0C8] hover:text-[#EEF2F8] border border-[rgba(238,242,248,0.12)] hover:border-[#4BB8E8]/50 px-3.5 py-1.5 rounded-xl transition">Reset Sliders to Default</button></div>
+    <div class="flex flex-col gap-2.5 pt-3 border-t border-[rgba(238,242,248,0.08)] text-sm">
+      <div class="flex items-center justify-between gap-2"><span data-i18n="web_search_title" class="text-xs uppercase tracking-wider text-[#738196] font-mono">Opt-In Web Search</span><span id="web-search-badge" class="text-[11px] font-mono text-[#738196]">OFF</span></div>
+      <label for="web-search-toggle" class="flex items-center justify-between gap-3 bg-[#04060F] border border-[rgba(238,242,248,0.08)] rounded-xl px-4 py-3 cursor-pointer select-none">
+        <span class="flex flex-col gap-0.5"><span data-i18n="web_search_enable" class="text-sm font-medium text-[#EEF2F8]">Allow Web Search Toggle in Chat</span><span data-i18n="web_search_note" class="text-xs text-[#738196]">Shows the Globe toggle in the prompt bar so you can include live web results per message. Blocked while Local-Only Lock is ON.</span></span>
+        <input id="web-search-toggle" type="checkbox" switch class="shrink-0" />
+      </label>
+      <div id="web-search-lock-note" hidden class="rounded-lg bg-[#04060F] border border-amber-400/25 px-3 py-2 text-[11px] text-amber-300">Strict Local-Only Lock is ON — unlock Cloud APIs in AI &amp; Voice to enable Web Search.</div>
+      <div id="web-search-options" class="flex flex-col gap-2">
+        <label class="flex flex-col gap-1"><span data-i18n="web_search_provider_label" class="text-xs text-[#A0B0C8]">Search Engine</span><select id="web-search-provider" class="bg-[#04060F] border border-[rgba(238,242,248,0.12)] focus:border-[#4BB8E8] rounded-lg px-3 py-1.5 text-xs text-[#EEF2F8] outline-none cursor-pointer"><option value="duckduckgo">DuckDuckGo (No API Key Needed)</option><option value="ollama">Ollama Web Search (Requires Ollama API Key)</option><option value="searxng">Self-Hosted SearXNG URL</option></select></label>
+        <div id="web-search-ollama-key-group" hidden class="flex flex-col gap-1"><label for="web-search-ollama-key" class="text-xs text-[#A0B0C8]">Ollama Web Search API Key</label><div class="flex items-center gap-2"><input id="web-search-ollama-key" type="password" autocomplete="off" placeholder="OLLAMA_API_KEY (saved securely locally)" class="flex-1 bg-[#04060F] border border-[rgba(238,242,248,0.12)] focus:border-[#4BB8E8] rounded-lg px-3 py-1.5 text-xs text-[#EEF2F8] outline-none" /><button id="save-ollama-web-key-btn" type="button" data-i18n="save_key" class="px-3 py-1.5 rounded-lg bg-[#04060F] border border-[rgba(238,242,248,0.12)] hover:border-[#4BB8E8] text-xs font-medium text-[#4BB8E8] shrink-0 transition">Save Key</button></div><span id="ollama-web-key-status" role="status" class="text-[11px] text-[#738196]"></span></div>
+        <div id="web-search-searxng-group" hidden class="flex flex-col gap-1"><label for="web-search-searxng-url" class="text-xs text-[#A0B0C8]">SearXNG Base URL</label><div class="flex items-center gap-2"><input id="web-search-searxng-url" type="url" placeholder="http://127.0.0.1:8080" class="flex-1 bg-[#04060F] border border-[rgba(238,242,248,0.12)] focus:border-[#4BB8E8] rounded-lg px-3 py-1.5 text-xs font-mono text-[#EEF2F8] outline-none" /><button id="save-searxng-btn" type="button" data-i18n="save" class="px-3 py-1.5 rounded-lg bg-[#04060F] border border-[rgba(238,242,248,0.12)] hover:border-[#4BB8E8] text-xs font-medium text-[#4BB8E8] shrink-0 transition">Save</button></div></div>
+      </div>
+    </div>"""
 
 PIPELINE_HELP = """<details id="rag-pipeline-details" class="rounded-xl border border-white/10 p-4">
 <summary class="cursor-pointer text-sm font-medium">How the RAG Pipeline Works</summary>
@@ -56,15 +79,19 @@ PIPELINE_HELP = """<details id="rag-pipeline-details" class="rounded-xl border b
 </ol></details>"""
 
 SETTINGS_HTML = f"""<dialog id="settings-modal" closedby="any" aria-labelledby="settings-modal-title" class="m-auto w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-[#0B1020] text-[#EEF2F8] border border-[rgba(238,242,248,0.16)] p-6 shadow-2xl">
-<div class="flex items-center justify-between gap-3 shrink-0 pb-3"><h2 id="settings-modal-title" class="text-base font-medium">Settings</h2>
-<div class="flex items-center gap-3"><button id="open-onboarding-btn" type="button" class="text-xs text-[#4BB8E8] hover:underline">Setup Wizard</button><button id="close-settings-modal" autofocus type="button" aria-label="Close settings" class="h-7 w-7 rounded-full text-[#738196] hover:text-white">✕</button></div></div>
+<div class="flex items-center justify-between gap-3 shrink-0 pb-3"><h2 id="settings-modal-title" data-i18n="settings" class="text-base font-medium">Settings</h2>
+<div class="flex items-center gap-3"><button id="open-onboarding-btn" type="button" data-i18n="setup_wizard" class="text-xs text-[#4BB8E8] hover:underline">Setup Wizard</button><button id="close-settings-modal" autofocus type="button" aria-label="Close settings" class="h-7 w-7 rounded-full text-[#738196] hover:text-white">✕</button></div></div>
 <div id="settings-tabs" role="tablist" aria-label="Settings sections" class="settings-tabs">
-<button id="settings-tab-workspace" type="button" role="tab" aria-selected="true" tabindex="0" data-settings-tab="workspace">Workspace &amp; AI</button>
-<button id="settings-tab-rag" type="button" role="tab" aria-selected="false" tabindex="-1" data-settings-tab="rag">RAG &amp; Search</button>
-<button id="settings-tab-privacy" type="button" role="tab" aria-selected="false" tabindex="-1" data-settings-tab="privacy">Privacy &amp; DSGVO Audit</button>
+<button id="settings-tab-workspace" type="button" role="tab" aria-selected="true" tabindex="0" data-settings-tab="workspace" data-i18n="tab_workspace">Workspace</button>
+<button id="settings-tab-appearance" type="button" role="tab" aria-selected="false" tabindex="-1" data-settings-tab="appearance" data-i18n="tab_appearance">Appearance</button>
+<button id="settings-tab-ai" type="button" role="tab" aria-selected="false" tabindex="-1" data-settings-tab="ai" data-i18n="tab_ai">AI &amp; Voice</button>
+<button id="settings-tab-rag" type="button" role="tab" aria-selected="false" tabindex="-1" data-settings-tab="rag" data-i18n="tab_rag">RAG &amp; Search</button>
+<button id="settings-tab-privacy" type="button" role="tab" aria-selected="false" tabindex="-1" data-settings-tab="privacy" data-i18n="tab_privacy">Privacy &amp; DSGVO Audit</button>
 </div>
 <div id="settings-body" class="settings-body">
-<section id="settings-panel-workspace" role="tabpanel" aria-labelledby="settings-tab-workspace"><div class="flex flex-col gap-5 py-4">{WORKSPACE_FIELDS}{BUDGET_PANEL_HTML}{BACKUP_PANEL}</div></section>
+<section id="settings-panel-workspace" role="tabpanel" aria-labelledby="settings-tab-workspace"><div class="flex flex-col gap-5 py-4">{WORKSPACE_FIELDS}{BACKUP_PANEL}{RESET_ALL_PANEL}</div></section>
+<section id="settings-panel-appearance" role="tabpanel" aria-labelledby="settings-tab-appearance" hidden><div class="flex flex-col gap-5 py-4">{APPEARANCE_FIELDS}</div></section>
+<section id="settings-panel-ai" role="tabpanel" aria-labelledby="settings-tab-ai" hidden><div class="flex flex-col gap-5 py-4">{AI_VOICE_FIELDS}{BUDGET_PANEL_HTML}</div></section>
 <section id="settings-panel-rag" role="tabpanel" aria-labelledby="settings-tab-rag" hidden><div class="flex flex-col gap-5 py-4">{RAG_FIELDS}{PIPELINE_HELP}</div></section>
 <section id="settings-panel-privacy" role="tabpanel" aria-labelledby="settings-tab-privacy" hidden><div class="py-4">{COMPLIANCE_HTML}</div></section>
 </div></dialog>"""

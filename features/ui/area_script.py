@@ -9,20 +9,28 @@ function areaFetch(url, options, expectedArea) {
 }
 function areaStatus(message) { const el = document.getElementById("area-status"); if (el) { el.textContent = message; } }
 function areaLabel(name) { return String(name).replace(/[_-]+/g, " "); }
+function areaTitle(areaOrName) {
+  if (areaOrName && typeof areaOrName === "object") { return areaOrName.display_name || areaLabel(areaOrName.name || ""); }
+  const found = knowledgeAreas.find(function (a) { return a.name === areaOrName; });
+  return (found && found.display_name) || areaLabel(areaOrName || "");
+}
 function selectedAreas() { return workspaceConfig.active_dirs || (activeKnowledgeArea ? [activeKnowledgeArea] : []); }
 function areaButtons() {
   const dirs = selectedAreas();
   return knowledgeAreas.map(function (area, index) {
     const selected = dirs.includes(area.name), disabled = areaSwitching || selected && dirs.length === 1;
+    const title = areaTitle(area);
+    const subPath = area.linked && area.linked_path ? "<span class='block text-[11px] font-mono text-[#738196] truncate mt-0.5' title='" + escapeHtml(area.linked_path) + "'>" + escapeHtml(area.linked_path) + "</span>" : "";
+    const rmLabel = area.linked ? "Unlink vault " + title + " (keeps files on disk)" : "Delete area " + title;
     return "<div class='flex items-center gap-1'>"
-      + "<label for='area-check-" + index + "' class='inline-flex items-center justify-center shrink-0' style='width:44px;height:44px;cursor:pointer'>"
+      + "<label for='area-check-" + index + "' class='inline-flex items-center justify-center shrink-0' style='width:38px;height:38px;cursor:pointer'>"
       + "<input id='area-check-" + index + "' type='checkbox' name='active_dirs' value='" + escapeHtml(area.name) + "' data-area-toggle='" + escapeHtml(area.name) + "' style='accent-color:#4BB8E8' " + (selected ? "checked " : "") + (disabled ? "disabled " : "") + ">"
-      + "<span class='visually-hidden'>Include " + escapeHtml(areaLabel(area.name)) + " in search</span></label>"
+      + "<span class='visually-hidden'>Include " + escapeHtml(title) + " in search</span></label>"
       + "<button type='button' data-area='" + escapeHtml(area.name) + "' aria-current='" + (area.name === activeKnowledgeArea ? "page" : "false") + "' " + (areaSwitching ? "disabled " : "")
       + "class='flex-1 min-w-0 flex items-center gap-2 px-2 py-2 rounded-lg text-xs text-left " + (selected ? "bg-white/10 text-[#EEF2F8]" : "text-[#A0B0C8] hover:bg-white/5") + "'>"
-      + "<span aria-hidden='true' class='w-2 h-2 rounded-full shrink-0' style='background:" + area.color + "'></span><span class='truncate'>" + escapeHtml(areaLabel(area.name))
-      + "</span><span class='ml-auto font-mono opacity-70'>" + area.doc_count + "</span></button>"
-      + (area.can_delete ? "<button type='button' data-delete-area='" + escapeHtml(area.name) + "' aria-label='Delete area " + escapeHtml(areaLabel(area.name)) + "' class='text-[#738196] hover:text-[#EF4444] px-2 py-2'>✕</button>" : "") + "</div>";
+      + "<span aria-hidden='true' class='w-2 h-2 rounded-full shrink-0' style='background:" + area.color + "'></span><span class='min-w-0 flex-1'><span class='block truncate font-medium'>" + escapeHtml(title) + "</span>" + subPath + "</span>"
+      + "<span class='ml-auto font-mono opacity-70 shrink-0'>" + area.doc_count + "</span></button>"
+      + (area.can_delete ? "<button type='button' data-delete-area='" + escapeHtml(area.name) + "' title='" + escapeHtml(rmLabel) + "' aria-label='" + escapeHtml(rmLabel) + "' class='text-[#738196] hover:text-[#EF4444] px-2 py-2 shrink-0'>✕</button>" : "") + "</div>";
   }).join("");
 }
 async function toggleAreaSelection(name) {
@@ -41,7 +49,7 @@ function bindAreaButtons(root) {
 }
 function renderKnowledgeAreas() {
   const dirs = selectedAreas(), all = dirs.length > 0 && knowledgeAreas.every(a => dirs.includes(a.name));
-  const label = dirs.length > 1 ? (all ? "All Areas (" + dirs.length + ")" : dirs.length + " Areas Active") : areaLabel(activeKnowledgeArea || "Workspaces");
+  const label = dirs.length > 1 ? (all ? "All Areas (" + dirs.length + ")" : dirs.length + " Areas Active") : areaTitle(activeKnowledgeArea || "Workspaces");
   document.getElementById("brand-title").textContent = label;
   document.getElementById("brand-title").style.fontSize = dirs.length > 1 ? ".875rem" : "";
   document.getElementById("workspace-color-dot").style.gap = dirs.length > 3 ? ".125rem" : "";
@@ -50,11 +58,12 @@ function renderKnowledgeAreas() {
     const area = knowledgeAreas.find(a => a.name === name);
     return "<span class='w-2 h-2 rounded-full shrink-0' style='background:" + (area ? area.color : "#4BB8E8") + "'></span>";
   }).join("");
-  const selectAll = document.getElementById("select-all-areas-btn");
-  selectAll.setAttribute("aria-pressed", String(all)); selectAll.disabled = areaSwitching; document.getElementById("new-area-btn").disabled = areaSwitching;
-  const note = document.getElementById("selection-primary-note"); note.hidden = dirs.length < 2; note.textContent = "Primary: " + areaLabel(activeKnowledgeArea || "") + ". Backups and vault audits use this area.";
-  document.getElementById("backup-scope-note").textContent = "Backup covers the primary area “" + areaLabel(activeKnowledgeArea || "") + "” and its single-area chats. Combined chats stay saved locally; they are outside this ZIP backup.";
+  const selectAll = document.getElementById("select-all-areas-btn"), linkBtn = document.getElementById("link-vault-btn");
+  selectAll.setAttribute("aria-pressed", String(all)); selectAll.disabled = areaSwitching; document.getElementById("new-area-btn").disabled = areaSwitching; if (linkBtn) { linkBtn.disabled = areaSwitching; }
+  const note = document.getElementById("selection-primary-note"); note.hidden = dirs.length < 2; note.textContent = "Primary: " + areaTitle(activeKnowledgeArea || "") + ". Backups and vault audits use this area.";
+  document.getElementById("backup-scope-note").textContent = "Backup covers the primary area “" + areaTitle(activeKnowledgeArea || "") + "” and its single-area chats. Combined chats stay saved locally; they are outside this ZIP backup.";
   const nav = document.getElementById("knowledge-areas"), scroll = nav.scrollTop; nav.innerHTML = areaButtons(); bindAreaButtons(nav); nav.scrollTop = scroll;
+  if (typeof syncFreeChatUI === "function" && typeof freeChatMode !== "undefined" && freeChatMode) { syncFreeChatUI(); }
 }
 function adoptWorkspace(data) {
   if (JSON.stringify(selectedAreas()) !== JSON.stringify((data.config || {}).active_dirs || [])) { invalidateAudit(); }
@@ -72,7 +81,9 @@ async function restoreWorkspaceView(view) {
 }
 async function switchKnowledgeArea(name, showLibrary = null, template = null, dirs = [name]) {
   if (areaSwitching) { return false; }
-  if (JSON.stringify(dirs) === JSON.stringify(selectedAreas()) && template === null) { return true; }
+  const leavingFree = typeof freeChatMode !== "undefined" && freeChatMode;
+  if (leavingFree) { freeChatMode = false; if (typeof syncFreeChatUI === "function") { syncFreeChatUI(); } }
+  if (!leavingFree && JSON.stringify(dirs) === JSON.stringify(selectedAreas()) && template === null) { return true; }
   const view = showLibrary === null ? currentWorkspaceView() : showLibrary ? "library" : "chat";
   areaSwitching = true; document.querySelectorAll("#knowledge-areas input, #knowledge-areas button, #select-all-areas-btn, #new-area-btn").forEach(el => { el.disabled = true; }); const version = ++areaVersion, previous = activeKnowledgeArea;
   abortActiveRequest(); stopActiveAudio(); stopGraphSimulation(); resetHome(); stagedFiles = []; clearRedactionPreview();
@@ -107,11 +118,15 @@ async function createKnowledgeArea(event) {
 }
 async function deleteKnowledgeArea(name) {
   const area = knowledgeAreas.find(function (a) { return a.name === name; }), version = areaVersion, expected = activeKnowledgeArea;
-  if (!area || !area.can_delete || !await confirmDeletion("Delete knowledge area?", "Permanently delete “" + areaLabel(name) + "” and all its guides, chats and stored files? This cannot be undone.")) { return; }
-  if (version !== areaVersion) { return; }
+  if (!area || !area.can_delete) { return; }
+  const title = areaTitle(area);
+  const confirmed = area.linked
+    ? await confirmDeletion("Unlink folder from REALM?", "Remove “" + title + "” from your REALM workspaces? Your original folder and all files on disk (" + (area.linked_path || "") + ") will NOT be deleted or modified.", "Unlink")
+    : await confirmDeletion("Delete knowledge area?", "Permanently delete “" + title + "” and all its guides, chats and stored files? This cannot be undone.", "Delete");
+  if (!confirmed || version !== areaVersion) { return; }
   try {
     const response = await areaFetch("/api/workspace/" + encodeURIComponent(name), { method: "DELETE" }, expected), data = await response.json();
-    if (!response.ok) { throw new Error(data.detail || "Area could not be deleted."); }
+    if (!response.ok) { throw new Error(data.detail || "Area could not be removed."); }
     if (JSON.stringify(data.config.active_dirs) !== JSON.stringify(selectedAreas())) {
       const view = currentWorkspaceView();
       ++areaVersion; resetHome(); allGuides = []; savedChats = []; clearRedactionPreview(); activeKnowledgeArea = null; applyWorkspacePayload(data); await Promise.all([loadGuidesCatalog(null), loadRecentChats(), loadModels()]); await restoreWorkspaceView(view);
@@ -120,8 +135,35 @@ async function deleteKnowledgeArea(name) {
       if (!document.getElementById("graph-view").classList.contains("hidden")) { await openGraphView(); }
       else if (document.getElementById("catalog-heading")) { await openLibraryCatalog(selectedTag); }
     }
-    areaStatus("Deleted area: " + areaLabel(name));
+    areaStatus((area.linked ? "Unlinked folder (files kept on disk): " : "Deleted area: ") + title);
   } catch (error) { areaStatus(error.message); }
+}
+async function linkExistingFolder() {
+  if (areaSwitching) { return; }
+  closeWorkspaceMenu();
+  if (typeof settingsModal !== "undefined" && settingsModal && settingsModal.open) { settingsModal.close(); }
+  const view = currentWorkspaceView(), version = ++areaVersion, previous = activeKnowledgeArea;
+  areaSwitching = true; renderKnowledgeAreas(); areaStatus("Opening folder picker...");
+  if (typeof showToast === "function") { showToast("Choose a local folder to link — indexing will start automatically…", 90000); }
+  try {
+    const res = await areaFetch("/api/workspace/link-folder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) }, previous);
+    const data = await res.json();
+    if (!res.ok) { throw new Error(data.detail || "Could not link local folder."); }
+    if (data.cancelled || version !== areaVersion) {
+      areaStatus("");
+      const toast = document.getElementById("upload-toast"); if (toast) { toast.classList.add("hidden"); }
+      return;
+    }
+    abortActiveRequest(); stopActiveAudio(); stopGraphSimulation(); resetHome(); stagedFiles = []; clearRedactionPreview();
+    allGuides = []; savedChats = []; workspacePrompts = []; workspaceTags = []; renderRecentChats(); document.getElementById("seed-list").innerHTML = "";
+    activeKnowledgeArea = null; applyWorkspacePayload(data);
+    await Promise.all([loadGuidesCatalog(null), loadRecentChats(), loadModels()]);
+    const label = areaTitle(data.linked_area || activeKnowledgeArea);
+    areaStatus("Linked folder: " + label);
+    if (typeof showToast === "function") { showToast("Linked folder “" + label + "” in place (" + (data.doc_count || 0) + " guides indexed)."); }
+    await restoreWorkspaceView(view);
+  } catch (error) { areaStatus(error.message || "Could not link local folder."); }
+  finally { areaSwitching = false; renderKnowledgeAreas(); }
 }
 document.getElementById("select-all-areas-btn").addEventListener("click", async function () {
   if (areaSwitching) { return; }
@@ -130,6 +172,10 @@ document.getElementById("select-all-areas-btn").addEventListener("click", async 
   await switchKnowledgeArea(primary, null, null, dirs);
   if (document.getElementById("workspace-menu").matches(":popover-open")) { document.getElementById("select-all-areas-btn").focus(); }
 });
+for (const linkId of ["link-vault-btn", "settings-link-vault-btn"]) {
+  const el = document.getElementById(linkId);
+  if (el) { el.addEventListener("click", linkExistingFolder); }
+}
 async function initializeWorkspace() {
   try { await loadWorkspace(); await Promise.all([loadKeyStatus(), loadModels(), loadSystemStatus(), loadRecentChats(), loadGuidesCatalog(null)]); }
   catch (error) { areaStatus("Workspace could not be loaded. Reload to try again."); }

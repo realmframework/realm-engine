@@ -3,7 +3,7 @@
 import re
 from pathlib import Path, PurePosixPath
 
-EXTENSIONS = (".md", ".txt", ".html", ".docx", ".pdf")
+EXTENSIONS = (".md", ".txt", ".html", ".docx", ".pdf", ".csv", ".tsv", ".xlsx", ".pptx")
 
 
 def contained_path(base: Path, relative: str) -> Path:

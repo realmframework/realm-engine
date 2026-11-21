@@ -7,10 +7,12 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 ProviderName = Literal["ollama", "openai", "kimi", "deepseek", "gemini", "anthropic", "xai", "mistral"]
 RetrievalMode = Literal["hybrid", "lexical", "vector"]
 ReasoningEffort = Literal["low", "medium", "high", "max"]
+LanguageCode = Literal["en", "de", "es"]
+WebSearchProvider = Literal["duckduckgo", "ollama", "searxng"]
 
-
-class KnowledgeChunk(BaseModel):
+class StrictModel(BaseModel):
     model_config = ConfigDict(strict=True)
+class KnowledgeChunk(StrictModel):
     id: str
     title: str
     file_path: str
@@ -22,9 +24,7 @@ class KnowledgeChunk(BaseModel):
     embedding: list[float] | None = None
     url: str = ""
     description: str = ""
-
-class SearchQuery(BaseModel):
-    model_config = ConfigDict(strict=True)
+class SearchQuery(StrictModel):
     subfolder: str | None = None
     doc_id: str | None = None
     query: str = Field(default="")
@@ -32,32 +32,36 @@ class SearchQuery(BaseModel):
     tag_filter: str | None = None
     retrieval_mode: RetrievalMode = "hybrid"
     rrf_k: int = Field(default=60, ge=1, le=120)
-
-class SearchResult(BaseModel):
-    model_config = ConfigDict(strict=True)
+class SearchResult(StrictModel):
     chunk: KnowledgeChunk
     score: float
-
-class TutorResponse(BaseModel):
-    model_config = ConfigDict(strict=True)
+class TutorResponse(StrictModel):
     answer: str
     cited_titles: list[str]
     knowledge_gap_detected: bool
     recommended_topics: list[str]
-
-class BudgetLimits(BaseModel):
-    model_config = ConfigDict(strict=True)
+class BudgetLimits(StrictModel):
     daily_cloud_request_limit: int = Field(default=50, ge=0, le=100_000)
     daily_budget_usd_limit: float = Field(default=1.0, ge=0, allow_inf_nan=False)
-
 class TutorConfig(BudgetLimits):
     provider: ProviderName = "ollama"
     model: str = "qwen3:8b"
     api_key: str | None = None
     temperature: float = Field(default=0.2, ge=0.0, le=1.0)
     reasoning_effort: ReasoningEffort | None = None
+    response_language: LanguageCode = "en"
+class AppearanceUpdate(StrictModel):
+    theme_mode: Literal["system", "dark", "light"] = "system"
+    theme_accent: str = Field(default="#4BB8E8", pattern=r"^#[0-9A-Fa-f]{6}$")
+    theme_glow: str = Field(default="#6366F1", pattern=r"^#[0-9A-Fa-f]{6}$")
+    ambient_effects: bool = True
+    agent_name: str = Field(default="Saga", min_length=1, max_length=40)
+    language: LanguageCode = "en"
+    web_search_enabled: bool = False
+    web_search_provider: WebSearchProvider = "duckduckgo"
+    searxng_url: str = Field(default="", max_length=255)
 
-class WorkspaceConfig(BudgetLimits):
+class WorkspaceConfig(BudgetLimits, AppearanceUpdate):
     app_title: str = "My Knowledge Base"
     hero_greeting: str = "Where should we start?"
     search_placeholder: str = "Ask or search guides..."
@@ -66,6 +70,7 @@ class WorkspaceConfig(BudgetLimits):
     anonymize_uploads: bool = True
     strict_local_only: bool = True
     run_mode: Literal["local", "cloud", "search"] = "local"
+    excluded_subfolders: dict[str, list[str]] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def synchronize_areas(self) -> "WorkspaceConfig":
@@ -73,28 +78,29 @@ class WorkspaceConfig(BudgetLimits):
         self.knowledge_dir = self.active_dirs[0]
         return self
 
-class ChatTurnRequest(SearchQuery):
-    model_config = ConfigDict(strict=True)
+class ChatTurnBase(SearchQuery):
     query: str = Field(...)
     tag: str | None = None
     ask_tutor: bool = True
+    temperature: float = Field(default=0.2, ge=0.0, le=1.0)
+
+class ChatTurnRequest(ChatTurnBase):
+    use_web_search: bool = False
+    free_chat: bool = False
+    format_id: str | None = None
     provider: str | None = None
     model: str | None = None
     api_key: str | None = None
-    temperature: float = Field(default=0.2, ge=0.0, le=1.0)
 
-class ChatTurn(SearchQuery):
-    model_config = ConfigDict(strict=True)
-    query: str = Field(...)
-    tag: str | None = None
-    ask_tutor: bool = True
+class ChatTurn(ChatTurnBase):
     tutor: TutorResponse | None = None
     results: list[SearchResult] = Field(default_factory=list)
     created_at: str
-    temperature: float = 0.2
+    thinking: str = ""
+    telemetry: dict[str, object] = Field(default_factory=dict)
+    format_name: str = ""
 
-class ChatSession(BaseModel):
-    model_config = ConfigDict(strict=True)
+class ChatSession(StrictModel):
     chat_id: str
     title: str
     updated_at: str
@@ -103,34 +109,36 @@ class ChatSession(BaseModel):
     active_dirs: list[str] = Field(default_factory=list)
     subfolder: str | None = None
     doc_id: str | None = None
+    compacted_summary: str = ""
+    context_cleared_at: int = 0
+    free_chat: bool = False
+    attached_notes: list[dict[str, str]] = Field(default_factory=list)
 
-class AnonymizationPreview(BaseModel):
-    model_config = ConfigDict(strict=True)
+class AnonymizationPreview(StrictModel):
     text: str | None = Field(default=None, max_length=1_000_000)
     filename: str = Field(default="", max_length=255)
     doc_id: str | None = None
 
-class AnonymizationReport(BaseModel):
-    model_config = ConfigDict(strict=True)
+class AnonymizationReport(StrictModel):
     scrubbed_text: str
     total_redacted: int
     counts_by_type: dict[str, int]
     samples: list[dict[str, str]]
 
-class KnowledgeArea(BaseModel):
-    model_config = ConfigDict(strict=True)
+class KnowledgeArea(StrictModel):
     name: str
     doc_count: int
     color: str
     can_delete: bool
+    linked: bool = False
+    linked_path: str = ""
+    display_name: str = ""
 
-class PublicHistoryTurn(BaseModel):
-    model_config = ConfigDict(strict=True)
+class PublicHistoryTurn(StrictModel):
     query: str = Field(..., min_length=1, max_length=500)
     answer: str = Field(default="", max_length=1500)
 
-class PublicAskRequest(BaseModel):
-    model_config = ConfigDict(strict=True)
+class PublicAskRequest(StrictModel):
     query: str = Field(..., min_length=1, max_length=500)
     area: str | None = None
     areas: list[str] | None = None

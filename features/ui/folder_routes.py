@@ -1,13 +1,29 @@
 """Create and organize physical folders without switching knowledge areas."""
 
+import os
 import shutil
+import subprocess
+import sys
 from collections.abc import Callable
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 
 from core.contracts import KnowledgeChunk, WorkspaceConfig
+from core.linked_vaults import is_linked_vault
 from features.ui import folders, selection, workspace
+
+
+def _open_native_folder(target: Path) -> None:
+    if sys.platform == "darwin":
+        subprocess.Popen(["open", str(target)])
+        return
+    if sys.platform == "win32":
+        opener = getattr(os, "startfile", None)
+        if callable(opener):
+            opener(str(target))
+            return
+    subprocess.Popen(["xdg-open", str(target)])
 
 
 async def read_payload(request: Request) -> dict[str, object]:
@@ -54,8 +70,11 @@ def build_router(config: Callable[[], WorkspaceConfig], reindex: Callable[[Path]
             if not path:
                 raise HTTPException(status_code=403, detail="The knowledge area root cannot be deleted as a subfolder")
             base, relative = selection.folder_source(active, workspace.REPO_ROOT, path)
+            area_slug = path.partition("/")[0] if len(active.active_dirs) > 1 else active.knowledge_dir
             if not relative:
                 raise HTTPException(status_code=403, detail="Area roots must be deleted through the workspace switcher")
+            if is_linked_vault(area_slug, workspace.REPO_ROOT):
+                raise HTTPException(status_code=403, detail="Linked folders are read-safe — unlink the folder instead of deleting files on disk.")
             try:
                 target = folders.resolve_subfolder(base, relative)
             except (ValueError, TypeError, OSError) as exc:
@@ -92,5 +111,40 @@ def build_router(config: Callable[[], WorkspaceConfig], reindex: Callable[[Path]
             chunks = reindex(base)
             guide = next(guide for guide in workspace.group_chunks_into_guides(chunks) if guide["doc_id"] == new_id)
             return {**workspace.build_workspace_payload(active, chunks), "doc_id": new_id, "guide": guide}
+
+    @router.post("/api/workspace/reveal-folder")
+    async def reveal_folder(request: Request) -> dict[str, object]:
+        subfolder = ""
+        if "application/json" in request.headers.get("content-type", ""):
+            body = await read_payload(request)
+            if isinstance(body.get("subfolder"), str):
+                subfolder = str(body["subfolder"])
+        with workspace.STATE_LOCK:
+            active = config()
+            workspace.require_area(request, active)
+            base = workspace.resolve_safe_knowledge_dir(active.knowledge_dir, create=True)
+            try:
+                if subfolder:
+                    src_base, rel = selection.folder_source(active, workspace.REPO_ROOT, subfolder)
+                    target = folders.resolve_subfolder(src_base, rel) if rel else src_base
+                else:
+                    target = base
+            except (ValueError, TypeError, OSError) as exc:
+                raise HTTPException(status_code=400, detail="Invalid folder path") from exc
+        if not target.is_dir() or target.is_symlink():
+            raise HTTPException(status_code=400, detail="Workspace folder is unavailable")
+        try:
+            _open_native_folder(target)
+        except OSError as exc:
+            raise HTTPException(status_code=500, detail="Could not open the folder in the system file manager") from exc
+        return {"revealed": True, "path": str(target), "platform": sys.platform}
+
+    @router.post("/api/workspace/sync-folder")
+    def sync_folder(request: Request) -> dict[str, object]:
+        with workspace.STATE_LOCK:
+            active = config()
+            workspace.require_area(request, active)
+            target = workspace.resolve_safe_knowledge_dir(active.knowledge_dir, create=True)
+            return workspace.build_workspace_payload(active, reindex(target))
 
     return router

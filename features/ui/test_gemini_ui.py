@@ -23,3 +23,5 @@ def test_optional_scope_chip_is_inside_pill_and_hidden_initially(area_client: Te
     assert '#scope-chip[hidden] { display: none !important; }' in html
     assert 'id="scope-reset-btn"' in form and 'id="query"' in form
     assert 'id="model"' in form and 'id="mic-btn"' in form and 'id="prompt-submit-btn"' in form
+    assert ".chat-dock { background: transparent !important; }" in html
+    assert ".chat-scroll-mask {" in html

@@ -31,7 +31,7 @@ async def read_file(file: UploadFile) -> bytes:
     return check_file_size(await file.read(MAX_UPLOAD_BYTES + 1))
 
 
-async def read_upload(request: Request, decode: Callable[..., tuple[list[tuple[str, bytes]], str | None]]) -> tuple[list[tuple[str, bytes]], str | None, object, object, object]:
+async def read_upload(request: Request, decode: Callable[..., tuple[list[tuple[str, bytes]], str | None]]) -> tuple[list[tuple[str, bytes]], str | None, object, object, object, list[str], bool]:
     if "application/json" in request.headers.get("content-type", ""):
         body = await request.json()
         if not isinstance(body, dict):
@@ -42,12 +42,15 @@ async def read_upload(request: Request, decode: Callable[..., tuple[list[tuple[s
             raise HTTPException(status_code=400, detail="Invalid upload content") from exc
         for _, raw in files:
             check_file_size(raw)
-        return files, tags, body.get("anonymize"), body.get("subfolder", ""), body.get("area")
+        return files, tags, body.get("anonymize"), body.get("subfolder", ""), body.get("area"), [], False
     form = await request.form()
     try:
-        files = [(f.filename or "", await read_file(f)) for f in (*form.getlist("files"), *form.getlist("file")) if isinstance(f, UploadFile)]
+        uploads = [f for f in (*form.getlist("files"), *form.getlist("file")) if isinstance(f, UploadFile)]
+        files = [(f.filename or "", await read_file(f)) for f in uploads]
         anonymize = str(form["anonymize"]).lower() not in ("false", "0", "no") if "anonymize" in form else None
-        return files, str(form["tags"]) if form.get("tags") else None, anonymize, str(form.get("subfolder", "")), form.get("area")
+        rel_paths = [str(v) for v in form.getlist("relative_paths")]
+        skip_unsupported = str(form.get("skip_unsupported", "")).lower() in ("true", "1", "yes")
+        return files, str(form["tags"]) if form.get("tags") else None, anonymize, str(form.get("subfolder", "")), form.get("area"), rel_paths, skip_unsupported
     finally:
         await form.close()
 

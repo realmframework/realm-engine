@@ -34,11 +34,16 @@ __all__ = [
 
 
 def ingest_directory(dir_path: Path) -> list[KnowledgeChunk]:
-    """Recursively parse all supported files (.md, .txt, .html, .docx, .pdf) under ``dir_path``."""
+    """Recursively parse all supported files under ``dir_path``, skipping dot-folders (.obsidian, .git)."""
+    resolved_root = dir_path.resolve()
     all_files = sorted(
         path
         for path in dir_path.rglob("*")
-        if path.is_file() and not path.is_symlink() and path.resolve().is_relative_to(dir_path.resolve()) and path.suffix.lower() in SUPPORTED_EXTENSIONS
+        if path.is_file()
+        and not path.is_symlink()
+        and not any(part.startswith(".") for part in path.relative_to(dir_path).parts)
+        and path.resolve().is_relative_to(resolved_root)
+        and path.suffix.lower() in SUPPORTED_EXTENSIONS
     )
     md_stems = {p.with_suffix("") for p in all_files if p.suffix.lower() == ".md"}
     chunks: list[KnowledgeChunk] = []

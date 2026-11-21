@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from core import contracts, secrets
 from core.db import load_chunks, save_chunks
+from core.linked_vaults import cache_index_for_dir
 from core.runtime import app_mode, bundle_root
 from features.ingestion import converters
 from features.ingestion.anonymizer import anonymize_slug, inspect_anonymization
@@ -24,7 +25,9 @@ from features.tutor_agent import budget
 from features.tutor_agent.models_discovery import discover_models
 from features.tutor_agent.providers import list_provider_models
 from features.tutor_agent.service import ask_tutor as run_tutor
+from features.tutor_agent.streaming import stream_messages_events, stream_tutor_events
 from features.ui import (
+    appearance_routes,
     area_routes,
     audio_routes,
     backup_routes,
@@ -55,7 +58,7 @@ INDEX: list[contracts.KnowledgeChunk] = []
 
 
 def _load_area(target: Path) -> list[contracts.KnowledgeChunk]:
-    cache = target / "index.json"
+    cache = cache_index_for_dir(target, workspace.REPO_ROOT)
     if cache.is_symlink():
         raise HTTPException(status_code=400, detail="Area index cannot be a symbolic link")
     cached = load_chunks(cache) if cache.is_file() else []
@@ -66,7 +69,7 @@ def _load_area(target: Path) -> list[contracts.KnowledgeChunk]:
 
 def _reindex(target_dir: Path) -> list[contracts.KnowledgeChunk]:
     global INDEX
-    INDEX = selection.merge(WORKSPACE_CONFIG, workspace.REPO_ROOT, _load_area) if len(WORKSPACE_CONFIG.active_dirs) > 1 else _load_area(target_dir)
+    INDEX = selection.merge(WORKSPACE_CONFIG, workspace.REPO_ROOT, _load_area) if len(WORKSPACE_CONFIG.active_dirs) > 1 else selection.filter_chunks(_load_area(target_dir), WORKSPACE_CONFIG.knowledge_dir, WORKSPACE_CONFIG)
     return INDEX
 
 
@@ -84,12 +87,17 @@ def activate_workspace(config: contracts.WorkspaceConfig) -> dict[str, object]:
     global WORKSPACE_CONFIG, INDEX
     with workspace.STATE_LOCK:
         try:
-            chunks = selection.merge(config, workspace.REPO_ROOT, _load_area) if len(config.active_dirs) > 1 else _load_area(workspace.resolve_safe_knowledge_dir(config.knowledge_dir, create=True))
+            chunks = selection.merge(config, workspace.REPO_ROOT, _load_area) if len(config.active_dirs) > 1 else selection.filter_chunks(_load_area(workspace.resolve_safe_knowledge_dir(config.knowledge_dir, create=True)), config.knowledge_dir, config)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         workspace.save_workspace_config(config)
         INDEX, WORKSPACE_CONFIG = chunks, config
         return workspace.build_workspace_payload(config, chunks)
+
+
+def _set_workspace_config(config: contracts.WorkspaceConfig) -> None:
+    global WORKSPACE_CONFIG
+    WORKSPACE_CONFIG = config
 
 
 def build_public_app(data_dir: Path | None = None, quota_check: public_rate_limit.QuotaChecker | None = None) -> FastAPI:
@@ -108,13 +116,14 @@ def _build_local_app() -> FastAPI:
     cloud_guard = build_guard(lambda: WORKSPACE_CONFIG, budget.check_and_record_budget, budget.estimate_usage)
     audio_routes.privacy_config, audio_routes.cloud_admission = (lambda: WORKSPACE_CONFIG), cloud_guard
     for router in (
+        appearance_routes.build_router(lambda: WORKSPACE_CONFIG, _set_workspace_config),
         backup_routes.build_router(lambda: WORKSPACE_CONFIG, activate_workspace),
         workspace_templates.build_router(lambda: WORKSPACE_CONFIG, activate_workspace),
         model_routes.build_router(lambda: WORKSPACE_CONFIG, reset_ollama_status), audio_routes.router,
-        chat_routes.build_router(lambda: WORKSPACE_CONFIG),
+        chat_routes.build_router(lambda: WORKSPACE_CONFIG, converters.convert_bytes_to_markdown, stream_messages_events),
         document_routes.build_router(lambda: WORKSPACE_CONFIG, _reindex, converters.convert_bytes_to_markdown, inspect_anonymization, anonymize_slug),
         area_routes.build_router(lambda: WORKSPACE_CONFIG, activate_workspace, get_index, ingest_directory),
-        query_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, route_query_intent, hybrid_search, build_embedder(lambda *a, **kw: embed_text(*a, **kw), cloud_guard), lambda *args, **kwargs: run_tutor(*args, **kwargs)),
+        query_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, route_query_intent, hybrid_search, build_embedder(lambda *a, **kw: embed_text(*a, **kw), cloud_guard), lambda *args, **kwargs: run_tutor(*args, **kwargs), stream_tutor_events),
         compliance_routes.build_router(lambda: WORKSPACE_CONFIG, get_index, _reindex, inspect_anonymization, hybrid_search),
         budget_routes.build_router(lambda: WORKSPACE_CONFIG, budget.budget_snapshot, budget.reset_budget),
     ):

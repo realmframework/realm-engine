@@ -5,16 +5,16 @@ import re
 from fastapi.testclient import TestClient
 
 
-def test_settings_has_three_native_panels_with_one_copy_of_controls(area_client: TestClient) -> None:
+def test_settings_has_five_native_panels_with_one_copy_of_controls(area_client: TestClient) -> None:
     html = area_client.get("/").text
     settings = html.split('<dialog id="settings-modal"', 1)[1].split("</dialog>", 1)[0]
-    assert settings.count('role="tab"') == 3 and settings.count('role="tabpanel"') == 3
-    for name in ("workspace", "rag", "privacy"):
+    assert settings.count('role="tab"') == 5 and settings.count('role="tabpanel"') == 5
+    for name in ("workspace", "appearance", "ai", "rag", "privacy"):
         assert f'id="settings-tab-{name}"' in settings
         assert f'aria-labelledby="settings-tab-{name}"' in settings
-    assert 'id="settings-panel-rag" role="tabpanel" aria-labelledby="settings-tab-rag" hidden' in settings
-    assert 'id="settings-panel-privacy" role="tabpanel" aria-labelledby="settings-tab-privacy" hidden' in settings
-    for control in ("provider", "api-key", "tts-model", "tts-voice", "daily-cloud-request-limit", "download-backup-btn", "rag-top-k", "rag-rrf-k", "rag-temperature", "governance-local-only", "run-audit-btn", "scrub-vault-btn", "export-compliance-btn"):
+    for hidden_tab in ("appearance", "ai", "rag", "privacy"):
+        assert f'id="settings-panel-{hidden_tab}" role="tabpanel" aria-labelledby="settings-tab-{hidden_tab}" hidden' in settings
+    for control in ("provider", "api-key", "tts-model", "tts-voice", "daily-cloud-request-limit", "download-backup-btn", "workspace-logo-input", "theme-accent-picker", "reset-all-settings-btn", "rag-top-k", "rag-rrf-k", "rag-temperature", "governance-local-only", "run-audit-btn", "scrub-vault-btn", "export-compliance-btn"):
         assert settings.count(f'id="{control}"') == 1
     assert 'id="settings-advanced"' not in html
     assert 'id="rag-studio-modal"' not in html and 'id="rag-modal"' not in html

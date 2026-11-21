@@ -16,6 +16,8 @@ def area_lifespan(repair: Callable[[Path], None]) -> Callable[[FastAPI], Abstrac
             workspace.REPO_ROOT.mkdir(parents=True, exist_ok=True)
             active = workspace.load_workspace_config().knowledge_dir
             for area in areas.list_areas(workspace.REPO_ROOT, active):
+                if area.linked:
+                    continue
                 directory = areas.area_path(area.name, workspace.REPO_ROOT)
                 repair(directory)
         yield

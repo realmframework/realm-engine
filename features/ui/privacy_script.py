@@ -21,6 +21,7 @@ function applyLocalPolicy() {
   if (cloudBtn) { cloudBtn.textContent = locked ? "Allow Cloud APIs" : "Lock to Local Only"; }
   if (cloudBanner) { cloudBanner.innerHTML = locked ? "Local-Only Lock is ON — click <strong class='text-[#EEF2F8]'>Allow Cloud APIs</strong> to save paid API keys and use them alongside free local Ollama." : "Local Ollama &amp; Cloud APIs are both enabled — click any provider below to save its API key, and switch freely in the <strong class='text-[#EEF2F8]'>Model</strong> menu."; }
   if (typeof renderProviderPills === "function") { renderProviderPills(); }
+  if (typeof syncWebSearchUI === "function") { syncWebSearchUI(workspaceConfig); }
   syncProviderPrivacyUI(providerEl.value, "settings-privacy-notice", "settings-api-key-group");
   syncProviderPrivacyUI(document.getElementById("onboarding-provider").value, "onboarding-privacy-notice", "onboarding-api-key-group");
 }

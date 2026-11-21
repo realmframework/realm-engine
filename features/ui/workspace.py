@@ -18,7 +18,7 @@ from features.ui.starter_prompts import build_starter_prompts
 REPO_ROOT = data_root()
 WORKSPACE_FILE = REPO_ROOT / "workspace.json"
 STATE_LOCK = RLock()
-ALLOWED_UPLOAD_EXTENSIONS = {".md", ".txt", ".html", ".pdf", ".docx"}
+ALLOWED_UPLOAD_EXTENSIONS = {".md", ".txt", ".html", ".pdf", ".docx", ".csv", ".tsv", ".xlsx", ".pptx"}
 EXCLUDED_REPO_DIRS = {"core", "features", "docs", "tests", "node_modules", "__pycache__"}
 OLLAMA_TAGS_URL = "http://127.0.0.1:11434/api/tags"
 
@@ -130,7 +130,7 @@ def build_workspace_payload(config: contracts.WorkspaceConfig, chunks: list[cont
     for area in areas:
         if len(config.active_dirs) == 1 and area["name"] == config.knowledge_dir:
             area["doc_count"] = len(guides)
-    return {"config": config.model_dump(), "areas": areas, "subfolders": selection.subfolders(config, REPO_ROOT) if len(config.active_dirs) > 1 else list_subfolders(resolve_safe_knowledge_dir(config.knowledge_dir)), "available_dirs": list_available_dirs(config.knowledge_dir), "tags": sorted_tags, "starter_prompts": prompts, "doc_count": len(guides), "embeddings_active": any(bool(c.embedding) for c in chunks)}
+    return {"config": config.model_dump(), "areas": areas, "subfolders": selection.subfolders(config, REPO_ROOT) if len(config.active_dirs) > 1 else selection.filter_subfolders(list_subfolders(resolve_safe_knowledge_dir(config.knowledge_dir)), config.knowledge_dir, config), "unloaded_subfolders": selection.unloaded_subfolders(config), "available_dirs": list_available_dirs(config.knowledge_dir), "tags": sorted_tags, "starter_prompts": prompts, "doc_count": len(guides), "embeddings_active": any(bool(c.embedding) for c in chunks)}
 
 
 def require_area(request: Request, config: contracts.WorkspaceConfig) -> None:

@@ -104,3 +104,11 @@ def test_unwritable_ledger_blocks_cloud_without_dispatch(monkeypatch: pytest.Mon
     assert "Usage state is unavailable" in result.answer and calls == []
     assert budget.budget_snapshot()["state_error"]
     assert budget.check_and_record_budget("ollama") is None
+
+
+def test_build_tutor_messages_respects_response_language_and_stream_mode() -> None:
+    chunk = KnowledgeChunk(id="c1", title="Notes", file_path="notes.md", content="Test body", tags=[])
+    de_msgs = build_tutor_messages("Was steht hier?", [SearchResult(chunk=chunk, score=0.9)], response_language="de")
+    assert "Reply in German" in de_msgs[0]["content"]
+    es_stream = build_tutor_messages("Resume", [SearchResult(chunk=chunk, score=0.9)], response_language="es", json_mode=False)
+    assert "Reply in Spanish" in es_stream[0]["content"] and "never wrap in JSON" in es_stream[0]["content"]
