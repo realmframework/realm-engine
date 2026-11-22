@@ -25,6 +25,8 @@ def test_spatial_shell_activity_rail_drawer_panels_and_topbar(area_client: TestC
         'id="topbar-timer-pill"',
         'id="clear-areas-btn"',
         'data-i18n-span="sh_new_note"',
+        'id="realm-surface-polish-styles"',
+        "--surface-glass",
     ):
         assert needle in html
     for removed in (

@@ -32,6 +32,7 @@ from features.ui.split_template import (
     RIGHT_SIDEBAR_HTML,
 )
 from features.ui.study_template import STUDY_MODAL_HTML, STUDY_STYLES_CSS
+from features.ui.surface_styles import SURFACE_STYLES_CSS
 from features.ui.theme_styles import THEME_BRIDGE_CSS
 from features.ui.work_board_modals import WORK_BOARD_MODALS_HTML
 from features.ui.work_board_styles import WORK_BOARD_STYLES_CSS
@@ -182,6 +183,7 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
     + IMPACT_FOCUS_STYLES_CSS
     + WORKFLOW_STUDIO_STYLES_CSS
     + SHELL_STYLES_CSS
+    + SURFACE_STYLES_CSS
     + """
 </head>
 <body class="bg-[#04060F] font-sans text-base text-[#EEF2F8] antialiased">

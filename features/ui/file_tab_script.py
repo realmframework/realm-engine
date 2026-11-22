@@ -114,7 +114,8 @@ function renderRightFilesTree() {
     if (dirs.length > 1) { dirs.forEach(function (d) { ftExpanded.add(d); }); }
   }
   const activeTab = typeof centerChatTabs !== "undefined" ? centerChatTabs.find(function (tb) { return tb.id === activeCenterTabId; }) : null;
-  const activeDocId = activeTab && activeTab.kind === "file" ? activeTab.docId : "";
+  const fvEl = document.getElementById("center-file-view");
+  const activeDocId = activeTab && activeTab.kind === "file" && fvEl && !fvEl.hidden ? activeTab.docId : "";
   const root = ftBuildTreeModel();
   const markup = ftRenderNodeHtml(root, 0, activeDocId);
   if (!markup) {

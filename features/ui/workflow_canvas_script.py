@@ -95,7 +95,7 @@ function wfFitCanvas(wf) {
     maxX = Math.max(maxX, x + WF_NODE_W); maxY = Math.max(maxY, y + WF_NODE_H);
   });
   const bw = Math.max(240, maxX - minX + 80), bh = Math.max(160, maxY - minY + 80);
-  wfZoom = Math.max(0.55, Math.min(1.0, Math.round(Math.min(vw / bw, vh / bh) * 100) / 100));
+  wfZoom = Math.max(0.40, Math.min(1.0, Math.round(Math.min(vw / bw, vh / bh) * 100) / 100));
   wfPanX = Math.round((vw - (maxX - minX) * wfZoom) / 2 - minX * wfZoom);
   wfPanY = Math.round((vh - (maxY - minY) * wfZoom) / 2 - minY * wfZoom);
   wfApplyCanvasTransform();
