@@ -1,7 +1,8 @@
-"""Repair legacy placeholder topics and run lightweight incremental file watcher on startup."""
+"""Repair legacy placeholder topics, run vault file watcher, and tick scheduled local workflows."""
 
-from collections.abc import AsyncIterator, Callable
-from contextlib import AbstractAsyncContextManager, asynccontextmanager
+import asyncio
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import AbstractAsyncContextManager, asynccontextmanager, suppress
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -15,6 +16,7 @@ def area_lifespan(
     repair: Callable[[Path], None],
     on_disk_change: Callable[[dict[str, list[str]]], None] | None = None,
     get_config: Callable[[], object] | None = None,
+    workflow_tick: Callable[[], Awaitable[object]] | None = None,
 ) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
@@ -41,9 +43,23 @@ def area_lifespan(
                 return resolved
 
         stop_event = start_vault_watcher(_active_dirs, on_disk_change or (lambda _c: None))
+        sched_task: asyncio.Task[None] | None = None
+        if workflow_tick is not None:
+            tick_fn = workflow_tick
+
+            async def _sched_loop() -> None:
+                while True:
+                    await asyncio.sleep(60)
+                    with suppress(Exception):
+                        await tick_fn()
+            sched_task = asyncio.create_task(_sched_loop())
         try:
             yield
         finally:
+            if sched_task is not None:
+                sched_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await sched_task
             join_vault_watcher(stop_event, timeout=2.0)
 
     return lifespan

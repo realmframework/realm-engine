@@ -10,6 +10,7 @@ from core.work_contracts import (
     WorkBoardState,
     WorkProject,
 )
+from features.work_board.extractor import extract_tasks_deterministic
 from features.work_board.store import (
     board_path,
     done_column_ids,
@@ -135,3 +136,15 @@ def schedule_focus_events(area: str, blocks: list[object], root: Path | None = N
     if added:
         save_board(state, path)
     return added
+
+
+def add_tasks_from_text(area: str, text: str, project_id: str = "", root: Path | None = None) -> int:
+    items = extract_tasks_deterministic(text, max_items=8)
+    if not items:
+        return 0
+    path = board_path(area, root)
+    state = load_board(path)
+    for item in items:
+        state, _ = add_task(state, item["title"], project_id=project_id, due_date=item.get("due_date", ""), priority=item.get("priority", "medium"))  # type: ignore[arg-type]
+    save_board(state, path)
+    return len(items)

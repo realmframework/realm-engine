@@ -11,9 +11,9 @@ SPLIT_STYLES_CSS: str = r"""<style id="realm-split-styles">
 .split-menu-item.is-danger { color: var(--status-danger); border-top: 1px solid var(--border-subtle); margin-top: 0.25rem; padding-top: 0.65rem; border-radius: 0 0 0.65rem 0.65rem; }
 #main-content.is-split-vertical { display: grid !important; grid-template-columns: minmax(18rem, var(--split-a, 50%)) 8px minmax(18rem, 1fr); grid-template-rows: minmax(0, 1fr); height: 100vh; height: 100dvh; overflow: hidden; }
 #main-content.is-split-horizontal { display: grid !important; grid-template-rows: minmax(13rem, var(--split-a, 52%)) 8px minmax(13rem, 1fr); grid-template-columns: minmax(0, 1fr); height: 100vh; height: 100dvh; overflow: hidden; }
-#main-content.is-split-active > #workspace-shell, #main-content.is-split-active > #work-board-view, #main-content.is-split-active > #focus-view, #main-content.is-split-active > #impact-view { min-width: 0; min-height: 0; height: 100% !important; overflow-y: auto; }
+#main-content.is-split-active > #workspace-shell, #main-content.is-split-active > #work-board-view, #main-content.is-split-active > #focus-view, #main-content.is-split-active > #impact-view, #main-content.is-split-active > #workflows-view { min-width: 0; min-height: 0; height: 100% !important; overflow-y: auto; }
 #main-content.is-split-active > #workspace-shell { padding-top: 0.25rem; }
-#main-content.is-split-active > #work-board-view, #main-content.is-split-active > #focus-view, #main-content.is-split-active > #impact-view { min-height: 0 !important; padding-top: 1.25rem; padding-bottom: 2rem; }
+#main-content.is-split-active > #work-board-view, #main-content.is-split-active > #focus-view, #main-content.is-split-active > #impact-view, #main-content.is-split-active > #workflows-view { min-height: 0 !important; padding-top: 1.25rem; padding-bottom: 2rem; }
 #split-resizer { position: relative; background: transparent; display: flex; align-items: center; justify-content: center; touch-action: none; -webkit-user-select: none; user-select: none; outline: none; }
 #split-resizer::before { content: ""; display: block; border-radius: 999px; background: var(--border); transition: background-color 0.15s ease, transform 0.15s ease; }
 #main-content.is-split-vertical > #split-resizer { cursor: col-resize; }

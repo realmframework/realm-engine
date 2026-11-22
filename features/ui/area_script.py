@@ -82,6 +82,7 @@ function currentWorkspaceView() {
   if (typeof wbViewOpen !== "undefined" && wbViewOpen) { return "work_board"; }
   if (typeof focViewOpen !== "undefined" && focViewOpen) { return "focus"; }
   if (typeof impViewOpen !== "undefined" && impViewOpen) { return "impact"; }
+  if (typeof wfViewOpen !== "undefined" && wfViewOpen) { return "workflows"; }
   return document.getElementById("library-view") || document.getElementById("reader-heading") ? "library" : "chat";
 }
 async function restoreWorkspaceView(view) {
@@ -89,6 +90,7 @@ async function restoreWorkspaceView(view) {
   else if (view === "work_board" && typeof openWorkBoardView === "function") { await openWorkBoardView(); }
   else if (view === "focus" && typeof openFocusView === "function") { await openFocusView(); }
   else if (view === "impact" && typeof openImpactView === "function") { await openImpactView(); }
+  else if (view === "workflows" && typeof openWorkflowsView === "function") { await openWorkflowsView(); }
   else if (view === "library") { await openLibraryCatalog(null); }
 }
 async function switchKnowledgeArea(name, showLibrary = null, template = null, dirs = [name]) {
@@ -193,7 +195,7 @@ for (const linkId of ["link-vault-btn", "settings-link-vault-btn"]) {
   if (el) { el.addEventListener("click", linkExistingFolder); }
 }
 async function initializeWorkspace() {
-  try { await loadWorkspace(); await Promise.all([loadKeyStatus().then(loadModels), loadSystemStatus(), loadRecentChats(), loadGuidesCatalog(null), typeof loadWorkBoardSummary === "function" ? loadWorkBoardSummary(true) : Promise.resolve(), typeof loadFocusSummary === "function" ? loadFocusSummary() : Promise.resolve(), typeof loadImpactSummary === "function" ? loadImpactSummary() : Promise.resolve()]); }
+  try { await loadWorkspace(); await Promise.all([loadKeyStatus().then(loadModels), loadSystemStatus(), loadRecentChats(), loadGuidesCatalog(null), typeof loadWorkBoardSummary === "function" ? loadWorkBoardSummary(true) : Promise.resolve(), typeof loadFocusSummary === "function" ? loadFocusSummary() : Promise.resolve(), typeof loadImpactSummary === "function" ? loadImpactSummary() : Promise.resolve(), typeof loadWorkflowsSummary === "function" ? loadWorkflowsSummary() : Promise.resolve()]); }
   catch (error) { areaStatus(t("st_ws_load_err")); }
 }
 """

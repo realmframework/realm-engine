@@ -30,6 +30,18 @@ def log_focus_time(area: str, root: Path | None, label: str, minutes: float, pro
         store.save_ledger(next_state, path)
 
 
+def log_workflow_impact(area: str, root: Path | None, what_done: str, effect: str, tag: str = "milestone") -> str:
+    """Thread-safe callback invoked by workflow engine Log Impact node."""
+    valid_tags = {"quality", "time_saved", "revenue", "wellbeing", "milestone"}
+    safe_tag = tag if tag in valid_tags else "milestone"
+    with IMPACT_LOCK:
+        path = store.ledger_path(area, root)
+        state = store.load_ledger(path)
+        next_state, entry = service.add_impact_entry(state, what_done, effect, outcome_tag=safe_tag)  # type: ignore[arg-type]
+        store.save_ledger(next_state, path)
+        return entry.id
+
+
 def build_router(
     get_config: Callable[[], WorkspaceConfig],
     stream_messages: service.StreamMessagesFn | None = None,

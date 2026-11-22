@@ -62,6 +62,7 @@ async function openImpactView(tab) {
   abortActiveRequest(); stopActiveAudio(); stopGraphSimulation();
   if (typeof closeWorkBoardView === "function") { closeWorkBoardView(); }
   if (typeof closeFocusView === "function") { closeFocusView(); }
+  if (typeof closeWorkflowsView === "function") { closeWorkflowsView(); }
   if (typeof syncInspectorSidebar === "function") { inspectorOpen = false; syncInspectorSidebar(); }
   impViewOpen = true;
   if (typeof setAmbientDimmed === "function") { setAmbientDimmed(true); }

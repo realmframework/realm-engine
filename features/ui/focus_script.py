@@ -118,6 +118,7 @@ async function openFocusView() {
   abortActiveRequest(); stopActiveAudio(); stopGraphSimulation();
   if (typeof closeWorkBoardView === "function") { closeWorkBoardView(); }
   if (typeof closeImpactView === "function") { closeImpactView(); }
+  if (typeof closeWorkflowsView === "function") { closeWorkflowsView(); }
   if (typeof syncInspectorSidebar === "function") { inspectorOpen = false; syncInspectorSidebar(); }
   focViewOpen = true;
   if (typeof setAmbientDimmed === "function") { setAmbientDimmed(true); }

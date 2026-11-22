@@ -4,7 +4,7 @@ import importlib.metadata
 import tomllib
 from pathlib import Path
 
-_FALLBACK_VERSION = "0.7.0"
+_FALLBACK_VERSION = "0.8.0"
 
 
 def _resolve_version() -> str:

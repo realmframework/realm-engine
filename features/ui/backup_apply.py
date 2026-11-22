@@ -11,6 +11,7 @@ from core.db import atomic_write_bytes
 from core.impact_contracts import FocusState, ImpactLedgerState
 from core.linked_vaults import cache_index_for_dir, cache_study_path, is_linked_vault
 from core.work_contracts import WorkBoardState
+from core.workflow_contracts import WorkflowState
 from features.ui import chat_store, folders, workspace
 from features.ui.backup_archive import MAX_ARCHIVE_BYTES, bounded_bytes
 from features.ui.backup_state import restored_state
@@ -35,7 +36,7 @@ def apply_restore(entries: dict[str, bytes], active: WorkspaceConfig, activate: 
                 raise HTTPException(status_code=409, detail="An existing guide differs. Restore into a new workspace to keep both versions.")
         else:
             planned.append((path, raw))
-    extra_models = (("work_board.json", WorkBoardState), ("impact_ledger.json", ImpactLedgerState), ("focus_engine.json", FocusState))
+    extra_models = (("work_board.json", WorkBoardState), ("impact_ledger.json", ImpactLedgerState), ("focus_engine.json", FocusState), ("workflows.json", WorkflowState))
     extra_restores = [(cache_study_path(active.knowledge_dir, fname, workspace.REPO_ROOT), model.model_validate_json(entries[fname].decode("utf-8"))) for fname, model in extra_models if fname in entries]
     metadata = {workspace.WORKSPACE_FILE, chat_path, cache_index_for_dir(target, workspace.REPO_ROOT), *(p for p, _ in extra_restores)}
     original = {p: bounded_bytes(p, MAX_ARCHIVE_BYTES) if p.exists() else None for p in metadata}

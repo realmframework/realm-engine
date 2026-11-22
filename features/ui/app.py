@@ -22,6 +22,7 @@ from features.ingestion.service import ingest_directory
 from features.search.router import route_query_intent
 from features.search.service import hybrid_search
 from features.slides import router as slides_router
+from features.slides import service as slides_service
 from features.tutor_agent import budget, key_verify
 from features.tutor_agent.models_discovery import discover_models
 from features.tutor_agent.providers import list_provider_models
@@ -35,6 +36,7 @@ from features.ui import (
     slides_source,
     ui_routers,
     work_bridge,
+    workflow_bridge,
     workspace,
 )
 from features.ui.cloud_access import build_embedder, build_guard
@@ -45,6 +47,8 @@ from features.ui.template import HTML_PAGE
 from features.ui.upload_guard import upload_body_guard
 from features.work_board import router as work_board_router
 from features.work_board import service as work_board_service
+from features.workflows import engine as workflow_engine
+from features.workflows import router as workflow_router
 
 STATIC_DIR, AUTO_EMBED = bundle_root() / "features" / "ui" / "static", os.environ.get("REALM_AUTO_EMBED", "1").strip().lower() not in {"0", "false", "no"}
 secrets.load_dotenv_files()
@@ -106,18 +110,14 @@ def build_public_app(data_dir: Path | None = None, quota_check: public_rate_limi
     return public_config.build_public_fastapi(lambda d: ingest_directory(d, read_only=True), route_query_intent, hybrid_search, lambda *a, **kw: embed_text(*a, **kw), lambda *a, **kw: run_tutor(*a, skip_local_budget=True, public_mode=True, **kw), budget.estimate_usage, data_dir=data_dir, quota_check=quota_check)
 
 def _build_local_app() -> FastAPI:
-    local = FastAPI(title="REALM Engine", version=APP_VERSION, lifespan=area_lifespan(converters.repair_directory_topics, _invalidate_index, lambda: WORKSPACE_CONFIG))
+    cloud_guard = build_guard(lambda: WORKSPACE_CONFIG, budget.check_and_record_budget, budget.estimate_usage)
+    wf_cbs = lambda cfg: workflow_bridge.build_workflow_callbacks(cfg, get_index, _reindex, hybrid_search, stream_messages_events, cloud_guard, slides_service.export_deck_bytes, work_board_service.add_tasks_from_text, impact_router.log_workflow_impact)  # noqa: E731
+    local = FastAPI(title="REALM Engine", version=APP_VERSION, lifespan=area_lifespan(converters.repair_directory_topics, _invalidate_index, lambda: WORKSPACE_CONFIG, lambda: workflow_engine.tick_scheduled_workflows(WORKSPACE_CONFIG, wf_cbs(WORKSPACE_CONFIG), workspace.REPO_ROOT)))
     install_safe_error_handlers(local)
     local.add_middleware(upload_body_guard)
     local.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-    cloud_guard = build_guard(lambda: WORKSPACE_CONFIG, budget.check_and_record_budget, budget.estimate_usage)
     deps: dict[str, object] = {
-        "stream_messages": stream_messages_events, "reset_ollama": embedder.reset_ollama_status,
-        "convert_bytes": converters.convert_bytes_to_markdown, "inspect_anon": inspect_anonymization,
-        "anon_slug": anonymize_slug, "ingest_dir": ingest_directory, "route_intent": route_query_intent,
-        "hybrid_search": hybrid_search, "embedder": build_embedder(lambda *a, **kw: embed_text(*a, **kw), cloud_guard),
-        "run_tutor": lambda *args, **kwargs: run_tutor(*args, **kwargs), "stream_tutor": stream_tutor_events,
-        "budget_snapshot": budget.budget_snapshot, "reset_budget": budget.reset_budget, "verify_key": key_verify.verify_provider_key,
+        "stream_messages": stream_messages_events, "reset_ollama": embedder.reset_ollama_status, "convert_bytes": converters.convert_bytes_to_markdown, "inspect_anon": inspect_anonymization, "anon_slug": anonymize_slug, "ingest_dir": ingest_directory, "route_intent": route_query_intent, "hybrid_search": hybrid_search, "embedder": build_embedder(lambda *a, **kw: embed_text(*a, **kw), cloud_guard), "run_tutor": lambda *args, **kwargs: run_tutor(*args, **kwargs), "stream_tutor": stream_tutor_events, "budget_snapshot": budget.budget_snapshot, "reset_budget": budget.reset_budget, "verify_key": key_verify.verify_provider_key,
     }
     routers = (
         *ui_routers.build_ui_routers(get_config=lambda: WORKSPACE_CONFIG, set_config=_set_workspace_config, activate_workspace=activate_workspace, get_index=get_index, reindex=_reindex, cloud_guard=cloud_guard, deps=deps),
@@ -125,6 +125,7 @@ def _build_local_app() -> FastAPI:
         work_board_router.build_router(lambda: WORKSPACE_CONFIG, work_bridge.build_work_source_resolver(lambda: WORKSPACE_CONFIG, get_index), stream_messages_events, work_bridge.build_work_vault_sync(lambda: WORKSPACE_CONFIG, _reindex), lambda: workspace.REPO_ROOT),
         impact_router.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events, lambda a: work_board_service.project_name_map(a, workspace.REPO_ROOT), lambda: workspace.REPO_ROOT),
         focus_router.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events, lambda a, lbl, mins, pid, tid, nt: impact_router.log_focus_time(a, workspace.REPO_ROOT, lbl, mins, pid, tid, nt), lambda a: work_board_service.open_task_summaries(a, workspace.REPO_ROOT), lambda a, blks: work_board_service.schedule_focus_events(a, list(blks), workspace.REPO_ROOT), lambda: workspace.REPO_ROOT),
+        workflow_router.build_router(lambda: WORKSPACE_CONFIG, wf_cbs, lambda: workspace.REPO_ROOT),
     )
     for router in routers:
         local.include_router(router)

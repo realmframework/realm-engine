@@ -52,6 +52,7 @@ async function loadWorkBoardSummary(force) {
   if (changed) {
     if (typeof loadFocusSummary === "function") { loadFocusSummary(); }
     if (typeof loadImpactSummary === "function") { loadImpactSummary(); }
+    if (typeof loadWorkflowsSummary === "function") { loadWorkflowsSummary(); }
   }
 }
 function closeWorkBoardView() {
@@ -65,6 +66,7 @@ async function openWorkBoardView(tab) {
   abortActiveRequest(); stopActiveAudio(); stopGraphSimulation();
   if (typeof closeFocusView === "function") { closeFocusView(); }
   if (typeof closeImpactView === "function") { closeImpactView(); }
+  if (typeof closeWorkflowsView === "function") { closeWorkflowsView(); }
   if (typeof syncInspectorSidebar === "function") { inspectorOpen = false; syncInspectorSidebar(); }
   wbViewOpen = true;
   if (typeof setAmbientDimmed === "function") { setAmbientDimmed(true); }
