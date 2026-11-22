@@ -5,7 +5,9 @@ from features.ui.comfort_script import COMFORT_SCRIPT
 from features.ui.command_script import COMMAND_SCRIPT
 from features.ui.eco_sync_script import ECO_SYNC_SCRIPT
 from features.ui.editor_script import EDITOR_SCRIPT
+from features.ui.focus_script import FOCUS_SCRIPT
 from features.ui.guide_script import GUIDE_SCRIPT
+from features.ui.impact_script import IMPACT_SCRIPT
 from features.ui.mention_script import MENTION_SCRIPT
 from features.ui.power_script import POWER_SCRIPT
 from features.ui.split_script import SPLIT_SCRIPT
@@ -26,6 +28,8 @@ UX_BUNDLE_SCRIPT: str = (
     + AGENT_BUILDER_SCRIPT
     + WORK_BOARD_SCRIPT
     + SPLIT_SCRIPT
+    + FOCUS_SCRIPT
+    + IMPACT_SCRIPT
     + r"""
 function bindAllUXBundles() {
   for (const fn of [
@@ -41,6 +45,8 @@ function bindAllUXBundles() {
     typeof bindAgentBuilderUX === "function" && bindAgentBuilderUX,
     typeof bindWorkBoardUX === "function" && bindWorkBoardUX,
     typeof bindSplitUX === "function" && bindSplitUX,
+    typeof bindFocusUX === "function" && bindFocusUX,
+    typeof bindImpactUX === "function" && bindImpactUX,
   ]) {
     if (fn) { try { fn(); } catch (err) { console.error("UX bundle init failed:", err); } }
   }

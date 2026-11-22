@@ -7,8 +7,11 @@ from features.ui.command_template import (
 )
 from features.ui.editor_template import EDITOR_MODALS_HTML, EDITOR_STYLES_CSS
 from features.ui.experience_template import AREA_TEMPLATE_SELECT
+from features.ui.focus_template import FOCUS_MODALS_HTML, FOCUS_VIEW_HTML
 from features.ui.form_styles import FORM_STYLES_CSS
 from features.ui.guide_template import GUIDE_MODAL_HTML, GUIDE_STYLES_CSS
+from features.ui.impact_focus_styles import IMPACT_FOCUS_STYLES_CSS
+from features.ui.impact_template import IMPACT_MODALS_HTML, IMPACT_VIEW_HTML
 from features.ui.modals import MODALS_HTML
 from features.ui.power_template import POWER_MODAL_HTML, POWER_STYLES_CSS
 from features.ui.script import CLIENT_SCRIPT
@@ -161,6 +164,7 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
     + POWER_STYLES_CSS
     + WORK_BOARD_STYLES_CSS
     + SPLIT_STYLES_CSS
+    + IMPACT_FOCUS_STYLES_CSS
     + """
 </head>
 <body class="bg-[#04060F] font-sans text-base text-[#EEF2F8] antialiased">
@@ -176,6 +180,10 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
     <div id="graph-view" class="graph-viewport hidden w-full relative overflow-hidden bg-[#04060F]"></div>
 """
     + WORK_BOARD_HTML
+    + "\n"
+    + FOCUS_VIEW_HTML
+    + "\n"
+    + IMPACT_VIEW_HTML
     + "\n"
     + """    <div id="workspace-shell" class="flex flex-col w-full flex-1 justify-center items-center px-4 sm:px-6">
       <div id="active-stream" tabindex="-1" class="hidden w-full max-w-3xl flex-1 pt-8 pb-16 flex-col gap-8 outline-none">
@@ -250,6 +258,8 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
     + STUDY_MODAL_HTML
     + POWER_MODAL_HTML
     + WORK_BOARD_MODALS_HTML
+    + FOCUS_MODALS_HTML
+    + IMPACT_MODALS_HTML
     + SPLIT_MENU_HTML
     + "\n"
     + CLIENT_SCRIPT

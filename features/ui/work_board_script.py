@@ -49,6 +49,10 @@ async function loadWorkBoardSummary(force) {
   wbLoadedArea = area; wbProjectFilter = "";
   if (changed && typeof resetSplitOnAreaChange === "function") { resetSplitOnAreaChange(); }
   await wbApi("/api/work-board");
+  if (changed) {
+    if (typeof loadFocusSummary === "function") { loadFocusSummary(); }
+    if (typeof loadImpactSummary === "function") { loadImpactSummary(); }
+  }
 }
 function closeWorkBoardView() {
   wbViewOpen = false;
@@ -59,6 +63,8 @@ function closeWorkBoardView() {
 }
 async function openWorkBoardView(tab) {
   abortActiveRequest(); stopActiveAudio(); stopGraphSimulation();
+  if (typeof closeFocusView === "function") { closeFocusView(); }
+  if (typeof closeImpactView === "function") { closeImpactView(); }
   if (typeof syncInspectorSidebar === "function") { inspectorOpen = false; syncInspectorSidebar(); }
   wbViewOpen = true;
   if (typeof setAmbientDimmed === "function") { setAmbientDimmed(true); }

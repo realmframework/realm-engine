@@ -1,5 +1,7 @@
 """Pure CRUD operations for Projects, Kanban Columns, Calendar Events, and Task re-exports."""
 
+from pathlib import Path
+
 from core.work_contracts import (
     BoardColumn,
     CalendarEvent,
@@ -8,7 +10,14 @@ from core.work_contracts import (
     WorkBoardState,
     WorkProject,
 )
-from features.work_board.store import new_id, utc_now
+from features.work_board.store import (
+    board_path,
+    done_column_ids,
+    load_board,
+    new_id,
+    save_board,
+    utc_now,
+)
 from features.work_board.task_ops import add_task, edit_task, remove_task, reorder_task
 
 __all__ = [
@@ -100,3 +109,29 @@ def edit_event(state: WorkBoardState, event_id: str, updates: dict[str, object])
 def remove_event(state: WorkBoardState, event_id: str) -> tuple[WorkBoardState, bool]:
     kept = [e for e in state.events if e.id != event_id]
     return (state.model_copy(update={"events": kept}), True) if len(kept) != len(state.events) else (state, False)
+
+
+def project_name_map(area: str, root: Path | None = None) -> dict[str, str]:
+    state = load_board(board_path(area, root))
+    return {p.id: p.title for p in state.projects}
+
+
+def open_task_summaries(area: str, root: Path | None = None) -> list[dict[str, str]]:
+    state = load_board(board_path(area, root))
+    done_cols = done_column_ids(state)
+    return [{"id": t.id, "title": t.title, "project_id": t.project_id, "due_date": t.due_date, "priority": t.priority} for t in state.tasks if t.column_id not in done_cols][:25]
+
+
+def schedule_focus_events(area: str, blocks: list[object], root: Path | None = None) -> int:
+    path = board_path(area, root)
+    state = load_board(path)
+    added = 0
+    for blk in blocks:
+        title, dt = str(getattr(blk, "title", "")).strip(), str(getattr(blk, "date", "")).strip()
+        if not title or not dt:
+            continue
+        state, _ = add_event(state, title, dt, str(getattr(blk, "start_time", "")), str(getattr(blk, "end_time", "")), "focus", str(getattr(blk, "notes", "")), str(getattr(blk, "project_id", "")))
+        added += 1
+    if added:
+        save_board(state, path)
+    return added

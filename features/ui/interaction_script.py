@@ -56,7 +56,7 @@ function bindSidebarDrawer() {
   if (bd) { bd.addEventListener("click", function () { closeMobileDrawerIfOpen(true); }); }
   if (sb) {
     sb.addEventListener("click", function (e) {
-      if (sidebarNarrowMq.matches && mobileDrawerOpen && e.target.closest("#new-chat-btn, #sidebar-cmd-btn, #sidebar-browse-btn, #sidebar-graph-btn, #sidebar-agents-btn, #sidebar-formats-btn, #sidebar-work-btn, #open-settings-btn, #open-guide-btn, [data-open-chat]")) {
+      if (sidebarNarrowMq.matches && mobileDrawerOpen && e.target.closest("#new-chat-btn, #sidebar-cmd-btn, #sidebar-browse-btn, #sidebar-graph-btn, #sidebar-agents-btn, #sidebar-formats-btn, #sidebar-work-btn, #sidebar-focus-btn, #sidebar-impact-btn, #open-settings-btn, #open-guide-btn, [data-open-chat]")) {
         closeMobileDrawerIfOpen(false);
       }
     });

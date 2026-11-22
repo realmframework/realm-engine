@@ -52,9 +52,10 @@ def build_router(config: Callable[[], WorkspaceConfig], activate: Callable[[Work
                 scoped_excl = {active.knowledge_dir: list(active.excluded_subfolders[active.knowledge_dir])} if active.knowledge_dir in active.excluded_subfolders else {}
                 portable = active.model_copy(update={"active_dirs": [active.knowledge_dir], "excluded_subfolders": scoped_excl, "searxng_url": "", "enable_local_api": False})
                 entries = {"workspace.json": portable.model_dump_json(indent=2).encode(), "chats.json": json.dumps([_portable_chat_dump(c) for c in current_chats(chat_store.area_chat_path(active.knowledge_dir)) if c.area == active.knowledge_dir and (c.active_dirs or [c.area]) == [active.knowledge_dir]]).encode()}
-                wb_path = cache_study_path(active.knowledge_dir, "work_board.json", workspace.REPO_ROOT)
-                if wb_path.is_file() and not wb_path.is_symlink():
-                    entries["work_board.json"] = bounded_bytes(wb_path)
+                for extra_name in ("work_board.json", "impact_ledger.json", "focus_engine.json"):
+                    extra_path = cache_study_path(active.knowledge_dir, extra_name, workspace.REPO_ROOT)
+                    if extra_path.is_file() and not extra_path.is_symlink():
+                        entries[extra_name] = bounded_bytes(extra_path)
                 total = sum(map(len, entries.values()))
                 for path in target.rglob("*"):
                     if path.is_symlink() or any(part.startswith(".") for part in path.relative_to(target).parts):

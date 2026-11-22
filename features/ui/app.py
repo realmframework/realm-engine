@@ -13,6 +13,8 @@ from core.http_guard import install_safe_error_handlers
 from core.linked_vaults import cache_index_for_dir
 from core.runtime import app_mode, bundle_root
 from core.version import APP_VERSION
+from features.focus import router as focus_router
+from features.impact_ledger import router as impact_router
 from features.ingestion import converters, embedder
 from features.ingestion.anonymizer import anonymize_slug, inspect_anonymization
 from features.ingestion.embedder import embed_text
@@ -42,6 +44,7 @@ from features.ui.startup import area_lifespan
 from features.ui.template import HTML_PAGE
 from features.ui.upload_guard import upload_body_guard
 from features.work_board import router as work_board_router
+from features.work_board import service as work_board_service
 
 STATIC_DIR, AUTO_EMBED = bundle_root() / "features" / "ui" / "static", os.environ.get("REALM_AUTO_EMBED", "1").strip().lower() not in {"0", "false", "no"}
 secrets.load_dotenv_files()
@@ -120,6 +123,8 @@ def _build_local_app() -> FastAPI:
         *ui_routers.build_ui_routers(get_config=lambda: WORKSPACE_CONFIG, set_config=_set_workspace_config, activate_workspace=activate_workspace, get_index=get_index, reindex=_reindex, cloud_guard=cloud_guard, deps=deps),
         slides_router.build_router(slides_source.build_source_resolver(lambda: WORKSPACE_CONFIG, get_index)),
         work_board_router.build_router(lambda: WORKSPACE_CONFIG, work_bridge.build_work_source_resolver(lambda: WORKSPACE_CONFIG, get_index), stream_messages_events, work_bridge.build_work_vault_sync(lambda: WORKSPACE_CONFIG, _reindex), lambda: workspace.REPO_ROOT),
+        impact_router.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events, lambda a: work_board_service.project_name_map(a, workspace.REPO_ROOT), lambda: workspace.REPO_ROOT),
+        focus_router.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events, lambda a, lbl, mins, pid, tid, nt: impact_router.log_focus_time(a, workspace.REPO_ROOT, lbl, mins, pid, tid, nt), lambda a: work_board_service.open_task_summaries(a, workspace.REPO_ROOT), lambda a, blks: work_board_service.schedule_focus_events(a, list(blks), workspace.REPO_ROOT), lambda: workspace.REPO_ROOT),
     )
     for router in routers:
         local.include_router(router)
