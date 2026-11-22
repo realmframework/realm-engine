@@ -35,6 +35,8 @@ def test_m5_html_contains_workflow_studio_canvas_toolbar_and_modals(tmp_path: Pa
         'id="rail-workflows-btn"',
         'id="workflows-view"',
         'id="wf-toolbar"',
+        'id="wf-add-gateway-btn"',
+        'id="wf-zoom-hud"',
         'id="wf-meta-bar"',
         'id="wf-sched-wrap"',
         'role="toolbar"',

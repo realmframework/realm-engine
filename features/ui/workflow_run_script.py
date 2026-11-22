@@ -1,4 +1,4 @@
-"""Workflow Studio Node Inspector, Starter Templates Gallery, Live SSE Runner & Run History."""
+"""Workflow Studio Node Inspector (with Dual-Branch Gateways), Templates Gallery & Live SSE Runner."""
 
 WORKFLOW_RUN_SCRIPT: str = r"""
 function setWorkflowSideTab(tab) {
@@ -39,20 +39,39 @@ async function createBlankWorkflowAndOpen() {
     body: JSON.stringify({
       name: name, description: "", trigger_kind: "manual", schedule_minutes: 0,
       nodes: [
-        { id: "n1", kind: "trigger", label: t("wf_trig_manual"), x: 36, y: 110, config: { trigger_kind: "manual" } },
-        { id: "n2", kind: "run_agent", label: t("wf_k_run_agent"), x: 288, y: 110, config: { agent_id: "saga", prompt: "Summarize key takeaways:\n\n{{input}}" } }
+        { id: "n1", kind: "trigger", label: t("wf_trig_manual"), x: 36, y: 120, config: { trigger_kind: "manual" } },
+        { id: "n2", kind: "run_agent", label: t("wf_k_run_agent"), x: 300, y: 120, config: { agent_id: "saga", prompt: "Summarize key takeaways:\n\n{{input}}" } }
       ],
       edges: [{ id: "e1", source: "n1", target: "n2", branch: "default" }]
     })
   });
   if (data && data.item) {
-    wfActiveId = data.item.id; wfSelectedNodeId = "n2"; wfNodeRunState = {}; wfLiveSteps = [];
+    wfActiveId = data.item.id; wfSelectedNodeId = "n2"; wfNodeRunState = {}; wfLiveSteps = []; wfLastFitId = "";
     setWorkflowSideTab("inspect");
     renderWorkflowsView();
     showToast(t("wf_created_toast"));
     const nameIn = document.getElementById("wf-name-in");
     if (nameIn) { nameIn.focus(); nameIn.select(); }
   }
+}
+function wfAddStepNode(kind, fromNode, branch) {
+  const wf = activeWorkflow(); if (!wf) { return null; }
+  const src = fromNode || (wf.nodes || []).find(function (n) { return n.id === wfSelectedNodeId; }) || wf.nodes[wf.nodes.length - 1] || null;
+  const nid = "n_" + Date.now().toString(36).slice(-5) + Math.random().toString(36).slice(2, 4);
+  const outCount = src ? (wf.edges || []).filter(function (e) { return e.source === src.id; }).length : 0;
+  let x = src ? Number(src.x || 0) + 260 : 40;
+  let y = src ? Number(src.y || 120) : 120;
+  if (branch === "true") { y = Math.max(20, y - 78); }
+  else if (branch === "false") { y = y + 84; }
+  else if (outCount > 0) { y = y + outCount * 118; }
+  const cfg = kind === "run_agent" ? { agent_id: "saga", prompt: "Process:\n\n{{prev}}" } : (kind === "condition" ? { contains: "" } : {});
+  const node = { id: nid, kind: kind, label: t(WF_KIND_KEYS[kind] || "wf_k_run_agent"), x: Math.round(x), y: Math.round(y), config: cfg };
+  wf.nodes.push(node);
+  if (src) { wfConnectNodes(wf, src.id, nid, branch || (src.kind === "condition" ? "true" : "default")); }
+  wfSelectedNodeId = nid; setWorkflowSideTab("inspect");
+  renderWorkflowsView();
+  wfFitCanvas(wf);
+  return node;
 }
 function renderWorkflowInspector(wf) {
   const box = document.getElementById("wf-node-inspector"); if (!box) { return; }
@@ -67,7 +86,7 @@ function renderWorkflowInspector(wf) {
   } else if (node.kind === "vault_search") {
     fields += "<div class='wb-field'><label for='wfi-query'>" + escapeHtml(t("wf_query_lbl")) + "</label><input id='wfi-query' type='text' value='" + escapeHtml(cfg.query || "{{input}}") + "' class='wb-input'/></div>";
   } else if (node.kind === "condition") {
-    fields += "<div class='wb-field'><label for='wfi-contains'>" + escapeHtml(t("wf_contains_lbl")) + "</label><input id='wfi-contains' type='text' value='" + escapeHtml(cfg.contains || "") + "' class='wb-input'/></div>";
+    fields += "<div class='wb-field'><label for='wfi-contains'>" + escapeHtml(t("wf_contains_lbl")) + "</label><input id='wfi-contains' type='text' placeholder='e.g. urgent, approved, error' value='" + escapeHtml(cfg.contains || "") + "' class='wb-input'/></div>";
   } else if (node.kind === "generate_slides") {
     fields += "<div class='wb-field'><label for='wfi-title'>" + escapeHtml(t("wf_out_title")) + "</label><input id='wfi-title' type='text' value='" + escapeHtml(cfg.title || "Executive Brief") + "' class='wb-input'/></div>"
       + "<div class='wb-field'><label for='wfi-fmt'>" + escapeHtml(t("wf_out_fmt")) + "</label><select id='wfi-fmt' class='wb-select'><option value='pptx'" + (cfg.output_format !== "pdf" ? " selected" : "") + ">PowerPoint (.pptx)</option><option value='pdf'" + (cfg.output_format === "pdf" ? " selected" : "") + ">PDF Slides (16:9)</option></select></div>";
@@ -75,13 +94,19 @@ function renderWorkflowInspector(wf) {
     fields += "<div class='wb-field'><label for='wfi-title'>" + escapeHtml(t("wf_out_title")) + "</label><input id='wfi-title' type='text' value='" + escapeHtml(cfg.title || "Workflow Note") + "' class='wb-input'/></div>"
       + "<div class='wb-field'><label for='wfi-sub'>" + escapeHtml(t("wf_subfolder_lbl")) + "</label><input id='wfi-sub' type='text' value='" + escapeHtml(cfg.subfolder || "workflows") + "' class='wb-input'/></div>";
   }
-  const outEdges = (wf.edges || []).filter(function (e) { return e.source === node.id; });
   const otherNodes = (wf.nodes || []).filter(function (n) { return n.id !== node.id; });
-  const curTarget = outEdges[0] ? outEdges[0].target : "", curBranch = outEdges[0] ? outEdges[0].branch : "default";
-  fields += "<div class='wb-field'><label for='wfi-next'>" + escapeHtml(t("wf_connect_next")) + "</label><select id='wfi-next' class='wb-select'><option value=''>" + escapeHtml(t("wf_no_next")) + "</option>"
-    + otherNodes.map(function (n) { return "<option value='" + escapeHtml(n.id) + "'" + (n.id === curTarget ? " selected" : "") + ">" + escapeHtml(n.label) + "</option>"; }).join("") + "</select></div>";
+  const nodeOpts = function (cur) {
+    return "<option value=''>" + escapeHtml(t("wf_no_next")) + "</option>"
+      + otherNodes.map(function (n) { return "<option value='" + escapeHtml(n.id) + "'" + (n.id === cur ? " selected" : "") + ">" + escapeHtml(n.label) + "</option>"; }).join("");
+  };
   if (node.kind === "condition") {
-    fields += "<div class='wb-field'><label for='wfi-branch'>" + escapeHtml(t("wf_branch_lbl")) + "</label><select id='wfi-branch' class='wb-select'><option value='true'" + (curBranch === "true" ? " selected" : "") + ">TRUE</option><option value='false'" + (curBranch === "false" ? " selected" : "") + ">FALSE</option></select></div>";
+    const tEdge = (wf.edges || []).find(function (e) { return e.source === node.id && e.branch === "true"; });
+    const fEdge = (wf.edges || []).find(function (e) { return e.source === node.id && e.branch === "false"; });
+    fields += "<div class='wb-field'><label for='wfi-next-true' class='wf-branch-lbl-true'>" + escapeHtml(t("wf_true_next")) + "</label><div class='wf-branch-row'><select id='wfi-next-true' class='wb-select'>" + nodeOpts(tEdge ? tEdge.target : "") + "</select><button id='wfi-add-true-btn' type='button' class='wb-btn wb-btn-sm'>" + escapeHtml(t("wf_add_branch_step")) + "</button></div></div>"
+      + "<div class='wb-field'><label for='wfi-next-false' class='wf-branch-lbl-false'>" + escapeHtml(t("wf_false_next")) + "</label><div class='wf-branch-row'><select id='wfi-next-false' class='wb-select'>" + nodeOpts(fEdge ? fEdge.target : "") + "</select><button id='wfi-add-false-btn' type='button' class='wb-btn wb-btn-sm'>" + escapeHtml(t("wf_add_branch_step")) + "</button></div></div>";
+  } else {
+    const outEdge = (wf.edges || []).find(function (e) { return e.source === node.id; });
+    fields += "<div class='wb-field'><label for='wfi-next'>" + escapeHtml(t("wf_connect_next")) + "</label><select id='wfi-next' class='wb-select'>" + nodeOpts(outEdge ? outEdge.target : "") + "</select></div>";
   }
   const rmBtn = wf.nodes.length > 1 ? "<button id='wfi-remove-btn' type='button' class='wb-btn wb-btn-sm wb-btn-danger'>" + escapeHtml(t("wf_remove_step")) + "</button>" : "";
   box.innerHTML = "<div style='display:flex;flex-direction:column;gap:0.65rem'>"
@@ -95,15 +120,30 @@ function renderWorkflowInspector(wf) {
   bindVal("wfi-title", function (v) { node.config.title = v; });
   bindVal("wfi-fmt", function (v) { node.config.output_format = v; });
   bindVal("wfi-sub", function (v) { node.config.subfolder = v; });
-  const nextSel = document.getElementById("wfi-next"), brSel = document.getElementById("wfi-branch");
-  const syncEdge = function () {
-    const dest = nextSel ? nextSel.value : "", br = brSel ? brSel.value : "default";
-    wf.edges = (wf.edges || []).filter(function (e) { return !(e.source === node.id && (node.kind !== "condition" || e.branch === br)); });
-    if (dest) { wf.edges.push({ id: "e_" + Date.now().toString(36), source: node.id, target: dest, branch: node.kind === "condition" ? br : "default" }); }
-    renderWorkflowCanvas(wf);
-  };
-  if (nextSel) { nextSel.addEventListener("change", syncEdge); }
-  if (brSel) { brSel.addEventListener("change", syncEdge); }
+  if (node.kind === "condition") {
+    const bindBr = function (selId, addId, br) {
+      const selEl = document.getElementById(selId), addEl = document.getElementById(addId);
+      if (selEl) {
+        selEl.addEventListener("change", function () {
+          wf.edges = (wf.edges || []).filter(function (e) { return !(e.source === node.id && e.branch === br); });
+          if (selEl.value) { wfConnectNodes(wf, node.id, selEl.value, br); }
+          renderWorkflowCanvas(wf);
+        });
+      }
+      if (addEl) { addEl.addEventListener("click", function () { wfAddStepNode("run_agent", node, br); }); }
+    };
+    bindBr("wfi-next-true", "wfi-add-true-btn", "true");
+    bindBr("wfi-next-false", "wfi-add-false-btn", "false");
+  } else {
+    const nextSel = document.getElementById("wfi-next");
+    if (nextSel) {
+      nextSel.addEventListener("change", function () {
+        wf.edges = (wf.edges || []).filter(function (e) { return e.source !== node.id; });
+        if (nextSel.value) { wfConnectNodes(wf, node.id, nextSel.value, "default"); }
+        renderWorkflowCanvas(wf);
+      });
+    }
+  }
   const rm = document.getElementById("wfi-remove-btn");
   if (rm) {
     rm.addEventListener("click", function () {
@@ -145,7 +185,7 @@ function openWorkflowTemplatesModal() {
   grid.querySelectorAll("[data-wf-install-tpl]").forEach(function (btn) {
     btn.addEventListener("click", async function () {
       const data = await wfApi("/api/workflows/from-template/" + encodeURIComponent(btn.getAttribute("data-wf-install-tpl") || ""), { method: "POST" });
-      if (data) { modal.close(); showToast(t("wf_installed_toast")); }
+      if (data) { wfLastFitId = ""; modal.close(); showToast(t("wf_installed_toast")); }
     });
   });
   modal.showModal();
@@ -169,9 +209,7 @@ async function runActiveWorkflowStream(inputText) {
       else if (evName === "step_done" && ev.step) { wfNodeRunState[ev.step.node_id] = ev.step.status; wfLiveSteps.push(ev.step); renderWorkflowCanvas(wf); renderWorkflowRuns(); }
       else if (evName === "step_skipped" && ev.step) { wfNodeRunState[ev.step.node_id] = "skipped"; wfLiveSteps.push(ev.step); renderWorkflowCanvas(wf); renderWorkflowRuns(); }
       else if (evName === "run_error") { showToast(ev.error || "Workflow failed", 4000); }
-      else if (evName === "run_done" && ev.run) {
-        showToast(ev.run.status === "cancelled" ? t("wf_run_stopped_toast") : t("wf_run_done_toast"));
-      }
+      else if (evName === "run_done" && ev.run) { showToast(ev.run.status === "cancelled" ? t("wf_run_stopped_toast") : t("wf_run_done_toast")); }
     }, function () { return ctrl.signal.aborted; });
   } catch (err) {
     if (!ctrl.signal.aborted) { showToast(err.message || "Workflow error", 3800); }
@@ -184,15 +222,31 @@ async function runActiveWorkflowStream(inputText) {
     if (typeof loadGuidesCatalog === "function") { loadGuidesCatalog(null); }
   }
 }
+function bindWorkflowToolbarFallback() {
+  const bar = document.getElementById("wf-toolbar");
+  if (!bar || ("focusGroup" in HTMLElement.prototype)) { return; }
+  const items = Array.from(bar.querySelectorAll("button, select"));
+  items.forEach(function (el, i) { el.tabIndex = i === 0 ? 0 : -1; });
+  bar.addEventListener("focusin", function (e) { if (items.includes(e.target)) { items.forEach(function (el) { el.tabIndex = el === e.target ? 0 : -1; }); } });
+  bar.addEventListener("keydown", function (e) {
+    const idx = items.indexOf(document.activeElement); if (idx < 0) { return; }
+    const rtl = getComputedStyle(bar).direction === "rtl";
+    let nxt = -1;
+    if (e.key === "ArrowRight") { nxt = (idx + (rtl ? -1 : 1) + items.length) % items.length; }
+    else if (e.key === "ArrowLeft") { nxt = (idx + (rtl ? 1 : -1) + items.length) % items.length; }
+    else if (e.key === "Home") { nxt = 0; }
+    else if (e.key === "End") { nxt = items.length - 1; }
+    if (nxt >= 0) { e.preventDefault(); items[nxt].focus(); }
+  });
+}
 function bindWorkflowStudioUX() {
-  const sBtn = document.getElementById("sidebar-workflows-btn");
-  if (sBtn) { sBtn.addEventListener("click", openWorkflowsView); }
   bindWorkflowToolbarFallback();
+  if (typeof bindWorkflowCanvasViewportUX === "function") { bindWorkflowCanvasViewportUX(); }
   if (typeof bindRovingTablist === "function") { bindRovingTablist("#wf-side-tablist [role='tab']", function (b) { setWorkflowSideTab(b.getAttribute("data-wf-side")); }); }
   document.querySelectorAll("[data-wf-side]").forEach(function (b) { b.addEventListener("click", function () { setWorkflowSideTab(b.getAttribute("data-wf-side")); }); });
   document.querySelectorAll("[data-wf-mode]").forEach(function (b) { b.addEventListener("click", function () { wfViewMode = b.getAttribute("data-wf-mode") || "canvas"; renderWorkflowsView(); }); });
   const sel = document.getElementById("wf-select");
-  if (sel) { sel.addEventListener("change", function () { wfActiveId = sel.value; wfSelectedNodeId = ""; wfNodeRunState = {}; wfLiveSteps = []; renderWorkflowsView(); }); }
+  if (sel) { sel.addEventListener("change", function () { wfActiveId = sel.value; wfSelectedNodeId = ""; wfNodeRunState = {}; wfLiveSteps = []; wfLastFitId = ""; renderWorkflowsView(); }); }
   ["wf-templates-btn", "wf-empty-tpl-btn"].forEach(function (id) { const el = document.getElementById(id); if (el) { el.addEventListener("click", openWorkflowTemplatesModal); } });
   ["wf-new-btn", "wf-empty-new-btn"].forEach(function (id) { const el = document.getElementById(id); if (el) { el.addEventListener("click", createBlankWorkflowAndOpen); } });
   const nameIn = document.getElementById("wf-name-in"), trigSel = document.getElementById("wf-trig-sel"), schIn = document.getElementById("wf-sched-mins");
@@ -200,12 +254,7 @@ function bindWorkflowStudioUX() {
     nameIn.addEventListener("input", function () {
       const wf = activeWorkflow(); if (!wf) { return; }
       const v = nameIn.value.trim();
-      if (v) {
-        wf.name = v;
-        if (sel && sel.selectedOptions && sel.selectedOptions[0]) { sel.selectedOptions[0].textContent = v; }
-        if (typeof renderDrawerDynamicLists === "function") { renderDrawerDynamicLists(); }
-        if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
-      }
+      if (v) { wf.name = v; if (sel && sel.selectedOptions && sel.selectedOptions[0]) { sel.selectedOptions[0].textContent = v; } if (typeof renderDrawerDynamicLists === "function") { renderDrawerDynamicLists(); } }
     });
   }
   if (trigSel) {
@@ -218,25 +267,10 @@ function bindWorkflowStudioUX() {
       renderWorkflowsView();
     });
   }
-  if (schIn) {
-    schIn.addEventListener("change", function () {
-      const wf = activeWorkflow(); if (!wf) { return; }
-      wf.schedule_minutes = Math.max(5, Number(schIn.value || 60));
-      renderWorkflowsView();
-    });
-  }
-  const addNodeBtn = document.getElementById("wf-add-node-btn");
-  if (addNodeBtn) {
-    addNodeBtn.addEventListener("click", function () {
-      const wf = activeWorkflow(); if (!wf) { return; }
-      const kind = document.getElementById("wf-add-kind").value || "run_agent", last = wf.nodes[wf.nodes.length - 1];
-      const nid = "n_" + Date.now().toString(36).slice(-5), x = last ? Math.min(1000, Number(last.x || 0) + 250) : 40, y = last ? Number(last.y || 110) : 110;
-      const node = { id: nid, kind: kind, label: t(WF_KIND_KEYS[kind] || "wf_k_run_agent"), x: x, y: y, config: kind === "run_agent" ? { agent_id: "saga", prompt: "Process:\n\n{{prev}}" } : {} };
-      wf.nodes.push(node);
-      if (last) { wf.edges.push({ id: "e_" + Date.now().toString(36).slice(-5), source: last.id, target: nid, branch: "default" }); }
-      wfSelectedNodeId = nid; setWorkflowSideTab("inspect"); renderWorkflowsView();
-    });
-  }
+  if (schIn) { schIn.addEventListener("change", function () { const wf = activeWorkflow(); if (wf) { wf.schedule_minutes = Math.max(5, Number(schIn.value || 60)); renderWorkflowsView(); } }); }
+  const addNodeBtn = document.getElementById("wf-add-node-btn"), addGwBtn = document.getElementById("wf-add-gateway-btn");
+  if (addNodeBtn) { addNodeBtn.addEventListener("click", function () { wfAddStepNode(document.getElementById("wf-add-kind").value || "run_agent"); }); }
+  if (addGwBtn) { addGwBtn.addEventListener("click", function () { wfAddStepNode("condition"); const c = document.getElementById("wfi-contains"); if (c) { c.focus(); } }); }
   const saveBtn = document.getElementById("wf-save-btn"), delBtn = document.getElementById("wf-delete-btn"), runBtn = document.getElementById("wf-run-btn"), stopBtn = document.getElementById("wf-stop-btn");
   if (saveBtn) { saveBtn.addEventListener("click", function () { persistActiveWorkflow(true); }); }
   if (delBtn) {

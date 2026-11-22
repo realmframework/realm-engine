@@ -83,7 +83,7 @@ html.no-native-switch input[type="checkbox"][switch]:checked {
 }
 html.no-native-switch input[type="checkbox"][switch]:checked::before { transform: translateX(1.18rem); }
 html.no-native-switch input[type="checkbox"][switch]:disabled { opacity: 0.45; cursor: not-allowed; }
-#web-search-chat-btn[hidden], #upload-progress-panel[hidden], #graph-focus-banner[hidden], #graph-controls-panel[hidden], #custom-format-form[hidden], #format-browse-pane[hidden], #inspector-toggle-btn[hidden], #inspector-sidebar[hidden], #agent-roster-pane[hidden], #agent-editor-form[hidden], #agent-guided-pane[hidden], #agent-raw-pane[hidden], #restore-agents-btn[hidden] { display: none !important; }
+#web-search-chat-btn[hidden], #upload-progress-panel[hidden], #graph-focus-banner[hidden], #graph-controls-panel[hidden], #custom-format-form[hidden], #format-browse-pane[hidden], #inspector-sidebar[hidden], #agent-roster-pane[hidden], #agent-editor-form[hidden], #agent-guided-pane[hidden], #agent-raw-pane[hidden], #restore-agents-btn[hidden] { display: none !important; }
 details.export-menu > summary::-webkit-details-marker { display: none; }
 #web-search-chat-btn[aria-pressed="true"] {
   background: color-mix(in oklab, var(--accent) 20%, transparent) !important;

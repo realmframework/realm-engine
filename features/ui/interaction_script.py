@@ -67,7 +67,7 @@ function bindSidebarDrawer() {
   if (bd) { bd.addEventListener("click", function () { closeMobileDrawerIfOpen(true); }); }
   if (sb) {
     sb.addEventListener("click", function (e) {
-      if (sidebarNarrowMq.matches && mobileDrawerOpen && e.target.closest("#sidebar-cmd-btn, #sidebar-browse-btn, #sidebar-graph-btn, #sidebar-agents-btn, #sidebar-formats-btn, #sidebar-work-btn, #sidebar-focus-btn, #sidebar-impact-btn, [data-open-chat], [data-work-jump], [data-shell-act], [data-drawer-wf], [data-drawer-agent]")) {
+      if (sidebarNarrowMq.matches && mobileDrawerOpen && e.target.closest("#sidebar-cmd-btn, #sidebar-browse-btn, #sidebar-graph-btn, #sidebar-agents-btn, #sidebar-formats-btn, #sidebar-work-btn, #sidebar-focus-btn, #sidebar-impact-btn, [data-open-chat], [data-shell-act], [data-drawer-wf], [data-drawer-agent]")) {
         closeMobileDrawerIfOpen(false);
       }
     });

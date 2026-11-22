@@ -128,13 +128,6 @@ function bindSpatialShellUX() {
   document.querySelectorAll("[data-shell-act]").forEach(function (btn) {
     btn.addEventListener("click", function () { handleShellAction(btn.getAttribute("data-shell-act") || ""); });
   });
-  document.querySelectorAll("[data-work-jump]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      const tab = btn.getAttribute("data-work-jump") || "kanban";
-      setActiveRailSection("work", false);
-      if (typeof openWorkBoardView === "function") { openWorkBoardView(tab); }
-    });
-  });
   const topTimer = document.getElementById("topbar-timer-pill");
   if (topTimer) { topTimer.addEventListener("click", function () { setActiveRailSection("work", false); if (typeof openImpactView === "function") { openImpactView("time"); } }); }
   if (typeof bindAnchoredPopover === "function") {

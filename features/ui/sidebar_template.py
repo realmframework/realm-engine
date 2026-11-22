@@ -9,14 +9,13 @@ from features.ui.icons import (
     ICON_HELP,
     ICON_HOME,
     ICON_IMPACT,
+    ICON_INSPECTOR_LUPE,
     ICON_LIBRARY,
     ICON_PLUS,
-    ICON_RIGHT_SIDEBAR,
     ICON_SEARCH,
     ICON_SETTINGS,
     ICON_SIDEBAR_LEFT,
     ICON_STUDY,
-    ICON_TOKENS,
     ICON_UPLOAD,
     ICON_WORK,
     ICON_WORKFLOWS,
@@ -91,13 +90,6 @@ SIDEBAR_HTML: str = (
     '<div id="drawer-panel-work" hidden class="drawer-panel">'
     '<span data-i18n="work_section_lbl" class="drawer-heading">Work OS</span>'
     f'<button id="sidebar-work-btn" type="button" class="drawer-item"><span data-i18n-span="work_board_nav" class="drawer-item-lead">{ICON_WORK}<span>Board &amp; Calendar</span></span><span id="sidebar-work-badge" class="drawer-badge">0</span></button>'
-    '<div class="drawer-sublist">'
-    '<button type="button" data-work-jump="kanban" class="drawer-item drawer-subitem"><span data-i18n="wb_tab_kanban">Kanban</span></button>'
-    '<button type="button" data-work-jump="tasks" class="drawer-item drawer-subitem"><span data-i18n="wb_tab_tasks">Tasks</span></button>'
-    '<button type="button" data-work-jump="calendar" class="drawer-item drawer-subitem"><span data-i18n="wb_tab_calendar">Calendar</span></button>'
-    '<button type="button" data-work-jump="projects" class="drawer-item drawer-subitem"><span data-i18n="wb_tab_projects">Projects</span></button>'
-    "</div>"
-    '<span class="drawer-heading" style="margin-top:0.35rem" data-i18n="sh_focus_impact_grp">Focus &amp; Outcomes</span>'
     f'<button id="sidebar-focus-btn" type="button" class="drawer-item"><span data-i18n-span="focus_nav" class="drawer-item-lead">{ICON_FOCUS}<span>Focus &amp; Goals</span></span><span id="sidebar-focus-badge" class="drawer-badge">0h</span></button>'
     f'<button id="sidebar-impact-btn" type="button" class="drawer-item"><span data-i18n-span="impact_nav" class="drawer-item-lead">{ICON_IMPACT}<span>Time &amp; Impact</span></span><span id="sidebar-impact-badge" class="drawer-badge">0h</span></button>'
     "</div>"
@@ -123,8 +115,7 @@ SIDEBAR_HTML: str = (
 GLOBAL_LAYOUT_CONTROLS_HTML: str = (
     '<div id="wb-global-controls" aria-label="Workspace panels">'
     '<button id="topbar-timer-pill" type="button" hidden title="Open Time &amp; Impact">00:00</button>'
-    f'<button id="inspector-toggle-btn" type="button" hidden aria-expanded="false" aria-controls="inspector-sidebar" aria-label="Open Engine Inspector" data-i18n-aria-label="aria_open_inspector" title="Engine Inspector (⌘I)" class="topbar-pill-btn">{ICON_TOKENS}<span id="inspector-token-label" data-i18n="insp_tokens_short">Tokens</span></button>'
     f'<button id="layout-bottom-btn" type="button" aria-pressed="false" aria-label="Toggle bottom panel" title="Toggle bottom panel" data-i18n-aria-label="sh_toggle_bottom" data-i18n-title="sh_toggle_bottom" class="topbar-icon-btn">{ICON_BOTTOM_PANEL}</button>'
-    f'<button id="layout-right-btn" type="button" aria-pressed="false" aria-label="Toggle Engine Inspector" title="Toggle Engine Inspector" data-i18n-aria-label="sh_toggle_right_sb" data-i18n-title="sh_toggle_right_sb" class="topbar-icon-btn">{ICON_RIGHT_SIDEBAR}</button>'
+    f'<button id="layout-right-btn" type="button" aria-pressed="false" aria-expanded="false" aria-controls="inspector-sidebar" aria-label="Engine Inspector (⌘I)" title="Engine Inspector (⌘I)" data-i18n-aria-label="sh_toggle_right_sb" data-i18n-title="sh_toggle_right_sb" class="topbar-icon-btn">{ICON_INSPECTOR_LUPE}</button>'
     "</div>"
 )

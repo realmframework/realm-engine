@@ -35,20 +35,20 @@ async function openGraphView(scope) {
   container.classList.remove("hidden"); document.getElementById("workspace-shell").classList.add("hidden");
   if (typeof updateTopbarContext === "function") { updateTopbarContext(t("graph_view")); }
   if (typeof setAmbientGraphPause === "function") { setAmbientGraphPause(true); }
-  if (!knowledgeAreas.length) {
-    container.innerHTML = "<div class='w-full h-full flex flex-col items-center justify-center gap-4 px-6 text-center'><h2 class='text-xl font-medium text-[#EEF2F8]'>" + escapeHtml(t("no_ws_empty_t")) + "</h2><p class='text-sm text-[#A0B0C8] max-w-md'>" + escapeHtml(t("no_ws_empty_d")) + "</p><div class='flex flex-wrap items-center justify-center gap-2.5 pt-2'><button type='button' data-new-area class='px-4 py-2 rounded-xl bg-[#4BB8E8] text-[#04060F] text-xs font-semibold hover:brightness-110 transition'>" + escapeHtml(t("new_area_btn")) + "</button><button id='empty-graph-link-btn' type='button' class='px-4 py-2 rounded-xl bg-[#0B1020] border border-white/15 hover:border-[#4BB8E8] text-xs text-[#EEF2F8] transition'>" + escapeHtml(t("open_vault")) + "</button></div></div>";
-    bindAreaButtons(container);
-    const gb = document.getElementById("empty-graph-link-btn"); if (gb) { gb.addEventListener("click", linkExistingFolder); }
+  if (!knowledgeAreas.length || !selectedAreas().length) {
+    renderNoWorkspaceState(container, false);
     return;
   }
   container.innerHTML = "<p role='status' class='p-6 text-sm text-[#A0B0C8]'>" + escapeHtml(t("graph_loading")) + "</p>";
   let data;
   try {
     const response = await areaFetch("/api/graph?all_areas=" + String(graphScope === "universe"));
-    if (!response.ok) { throw new Error("Graph could not be loaded. Select the area again and retry."); }
+    if (!response.ok) { throw new Error("Graph could not be loaded. Select a workspace and retry."); }
     data = await safeJson(response);
   } catch (error) {
-    if (operation === currentScrollId) { container.textContent = error.message; }
+    if (operation === currentScrollId) {
+      container.innerHTML = "<div class='w-full h-full min-h-[55vh] flex flex-col items-center justify-center gap-3 px-6 text-center'><p class='text-sm text-[#A0B0C8] max-w-md'>" + escapeHtml(error.message) + "</p></div>";
+    }
     return;
   }
   if (operation !== currentScrollId || version !== areaVersion) { return; }

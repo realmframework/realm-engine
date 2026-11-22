@@ -248,23 +248,17 @@ function exportTurnPdf(tIdx) {
 function exportFullChatPdf() { if (currentChatId) { exportPdfRequest({ chat_id: currentChatId, free_chat: freeChatMode }, chatSlug((currentTurns[0] && currentTurns[0].query) || "conversation")); } }
 function setInspectorOpen(open, restoreFocus) {
   inspectorOpen = Boolean(open);
-  if (typeof setRightSidebarOpen === "function") { setRightSidebarOpen(inspectorOpen, inspectorOpen ? "inspector" : undefined); }
+  if (typeof setRightSidebarOpen === "function") { setRightSidebarOpen(inspectorOpen); }
   else { syncInspectorSidebar(); }
-  if (inspectorOpen) { refreshContextUsage(); const cb = document.getElementById("close-inspector-btn"); if (cb) { cb.focus({ preventScroll: true }); } }
-  else if (restoreFocus) { const tb = document.getElementById("inspector-toggle-btn"); if (tb && !tb.hidden) { tb.focus({ preventScroll: true }); } }
+  if (inspectorOpen) { refreshContextUsage(); const cb = document.getElementById("close-inspector-btn"); if (cb && cb.offsetParent !== null) { cb.focus({ preventScroll: true }); } }
+  else if (restoreFocus) { const tb = document.getElementById("layout-right-btn"); if (tb) { tb.focus({ preventScroll: true }); } }
 }
 function syncInspectorSidebar() {
-  const toggleBtn = document.getElementById("inspector-toggle-btn"), aside = document.getElementById("inspector-sidebar"), body = document.getElementById("inspector-sidebar-body");
+  const rightBtn = document.getElementById("layout-right-btn"), aside = document.getElementById("inspector-sidebar"), body = document.getElementById("inspector-sidebar-body");
   const graphVisible = document.getElementById("graph-view") && !document.getElementById("graph-view").classList.contains("hidden");
   const hasChat = Boolean(currentChatId && (currentTurns.length || activeAttachedNotes.length) && isActiveView && !graphVisible);
   const rightOpen = typeof wbLayout !== "undefined" ? Boolean(wbLayout.rightOpen) : inspectorOpen;
-  if (toggleBtn) {
-    toggleBtn.hidden = !hasChat;
-    toggleBtn.setAttribute("aria-expanded", String(Boolean(hasChat && rightOpen)));
-    const tokLbl = document.getElementById("inspector-token-label");
-    if (tokLbl) { tokLbl.textContent = (lastContextUsage && lastContextUsage.used_tokens > 0) ? fmtTokens(lastContextUsage.used_tokens) : t("insp_tokens_short"); }
-    if (typeof syncGlobalControlsWidth === "function") { syncGlobalControlsWidth(); }
-  }
+  if (rightBtn) { rightBtn.setAttribute("aria-expanded", String(rightOpen)); }
   if (!aside || !body) { return; }
   if (typeof wbLayout === "undefined") { aside.hidden = !Boolean(hasChat && inspectorOpen); }
   if (!rightOpen) { return; }
@@ -315,14 +309,13 @@ function bindStudioControls() {
   const sideFmtBtn = document.getElementById("sidebar-formats-btn");
   const closeFmt = document.getElementById("close-format-studio-modal"), tabB = document.getElementById("format-tab-browse"), tabC = document.getElementById("format-tab-custom");
   const customForm = document.getElementById("custom-format-form"), vBtn = document.getElementById("upload-mode-vault-btn"), cBtn = document.getElementById("upload-mode-chat-btn");
-  const inspBtn = document.getElementById("inspector-toggle-btn"), closeInsp = document.getElementById("close-inspector-btn");
+  const closeInsp = document.getElementById("close-inspector-btn");
   if (sideFmtBtn) { sideFmtBtn.addEventListener("click", () => openFormatStudio("browse")); }
   if (closeFmt) { closeFmt.addEventListener("click", () => document.getElementById("format-studio-modal").close()); }
   if (tabB) { tabB.addEventListener("click", () => setFormatStudioTab("browse")); } if (tabC) { tabC.addEventListener("click", () => setFormatStudioTab("custom")); }
   if (typeof bindRovingTablist === "function") { bindRovingTablist("#format-studio-modal [role='tab']", tab => setFormatStudioTab(tab.id === "format-tab-custom" ? "custom" : "browse")); }
   if (customForm) { customForm.addEventListener("submit", saveCustomFormatUI); }
   if (vBtn) { vBtn.addEventListener("click", () => setUploadDestinationMode("vault")); } if (cBtn) { cBtn.addEventListener("click", () => setUploadDestinationMode("chat")); }
-  if (inspBtn) { inspBtn.addEventListener("click", () => setInspectorOpen(!inspectorOpen, true)); }
   if (closeInsp) { closeInsp.addEventListener("click", () => setInspectorOpen(false, true)); }
   document.addEventListener("keydown", function (e) {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "i" && currentChatId && currentTurns.length && !document.querySelector("dialog[open]")) { e.preventDefault(); setInspectorOpen(!inspectorOpen, true); }

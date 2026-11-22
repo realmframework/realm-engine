@@ -5,7 +5,7 @@ SPLIT_STYLES_CSS: str = r"""<style id="realm-split-styles">
 #workbench-grid.has-right { grid-template-columns: minmax(0, 1fr) 6px minmax(17rem, var(--right-w, 348px)); }
 #workbench-center-col { min-width: 0; min-height: 0; height: 100%; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
 #workbench-center-col.has-bottom { grid-template-rows: minmax(11rem, var(--editor-h, 58%)) 6px minmax(11rem, 1fr); }
-#workbench-center-col.has-bottom.is-bottom-max { grid-template-rows: 0px 0px minmax(0, 1fr); }
+#workbench-center-col.has-bottom.is-bottom-max { grid-template-rows: 0px minmax(0, 1fr); }
 #center-editor-row { min-width: 0; min-height: 0; height: 100%; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
 #center-editor-row.has-split { grid-template-columns: minmax(18rem, var(--split-a, 50%)) 6px minmax(18rem, 1fr); }
 #center-primary-col { min-width: 0; min-height: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
@@ -39,10 +39,12 @@ SPLIT_STYLES_CSS: str = r"""<style id="realm-split-styles">
 .wb-tab-x { width: 1.15rem; height: 1.15rem; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: calc(0.7rem * var(--ui-scale, 1)); color: var(--text-subtle); }
 .wb-tab-x:hover { background: var(--hover-tint); color: var(--text); }
 .wb-bar-actions { display: flex; align-items: center; gap: 0.25rem; flex-shrink: 0; }
+.wb-zone-bar .wb-icon-btn { width: 2rem; height: 2rem; border-radius: 0.52rem; }
 .wb-compact-select { max-width: 8.5rem; height: 1.8rem; padding: 0 1.65rem 0 0.55rem; border-radius: 0.5rem; border: 1px solid var(--border-subtle); background-color: var(--surface-raised); color: var(--text); font-size: calc(0.78rem * var(--ui-scale, 1)); font-weight: 500; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#workbench-grid:not(.has-right) #center-editor-row:not(.has-split) #center-tabbar { padding-right: var(--global-ctrl-w, 5.5rem); }
-#workbench-grid:not(.has-right) #center-editor-row.has-split #center-split-pane > .wb-zone-bar { padding-right: var(--global-ctrl-w, 5.5rem); }
-#workbench-grid.has-right #inspector-sidebar > .wb-zone-bar { padding-right: var(--global-ctrl-w, 5.5rem); }
+#workbench-grid:not(.has-right) #center-editor-row:not(.has-split) #center-tabbar { padding-right: var(--global-ctrl-w, 5rem); }
+#workbench-grid:not(.has-right) #center-editor-row.has-split #center-split-pane > .wb-zone-bar { padding-right: var(--global-ctrl-w, 5rem); }
+#workbench-grid:not(.has-right) #workbench-center-col.is-bottom-max #bottom-panel > .wb-zone-bar { padding-right: var(--global-ctrl-w, 5rem); }
+#workbench-grid.has-right #inspector-sidebar > .wb-zone-bar { padding-right: var(--global-ctrl-w, 5rem); }
 @media (min-width: 960px) { .inspector-mobile-close { display: none !important; } }
 #center-split-pane, #bottom-panel, #inspector-sidebar { min-width: 0; min-height: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden; container-type: inline-size; }
 #center-split-pane { background: transparent; }

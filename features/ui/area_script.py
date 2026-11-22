@@ -4,8 +4,29 @@ AREA_SCRIPT: str = r"""
 let activeKnowledgeArea = null, knowledgeAreas = [], areaVersion = 0, areaSwitching = false, workspaceConfig = {};
 function areaFetch(url, options, expectedArea) {
   const init = Object.assign({}, options || {}), headers = new Headers(init.headers || {}), area = expectedArea === undefined ? activeKnowledgeArea : expectedArea;
-  if (area) { headers.set("x-knowledge-area", area); headers.set("x-knowledge-selection", selectedAreas().join(",")); } init.headers = headers;
+  if (area) {
+    const serverDirs = (workspaceConfig && Array.isArray(workspaceConfig.active_dirs) && workspaceConfig.active_dirs.length) ? workspaceConfig.active_dirs : [area];
+    headers.set("x-knowledge-area", area); headers.set("x-knowledge-selection", serverDirs.join(","));
+  }
+  init.headers = headers;
   return fetch(url, init);
+}
+function renderNoWorkspaceState(container, isSection) {
+  if (!container) { return; }
+  const hasAreas = Array.isArray(knowledgeAreas) && knowledgeAreas.length > 0;
+  const heading = escapeHtml(t(hasAreas ? "no_ws_sel_t" : "no_ws_empty_t"));
+  const desc = escapeHtml(t(hasAreas ? "no_ws_sel_d" : "no_ws_empty_d"));
+  const pills = hasAreas
+    ? "<div class='flex flex-wrap items-center justify-center gap-2 pt-1'>" + knowledgeAreas.map(function (a) {
+        return "<button type='button' data-area='" + escapeHtml(a.name) + "' class='inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0B1020] border border-white/15 hover:border-[#4BB8E8] text-xs font-medium text-[#EEF2F8] transition'><span aria-hidden='true' class='w-2 h-2 rounded-full shrink-0' style='background:" + escapeHtml(a.color) + "'></span><span>" + escapeHtml(areaTitle(a)) + "</span><span class='font-mono opacity-60'>" + a.doc_count + "</span></button>";
+      }).join("") + "</div>"
+    : "";
+  const actions = "<div class='flex flex-wrap items-center justify-center gap-2.5 pt-2'><button type='button' data-new-area class='px-4 py-2 rounded-xl bg-[#4BB8E8] text-[#04060F] text-xs font-semibold hover:brightness-110 transition'>" + escapeHtml(t("new_area_btn")) + "</button><button type='button' data-empty-link-vault class='px-4 py-2 rounded-xl bg-[#0B1020] border border-white/15 hover:border-[#4BB8E8] text-xs text-[#EEF2F8] transition'>" + escapeHtml(t("open_vault")) + "</button></div>";
+  const inner = "<div class='w-full h-full min-h-[55vh] flex flex-col items-center justify-center gap-3.5 px-6 text-center'><h2 id='catalog-heading' class='text-xl font-medium text-[#EEF2F8]'>" + heading + "</h2><p class='text-sm text-[#A0B0C8] max-w-md'>" + desc + "</p>" + pills + actions + "</div>";
+  container.innerHTML = isSection ? ("<section id='library-view'>" + inner + "</section>") : inner;
+  bindAreaButtons(container);
+  const lb = container.querySelector("[data-empty-link-vault]");
+  if (lb) { lb.addEventListener("click", linkExistingFolder); }
 }
 function areaStatus(message) {
   const el = document.getElementById("area-status"); if (el) { el.textContent = message; }
@@ -82,6 +103,8 @@ function renderKnowledgeAreas() {
   const nav = document.getElementById("knowledge-areas"), scroll = nav.scrollTop; nav.innerHTML = areaButtons(); bindAreaButtons(nav); nav.scrollTop = scroll;
   const seeds = document.getElementById("seed-chips");
   if (seeds && !isActiveView) { seeds.classList.toggle("hidden", isFree); }
+  const gc = document.getElementById("sidebar-guide-count");
+  if (gc) { gc.textContent = isFree ? "0" : String(Array.isArray(allGuides) ? allGuides.length : 0); }
 }
 function adoptWorkspace(data) {
   if (JSON.stringify(selectedAreas()) !== JSON.stringify((data.config || {}).active_dirs || [])) { invalidateAudit(); }

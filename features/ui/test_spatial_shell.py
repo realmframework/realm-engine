@@ -36,6 +36,8 @@ def test_spatial_shell_activity_rail_drawer_panels_and_topbar(area_client: TestC
         'id="new-chat-btn"',
         'id="free-chat-mode-btn"',
         'id="right-tab-doc"',
+        'id="inspector-toggle-btn"',
+        'data-work-jump="kanban"',
     ):
         assert removed not in html
 
@@ -45,7 +47,6 @@ def test_four_zone_workbench_controls_and_zero_fake_mini_widgets(area_client: Te
     for needle in (
         'id="layout-bottom-btn"',
         'id="layout-right-btn"',
-        'id="inspector-token-label"',
         'id="center-tablist"',
         'id="center-agent-select"',
         'id="center-add-tab-btn"',

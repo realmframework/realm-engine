@@ -32,6 +32,7 @@ WORKFLOWS_VIEW_HTML: str = r"""<section id="workflows-view" class="wb-view hidde
         <option value="log_impact" data-i18n="wf_k_log_impact">Log Impact</option>
       </select>
       <button id="wf-add-node-btn" type="button" data-i18n="wf_add_step" class="wf-tb-btn">+ Add Step</button>
+      <button id="wf-add-gateway-btn" type="button" data-i18n="wf_add_gateway" class="wf-tb-btn">+ If / Gateway</button>
     </div>
     <span role="separator" aria-orientation="vertical" class="wf-tb-sep"></span>
     <div role="group" aria-label="Pipeline actions" class="wf-tb-group">
@@ -59,6 +60,12 @@ WORKFLOWS_VIEW_HTML: str = r"""<section id="workflows-view" class="wb-view hidde
       <div id="wf-canvas-stage" class="wf-canvas-stage">
         <svg id="wf-svg-layer" class="wf-svg-layer" aria-hidden="true"></svg>
         <div id="wf-nodes-layer"></div>
+      </div>
+      <div id="wf-zoom-hud" class="wf-zoom-hud" role="group" aria-label="Canvas zoom controls">
+        <button id="wf-zoom-out" type="button" aria-label="Zoom out" title="Zoom out" class="wf-hud-btn">−</button>
+        <span id="wf-zoom-pct" class="wf-hud-pct">100%</span>
+        <button id="wf-zoom-in" type="button" aria-label="Zoom in" title="Zoom in" class="wf-hud-btn">+</button>
+        <button id="wf-zoom-fit" type="button" data-i18n="wf_zoom_fit" class="wf-hud-btn wf-hud-fit">Fit</button>
       </div>
       <div id="wf-steps-panel" hidden class="wf-step-list"></div>
     </div>

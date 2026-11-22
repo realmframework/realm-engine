@@ -15,8 +15,13 @@ ICON_RIGHT_SIDEBAR: str = (
     'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'
     '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg>'
 )
+ICON_INSPECTOR_LUPE: str = (
+    '<svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" '
+    'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'
+    '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M11 8v6M8 11h6"/></svg>'
+)
 ICON_SPLIT_EDITOR: str = (
-    '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" '
+    '<svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" '
     'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'
     '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg>'
 )

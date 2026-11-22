@@ -27,7 +27,7 @@ def test_formats_api_and_millennium_themes_ui(area_client: TestClient) -> None:
     for marker in (
         '"Milton"', '"Dragon"', '"Hacker"', '"Stieg"', '"Annika"', '"Palmgren"',
         'id="format-studio-modal"', 'id="clear-areas-btn"', 'id="sidebar-formats-btn"',
-        'id="upload-mode-chat-btn"', 'id="inspector-toggle-btn"', 'id="inspector-sidebar"',
+        'id="upload-mode-chat-btn"', 'id="layout-right-btn"', 'id="inspector-sidebar"',
         "Link Local Folder", "Answer in Format", "Answer Formats", "runCompactContext", "runFormatSynthesis", "exportFullChatPdf",
     ):
         assert marker in html

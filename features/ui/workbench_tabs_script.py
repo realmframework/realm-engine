@@ -54,7 +54,7 @@ function syncGlobalControlsWidth() {
   const ctrls = document.getElementById("wb-global-controls"), shell = document.getElementById("main-shell");
   if (!ctrls || !shell) { return; }
   const w = ctrls.offsetWidth;
-  if (w > 0) { shell.style.setProperty("--global-ctrl-w", (w + 10) + "px"); }
+  if (w > 0) { shell.style.setProperty("--global-ctrl-w", (w + 4) + "px"); }
 }
 
 function syncCenterTabbarVisibility(isChatView) {
