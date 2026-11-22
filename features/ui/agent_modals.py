@@ -18,10 +18,6 @@ AGENT_MODAL_HTML: str = r"""<dialog id="agent-studio-modal" closedby="any" aria-
       <button id="agent-tab-editor" type="button" role="tab" aria-selected="false" tabindex="-1" data-i18n="agents_tab_create" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-[#A0B0C8] hover:text-[#EEF2F8] shrink-0 transition">+ Create Agent</button>
     </div>
     <div class="flex items-center gap-3 flex-wrap">
-      <label for="agent-sync-palette-toggle" class="inline-flex items-center gap-3.5 text-xs text-[#A0B0C8] cursor-pointer select-none">
-        <span data-i18n="agents_sync_palette">Sync palette</span>
-        <input id="agent-sync-palette-toggle" type="checkbox" switch role="switch" checked class="shrink-0" />
-      </label>
       <button id="restore-agents-btn" type="button" hidden data-i18n="agents_restore_defaults" class="text-xs text-[#4BB8E8] hover:underline">Restore Default Team</button>
     </div>
   </div>

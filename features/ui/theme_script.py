@@ -163,6 +163,45 @@ async function resetCustomLogo() {
     if (res.ok) { applyLogoUrl(data.url, false); if (status) { status.textContent = "Restored default REALM logo."; } }
   } catch (_e) {}
 }
+function syncFixedThemeControlsUI() {
+  const locked = typeof syncAgentPalette !== "undefined" ? !syncAgentPalette : false;
+  const ag = typeof activeAgentObj === "function" ? activeAgentObj() : null;
+  const agName = (ag && ag.name) || activeAgentName();
+  const palObj = ag && typeof paletteColorsFor === "function" ? paletteColorsFor(ag.palette) : THEME_PRESETS[0];
+  const hintTxt = locked
+    ? t("fixed_theme_hint_locked")
+    : t("fixed_theme_hint_agent", { agent: agName, palette: (palObj && palObj.name) || "Realm" });
+  for (const id of ["theme-fixed-toggle", "onboarding-fixed-theme-toggle"]) {
+    const chk = document.getElementById(id); if (chk) { chk.checked = locked; }
+  }
+  for (const id of ["theme-fixed-hint", "onboarding-fixed-hint"]) {
+    const el = document.getElementById(id); if (el) { el.textContent = hintTxt; }
+  }
+  for (const id of ["theme-custom-controls", "onboarding-custom-controls"]) {
+    const box = document.getElementById(id); if (!box) { continue; }
+    box.classList.toggle("theme-custom-locked", !locked);
+    box.querySelectorAll("button, input").forEach(function (ctrl) { ctrl.disabled = !locked; });
+  }
+}
+function setFixedGlobalTheme(locked, persist) {
+  const isLocked = Boolean(locked);
+  if (typeof syncAgentPalette !== "undefined") { syncAgentPalette = !isLocked; }
+  if (typeof workspaceConfig === "object" && workspaceConfig) { workspaceConfig.sync_agent_palette = !isLocked; }
+  syncFixedThemeControlsUI();
+  const mode = (workspaceConfig && workspaceConfig.theme_mode) || safeStorageGet("color-scheme") || "system";
+  if (isLocked) {
+    const accent = (workspaceConfig && workspaceConfig.theme_accent) || "#4BB8E8";
+    const glow = (workspaceConfig && workspaceConfig.theme_glow) || "#6366F1";
+    applyThemeTokens(mode, accent, glow, true);
+  } else if (typeof applyPaletteForAgent === "function" && typeof activeAgentObj === "function" && activeAgentObj()) {
+    applyPaletteForAgent(activeAgentObj(), false);
+  } else {
+    applyThemeTokens(mode, "#4BB8E8", "#6366F1", true);
+  }
+  if (typeof syncSplitPaneAccent === "function") { syncSplitPaneAccent(); }
+  if (typeof currentTurns !== "undefined" && currentTurns.length && typeof renderChatStream === "function") { renderChatStream(); }
+  if (persist !== false) { persistAppearancePatch({ sync_agent_palette: !isLocked }); }
+}
 function syncThemeFromWorkspace(cfg) {
   const isEmbed = typeof IS_EMBED !== "undefined" && IS_EMBED;
   const isSplitChat = isEmbed && typeof EMBED_ROLE !== "undefined" && EMBED_ROLE === "split-chat";
@@ -172,9 +211,14 @@ function syncThemeFromWorkspace(cfg) {
   if (typeof syncAgentPalette !== "undefined" && cfg && typeof cfg.sync_agent_palette === "boolean") {
     syncAgentPalette = cfg.sync_agent_palette;
   }
-  if (isSplitChat && typeof syncAgentPalette !== "undefined" && syncAgentPalette && typeof activeAgentObj === "function") {
-    const ownAg = activeAgentObj();
-    if (ownAg && typeof paletteColorsFor === "function") { const p = paletteColorsFor(ownAg.palette); accent = p.accent; glow = p.glow; }
+  syncAgentNameUI((cfg && cfg.agent_name) || "Saga");
+  if (typeof defaultAgentId !== "undefined" && cfg && cfg.active_agent) {
+    defaultAgentId = cfg.active_agent;
+    if (!currentChatId && !isSplitChat) { activeAgentId = defaultAgentId; }
+  }
+  if (typeof syncAgentPalette !== "undefined" && syncAgentPalette && typeof activeAgentObj === "function" && activeAgentObj()) {
+    const p = typeof paletteColorsFor === "function" ? paletteColorsFor(activeAgentObj().palette) : null;
+    if (p) { accent = p.accent; glow = p.glow; }
   }
   applyThemeTokens(mode, accent, glow, !isEmbed);
   if (typeof setAmbientEffects === "function" && cfg && typeof cfg.ambient_effects === "boolean") {
@@ -183,15 +227,21 @@ function syncThemeFromWorkspace(cfg) {
   if (typeof applyLanguage === "function" && cfg && cfg.language) {
     applyLanguage(cfg.language, !isEmbed);
   }
-  syncAgentNameUI((cfg && cfg.agent_name) || "Saga");
-  if (typeof defaultAgentId !== "undefined" && cfg && cfg.active_agent) {
-    defaultAgentId = cfg.active_agent;
-    if (!currentChatId && !isSplitChat) { activeAgentId = defaultAgentId; }
-    if (typeof syncAgentPalette !== "undefined") { syncAgentPalette = cfg.sync_agent_palette !== false; }
-    if (typeof syncActiveAgentBadge === "function") { syncActiveAgentBadge(); }
-    if ((currentChatId || isSplitChat) && typeof applyPaletteForAgent === "function" && typeof activeAgentObj === "function") { applyPaletteForAgent(activeAgentObj(), false); }
-  }
+  if (typeof syncActiveAgentBadge === "function") { syncActiveAgentBadge(); }
+  syncFixedThemeControlsUI();
   if (typeof syncWebSearchUI === "function") { syncWebSearchUI(cfg || {}); }
+}
+function applyFixedGlobalColors(accent, glow) {
+  if (typeof syncAgentPalette !== "undefined" && syncAgentPalette) { return; }
+  const mode = (workspaceConfig && workspaceConfig.theme_mode) || safeStorageGet("color-scheme") || "system";
+  if (typeof workspaceConfig === "object" && workspaceConfig) { workspaceConfig.theme_accent = accent; workspaceConfig.theme_glow = glow; }
+  applyThemeTokens(mode, accent, glow, true);
+  persistAppearancePatch({ theme_mode: mode, theme_accent: accent, theme_glow: glow, sync_agent_palette: false });
+}
+function resetDynamicThemeDefaults() {
+  if (typeof workspaceConfig === "object" && workspaceConfig) { workspaceConfig.theme_mode = "system"; workspaceConfig.theme_accent = "#4BB8E8"; workspaceConfig.theme_glow = "#6366F1"; workspaceConfig.sync_agent_palette = true; }
+  setFixedGlobalTheme(false, false);
+  if (typeof setAmbientEffects === "function") { setAmbientEffects(true, true); }
 }
 function renderPresetBars() {
   const markup = THEME_PRESETS.map(function (p) {
@@ -204,68 +254,45 @@ function renderPresetBars() {
     const bar = document.getElementById(barId); if (!bar) { continue; }
     bar.innerHTML = markup;
     bar.querySelectorAll("[data-theme-preset]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        const mode = (workspaceConfig && workspaceConfig.theme_mode) || safeStorageGet("color-scheme") || "system";
-        applyThemeTokens(mode, btn.dataset.accent, btn.dataset.glow, true);
-        persistThemeWorkspace(mode, btn.dataset.accent, btn.dataset.glow);
-      });
+      btn.addEventListener("click", function () { applyFixedGlobalColors(btn.dataset.accent, btn.dataset.glow); });
     });
   }
+  syncFixedThemeControlsUI();
 }
 function bindAppearanceControls() {
   renderPresetBars();
+  for (const id of ["theme-fixed-toggle", "onboarding-fixed-theme-toggle"]) {
+    const chk = document.getElementById(id);
+    if (chk) { chk.addEventListener("change", function () { setFixedGlobalTheme(Boolean(chk.checked), true); }); }
+  }
   document.querySelectorAll("[data-theme-mode]").forEach(function (btn) {
     btn.addEventListener("click", function () {
       const mode = btn.getAttribute("data-theme-mode") || "system";
       const accent = document.getElementById("theme-accent-picker").value.toUpperCase();
       const glow = document.getElementById("theme-glow-picker").value.toUpperCase();
-      applyThemeTokens(mode, accent, glow, true);
-      persistThemeWorkspace(mode, accent, glow);
+      applyThemeTokens(mode, accent, glow, true); persistAppearancePatch({ theme_mode: mode });
     });
   });
   const accIn = document.getElementById("theme-accent-picker"), glowIn = document.getElementById("theme-glow-picker");
-  if (accIn) {
-    accIn.addEventListener("input", function () {
-      const mode = (workspaceConfig && workspaceConfig.theme_mode) || safeStorageGet("color-scheme") || "system";
-      const accent = accIn.value.toUpperCase(), glow = computeHarmonicGlow(accent);
-      applyThemeTokens(mode, accent, glow, true);
-      persistThemeWorkspace(mode, accent, glow);
-    });
-  }
-  if (glowIn) {
-    glowIn.addEventListener("input", function () {
-      const mode = (workspaceConfig && workspaceConfig.theme_mode) || safeStorageGet("color-scheme") || "system";
-      const accent = accIn ? accIn.value.toUpperCase() : "#4BB8E8", glow = glowIn.value.toUpperCase();
-      applyThemeTokens(mode, accent, glow, true);
-      persistThemeWorkspace(mode, accent, glow);
-    });
-  }
+  if (accIn) { accIn.addEventListener("input", function () { const a = accIn.value.toUpperCase(); applyFixedGlobalColors(a, computeHarmonicGlow(a)); }); }
+  if (glowIn) { glowIn.addEventListener("input", function () { applyFixedGlobalColors(accIn ? accIn.value.toUpperCase() : "#4BB8E8", glowIn.value.toUpperCase()); }); }
   for (const toggleId of ["theme-ambient-toggle", "onboarding-ambient-toggle"]) {
     const chk = document.getElementById(toggleId);
-    if (chk) {
-      chk.addEventListener("change", function () {
-        if (typeof setAmbientEffects === "function") { setAmbientEffects(chk.checked, true); }
-        persistAppearancePatch({ ambient_effects: Boolean(chk.checked) });
-      });
-    }
+    if (chk) { chk.addEventListener("change", function () { if (typeof setAmbientEffects === "function") { setAmbientEffects(chk.checked, true); } persistAppearancePatch({ ambient_effects: Boolean(chk.checked) }); }); }
   }
   const resetThemeBtn = document.getElementById("reset-theme-btn");
   if (resetThemeBtn) {
     resetThemeBtn.addEventListener("click", function () {
-      applyThemeTokens("system", "#4BB8E8", "#6366F1", true);
-      if (typeof setAmbientEffects === "function") { setAmbientEffects(true, true); }
-      persistAppearancePatch({ theme_mode: "system", theme_accent: "#4BB8E8", theme_glow: "#6366F1", ambient_effects: true });
+      resetDynamicThemeDefaults();
+      persistAppearancePatch({ theme_mode: "system", theme_accent: "#4BB8E8", theme_glow: "#6366F1", sync_agent_palette: true, ambient_effects: true });
     });
   }
   const resetAppearanceBtn = document.getElementById("reset-appearance-btn");
   if (resetAppearanceBtn) {
     resetAppearanceBtn.addEventListener("click", async function () {
-      applyThemeTokens("system", "#4BB8E8", "#6366F1", true);
-      syncAgentNameUI("Saga");
-      if (typeof currentTurns !== "undefined" && currentTurns.length && typeof renderChatStream === "function") { renderChatStream(); }
-      if (typeof setAmbientEffects === "function") { setAmbientEffects(true, true); }
+      syncAgentNameUI("Saga"); resetDynamicThemeDefaults();
       if (typeof applyReadingComfort === "function") { applyReadingComfort({ reading_font: "default", reading_scale: "md", reading_width: "standard", high_contrast_focus: false, reduce_motion: false }, true); }
-      persistAppearancePatch({ theme_mode: "system", theme_accent: "#4BB8E8", theme_glow: "#6366F1", ambient_effects: true, agent_name: "Saga", reading_font: "default", reading_scale: "md", reading_width: "standard", high_contrast_focus: false, reduce_motion: false });
+      persistAppearancePatch({ theme_mode: "system", theme_accent: "#4BB8E8", theme_glow: "#6366F1", sync_agent_palette: true, ambient_effects: true, agent_name: "Saga", reading_font: "default", reading_scale: "md", reading_width: "standard", high_contrast_focus: false, reduce_motion: false });
       await resetCustomLogo();
     });
   }

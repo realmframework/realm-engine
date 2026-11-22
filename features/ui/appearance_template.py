@@ -22,19 +22,25 @@ APPEARANCE_FIELDS = r"""    <div class="flex flex-col gap-3 text-sm">
           <button type="button" data-theme-mode="light" aria-pressed="false" data-i18n="theme_light" class="py-1.5 px-2.5 rounded-lg text-xs font-medium transition text-[#A0B0C8] hover:text-[#EEF2F8]">Light (Clear)</button>
         </div>
       </div>
-      <div class="flex flex-col gap-1.5">
-        <span data-i18n="starter_palettes" class="text-xs text-[#A0B0C8]">Color Palettes</span>
-        <div id="theme-presets-bar" role="group" aria-label="Color palettes" class="flex flex-wrap gap-1.5"></div>
-      </div>
-      <div class="comfort-two-col">
-        <label class="flex items-center justify-between gap-2 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-3.5 py-2.5 cursor-pointer">
-          <span class="flex flex-col"><span data-i18n="primary_accent" class="text-sm text-[#EEF2F8]">Primary Accent</span><span id="theme-accent-hex" class="text-xs font-mono text-[#A0B0C8]">#4BB8E8</span></span>
-          <input id="theme-accent-picker" type="color" value="#4BB8E8" aria-label="Primary accent color" class="theme-swatch w-8 h-8 rounded-lg border-0 bg-transparent cursor-pointer shrink-0" />
-        </label>
-        <label class="flex items-center justify-between gap-2 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-3.5 py-2.5 cursor-pointer">
-          <span class="flex flex-col"><span data-i18n="ambient_glow" class="text-sm text-[#EEF2F8]">Ambient Glow</span><span id="theme-glow-hex" class="text-xs font-mono text-[#A0B0C8]">#6366F1</span></span>
-          <input id="theme-glow-picker" type="color" value="#6366F1" aria-label="Secondary ambient glow color" class="theme-swatch w-8 h-8 rounded-lg border-0 bg-transparent cursor-pointer shrink-0" />
-        </label>
+      <label for="theme-fixed-toggle" class="flex items-center justify-between gap-3 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-4 py-3 cursor-pointer select-none">
+        <span><span data-i18n="fixed_theme_title" class="block text-sm font-medium text-[#EEF2F8]">Fix Global Theme</span><span id="theme-fixed-hint" class="block text-xs text-[#A0B0C8] mt-0.5">Theme follows the active agent (Saga · Realm). Turn on to lock a global theme across all agents.</span></span>
+        <input id="theme-fixed-toggle" type="checkbox" switch role="switch" class="shrink-0" />
+      </label>
+      <div id="theme-custom-controls" class="flex flex-col gap-3 transition-opacity theme-custom-locked">
+        <div class="flex flex-col gap-1.5">
+          <span data-i18n="starter_palettes" class="text-xs text-[#A0B0C8]">Color Palettes</span>
+          <div id="theme-presets-bar" role="group" aria-label="Color palettes" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <div class="comfort-two-col">
+          <label class="flex items-center justify-between gap-2 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-3.5 py-2.5 cursor-pointer">
+            <span class="flex flex-col"><span data-i18n="primary_accent" class="text-sm text-[#EEF2F8]">Primary Accent</span><span id="theme-accent-hex" class="text-xs font-mono text-[#A0B0C8]">#4BB8E8</span></span>
+            <input id="theme-accent-picker" type="color" value="#4BB8E8" disabled aria-label="Primary accent color" class="theme-swatch w-8 h-8 rounded-lg border-0 bg-transparent cursor-pointer shrink-0" />
+          </label>
+          <label class="flex items-center justify-between gap-2 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-3.5 py-2.5 cursor-pointer">
+            <span class="flex flex-col"><span data-i18n="ambient_glow" class="text-sm text-[#EEF2F8]">Ambient Glow</span><span id="theme-glow-hex" class="text-xs font-mono text-[#A0B0C8]">#6366F1</span></span>
+            <input id="theme-glow-picker" type="color" value="#6366F1" disabled aria-label="Secondary ambient glow color" class="theme-swatch w-8 h-8 rounded-lg border-0 bg-transparent cursor-pointer shrink-0" />
+          </label>
+        </div>
       </div>
       <label for="theme-ambient-toggle" class="flex items-center justify-between gap-3 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-4 py-3 cursor-pointer select-none">
         <span><span data-i18n="ambient_toggle" class="block text-sm font-medium text-[#EEF2F8]">Ambient Background</span><span data-i18n="ambient_desc" class="block text-xs text-[#A0B0C8] mt-0.5">Subtle animated light gradient and interactive dot grid.</span></span>

@@ -38,18 +38,12 @@ function applyPaletteForAgent(agent, persist) {
   const pal = paletteColorsFor(agent.palette);
   const mode = (workspaceConfig && workspaceConfig.theme_mode) || safeStorageGet("color-scheme") || "system";
   applyThemeTokens(mode, pal.accent, pal.glow, Boolean(persist));
-  if (persist) {
-    if (typeof workspaceConfig === "object" && workspaceConfig) { workspaceConfig.theme_accent = pal.accent; workspaceConfig.theme_glow = pal.glow; }
-    if (typeof persistThemeWorkspace === "function") { persistThemeWorkspace(mode, pal.accent, pal.glow); }
-  }
 }
 function syncActiveAgentBadge() {
   const ag = activeAgentObj(), name = (ag && ag.name) || (typeof activeAgentLabel !== "undefined" && activeAgentLabel) || "Saga";
   const badge = document.getElementById("sidebar-agent-badge");
   if (badge) { badge.textContent = name; }
-  for (const id of ["agent-sync-palette-toggle", "onboarding-sync-agent-palette"]) {
-    const chk = document.getElementById(id); if (chk) { chk.checked = Boolean(syncAgentPalette); }
-  }
+  if (typeof syncFixedThemeControlsUI === "function") { syncFixedThemeControlsUI(); }
   if (typeof renderDrawerDynamicLists === "function") { renderDrawerDynamicLists(); }
   if (typeof syncSplitSelectors === "function") { syncSplitSelectors(); }
   if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
@@ -97,7 +91,7 @@ async function loadAgentTeam() {
     syncAgentPalette = d.sync_agent_palette !== false;
     const restoreBtn = document.getElementById("restore-agents-btn"); if (restoreBtn) { restoreBtn.hidden = !d.has_missing_defaults; }
     syncActiveAgentBadge(); renderAgentRoster();
-    if (isSplit) { applyPaletteForAgent(activeAgentObj(), false); }
+    if (syncAgentPalette) { applyPaletteForAgent(activeAgentObj(), !isSplit); }
   } catch (_e) {}
 }
 function setAgentStudioTab(tab) {
@@ -329,20 +323,6 @@ function bindAgentControls() {
   if (revBtn) { revBtn.addEventListener("click", revealAgentsFolderUI); }
   const provSel = document.getElementById("agent-ed-provider");
   if (provSel) { provSel.addEventListener("change", () => syncAgentModelChoices(provSel.value, "")); }
-  for (const id of ["agent-sync-palette-toggle", "onboarding-sync-agent-palette"]) {
-    const chk = document.getElementById(id);
-    if (!chk) { continue; }
-    chk.addEventListener("change", async function () {
-      syncAgentPalette = Boolean(chk.checked); syncActiveAgentBadge();
-      if (syncAgentPalette) { applyPaletteForAgent(activeAgentObj(), !isInsideChat()); }
-      else if (typeof broadcastToEmbedFrames === "function") {
-        const md = (workspaceConfig && workspaceConfig.theme_mode) || safeStorageGet("color-scheme") || "system";
-        broadcastToEmbedFrames({ type: "realm:sync-theme", mode: md, accent: (workspaceConfig && workspaceConfig.theme_accent) || "#4BB8E8", glow: (workspaceConfig && workspaceConfig.theme_glow) || "#6366F1", syncAgentPalette: false });
-      }
-      if (typeof currentTurns !== "undefined" && currentTurns.length && typeof renderChatStream === "function") { renderChatStream(); }
-      await fetch("/api/agents/select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sync_agent_palette: syncAgentPalette }) }).catch(() => {});
-    });
-  }
   loadAgentTeam();
 }
 """

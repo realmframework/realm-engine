@@ -48,6 +48,8 @@ progress.focus-ring { filter: drop-shadow(0 0 18px color-mix(in oklab, var(--acc
 .wf-node-card:hover { box-shadow: var(--card-shadow-hover); }
 .wf-port { box-shadow: 0 0 8px color-mix(in oklab, var(--accent) 45%, transparent); }
 .wf-zoom-hud { background: var(--surface-glass-strong); box-shadow: inset 0 1px 0 var(--specular-edge), var(--dialog-shadow); }
+.theme-custom-locked { opacity: 0.44; filter: grayscale(0.25); }
+.theme-custom-locked button, .theme-custom-locked input, .theme-custom-locked label { cursor: not-allowed !important; }
 
 /* Accessibility Guardrails: High Contrast, Forced Colors & Reduced Motion */
 @media (prefers-reduced-motion: reduce) {

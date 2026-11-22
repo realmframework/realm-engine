@@ -36,10 +36,12 @@ def test_agent_team_api_crud_and_ui_shell(area_client: TestClient, tmp_path: Pat
     assert area_client.post("/api/agents/restore-defaults").json()["has_missing_defaults"] is False
     assert area_client.delete("/api/agents/startup_cfo").json()["deleted"] is True
 
-    # UI exposes Agent Studio controls without cluttering the hero canvas
+    # UI exposes Agent Studio controls & single-source Fixed Global Theme switch (no duplicate toggle in Agents)
     html = area_client.get("/").text
-    for marker in ('id="sidebar-agents-btn"', 'id="sidebar-agent-badge"', 'id="agent-studio-modal"', 'id="agent-sync-palette-toggle"', 'id="onboarding-sync-agent-palette"', "Your Agents", "exportMenuHtml", "persona.md", "openAgentStudio"):
+    for marker in ('id="sidebar-agents-btn"', 'id="sidebar-agent-badge"', 'id="agent-studio-modal"', 'id="theme-fixed-toggle"', 'id="onboarding-fixed-theme-toggle"', "Your Agents", "exportMenuHtml", "persona.md", "openAgentStudio"):
         assert marker in html
+    assert 'id="agent-sync-palette-toggle"' not in html
+    assert 'id="onboarding-sync-agent-palette"' not in html
     assert "Team Roster" not in html
 
 
