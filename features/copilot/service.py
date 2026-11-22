@@ -30,15 +30,14 @@ def _context_block(ctx: cc.CopilotContext) -> str:
     return "\n".join(parts)
 
 
-def build_copilot_messages(req: cc.CopilotChatRequest, language: str, agent_name: str = "Saga") -> list[dict[str, str]]:
+def build_copilot_messages(req: cc.CopilotChatRequest, language: str, agent_name: str = "Saga", persona_instruction: str = "", format_instruction: str = "") -> list[dict[str, str]]:
     lang = _LANG_MAP.get(language, "English")
+    extra = "".join(f"\n\n{blk.strip()}" for blk in (persona_instruction, format_instruction) if blk and blk.strip())
     system = (
-        f"You are REALM Copilot (active agent: {agent_name}), docked beside the user's live workspace. "
-        f"Reply in {lang} unless the user writes in another language. Keep replies crisp and grounded.\n\n"
+        f"You are {agent_name}, REALM Copilot docked beside the user's live workspace. Reply in {lang} unless the user writes in another language. Keep replies crisp and grounded.{extra}\n\n"
         "ACTION PROTOCOL:\n"
         "- For pure questions, summaries, or advice: answer in Markdown with ZERO <copilot_action> blocks.\n"
-        "- ONLY when asked to edit/add text, create a note, add/edit tasks/events/goals, create/edit an agent, or create/modify a workflow: "
-        "write a brief 1–2 sentence explanation AND emit strict JSON inside <copilot_action>{...}</copilot_action>.\n"
+        "- ONLY when asked to edit/add text, create a note, add/edit tasks/events/goals, create/edit an agent, or create/modify a workflow: write a brief 1–2 sentence explanation AND emit strict JSON inside <copilot_action>{...}</copilot_action>.\n"
         '- Schema: {"kind":"...","title":"Short title","summary":"1-sentence effect","payload":{...}}\n'
         '- Kinds: update_document ({"doc_id","find_text","replace_text"} OR {"doc_id","append_text"} OR {"doc_id","content"}), '
         'create_note ({"title","content","subfolder":"","tags":[]}), '

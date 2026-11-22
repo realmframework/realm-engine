@@ -3,13 +3,8 @@
 COPILOT_SCRIPT: str = r"""
 const cpThreads = new Map();
 let cpController = null, cpStreaming = false, cpRenderedKey = "";
-const CP_BADGE_LABELS = {
-  update_document: "DOCUMENT", create_note: "NEW NOTE", create_task: "TASK",
-  update_task: "UPDATE TASK", create_event: "CALENDAR", create_goal: "GOAL",
-  upsert_agent: "AGENT", upsert_workflow: "WORKFLOW",
-};
-const CP_EVENT_KINDS = new Set(["event", "focus", "milestone", "deadline"]);
-const CP_PRIOS = new Set(["low", "medium", "high", "urgent"]);
+const CP_BADGE_LABELS = { update_document: "DOCUMENT", create_note: "NEW NOTE", create_task: "TASK", update_task: "UPDATE TASK", create_event: "CALENDAR", create_goal: "GOAL", upsert_agent: "AGENT", upsert_workflow: "WORKFLOW" };
+const CP_EVENT_KINDS = new Set(["event", "focus", "milestone", "deadline"]), CP_PRIOS = new Set(["low", "medium", "high", "urgent"]);
 
 function cpActiveFileTab() {
   const fv = document.getElementById("center-file-view");
@@ -158,7 +153,8 @@ function renderCopilotThread() {
       : (m.content ? ("<div class='md-body" + (m.streaming ? " is-streaming" : "") + " flex flex-col gap-2'>" + formatMarkdown(m.content, Boolean(m.streaming), 4) + "</div>") : "");
     const cards = Array.isArray(m.actions) && m.actions.length
       ? m.actions.map(function (a, aIdx) { return cpRenderActionCard(a, mIdx, aIdx); }).join("") : "";
-    return "<div class='cp-msg-ai'>" + body + (m.error ? ("<div class='text-xs text-[#FCA5A5]'>" + escapeHtml(m.error) + "</div>") : "") + cards + "</div>";
+    const metaHtml = typeof cpMsgMetaHtml === "function" ? cpMsgMetaHtml(m.meta) : "";
+    return "<div class='cp-msg-ai'>" + metaHtml + body + (m.error ? ("<div class='text-xs text-[#FCA5A5]'>" + escapeHtml(m.error) + "</div>") : "") + cards + "</div>";
   }).join("");
   box.querySelectorAll("[data-cp-apply]").forEach(function (b) {
     b.addEventListener("click", function () { const [mi, ai] = (b.getAttribute("data-cp-apply") || "").split(":").map(Number); cpApplyAction(mi, ai); });
@@ -178,6 +174,7 @@ function renderCopilotThread() {
 function syncCopilotContextUI(force) {
   const badge = document.getElementById("cp-ctx-badge");
   if (badge) { const lbl = cpContextLabel(); badge.textContent = lbl; badge.title = lbl; }
+  if (force && typeof syncCopilotControls === "function") { syncCopilotControls(); }
   if (force || cpRenderedKey !== cpContextKey()) { renderCopilotThread(); }
 }
 
@@ -286,7 +283,8 @@ async function cpSendPrompt(rawText) {
   if (inp) { inp.value = ""; inp.style.height = "auto"; }
   const thread = cpGetThread();
   thread.push({ role: "user", content: text });
-  const aiMsg = { role: "assistant", content: "", streaming: true, actions: [], error: "" };
+  const cfg = typeof cpResolveRequestConfig === "function" ? cpResolveRequestConfig() : { agentId: "saga", agentName: "Saga", provider: "ollama", model: null, formatId: null, formatName: "" };
+  const aiMsg = { role: "assistant", content: "", streaming: true, actions: [], error: "", meta: { agent_name: cfg.agentName, model: cfg.model || "", format_name: cfg.formatName || "" } };
   thread.push(aiMsg);
   renderCopilotThread(); cpSetBusy(true);
   const ctrl = new AbortController(); cpController = ctrl;
@@ -296,12 +294,14 @@ async function cpSendPrompt(rawText) {
     const headers = Object.assign({ "Content-Type": "application/json" }, apiKey ? { "x-api-key": apiKey } : {});
     const res = await areaFetch("/api/copilot/chat/stream", {
       method: "POST", headers: headers, signal: ctrl.signal,
-      body: JSON.stringify({ messages: payloadMsgs, context: cpCollectContext(), provider: (typeof providerEl !== "undefined" && providerEl && providerEl.value) || "ollama", model: (typeof modelEl !== "undefined" && modelEl && modelEl.value.trim()) || null, api_key: apiKey || null, agent_id: (typeof activeAgentId !== "undefined" && activeAgentId) || "saga" }),
+      body: JSON.stringify({ messages: payloadMsgs, context: cpCollectContext(), provider: cfg.provider, model: cfg.model, api_key: apiKey || null, agent_id: cfg.agentId, format_id: cfg.formatId }),
     });
     if (!res.ok) { const e = await safeJson(res); throw new Error((e && e.detail) || "Copilot unavailable."); }
     await readSseStream(res, function (ev, d) {
-      if (ev === "token" && d && d.delta) { aiMsg.content += String(d.delta); renderCopilotThread(); }
+      if (ev === "meta" && d) { aiMsg.meta = d; renderCopilotThread(); }
+      else if (ev === "token" && d && d.delta) { aiMsg.content += String(d.delta); renderCopilotThread(); }
       else if (ev === "done" && d) {
+        if (d.meta) { aiMsg.meta = d.meta; }
         if (typeof d.reply === "string") { aiMsg.content = d.reply; }
         aiMsg.actions = Array.isArray(d.actions) ? d.actions.map(function (a) { return Object.assign({}, a, { status: "pending" }); }) : [];
       } else if (ev === "error") { throw new Error((d && d.detail) || "Copilot error."); }

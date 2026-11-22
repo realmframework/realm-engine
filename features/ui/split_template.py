@@ -105,12 +105,21 @@ RIGHT_SIDEBAR_HTML: str = (
     '<div id="right-panel-copilot" role="tabpanel" aria-labelledby="right-tab-copilot" hidden class="right-copilot-pane">'
     '<div class="cp-head">'
     '<span id="cp-ctx-badge" class="cp-ctx-badge">Workspace</span>'
+    '<div class="cp-head-actions">'
+    '<select id="cp-agent-select" aria-label="Copilot agent" data-i18n-aria-label="cp_agent_aria" class="wb-compact-select cp-agent-select"></select>'
     '<button id="cp-clear-btn" type="button" data-i18n="cp_new" class="wb-btn wb-btn-sm">New</button>'
+    "</div>"
     "</div>"
     '<div id="cp-messages" class="cp-messages" aria-live="polite"></div>'
     '<form id="cp-form" class="cp-dock">'
+    '<div class="cp-dock-row">'
     '<textarea id="cp-input" rows="1" aria-label="Ask Copilot" placeholder="Ask or describe an edit…" data-i18n-placeholder="cp_ph" class="cp-input"></textarea>'
     '<button id="cp-send-btn" type="submit" aria-label="Send to Copilot" class="cp-send">↑</button>'
+    "</div>"
+    '<div class="cp-meta-bar">'
+    '<select id="cp-model-select" aria-label="Copilot model" data-i18n-aria-label="cp_model_aria" class="cp-meta-select"></select>'
+    '<select id="cp-format-select" aria-label="Copilot output format" data-i18n-aria-label="cp_format_aria" class="cp-meta-select"></select>'
+    "</div>"
     "</form>"
     "</div>"
     '<div id="right-panel-inspector" role="tabpanel" aria-labelledby="right-tab-inspector" hidden class="right-sidebar-scroll">'

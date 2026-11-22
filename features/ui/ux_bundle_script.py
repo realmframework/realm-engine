@@ -3,6 +3,7 @@
 from features.ui.agent_builder_script import AGENT_BUILDER_SCRIPT
 from features.ui.comfort_script import COMFORT_SCRIPT
 from features.ui.command_script import COMMAND_SCRIPT
+from features.ui.copilot_controls_script import COPILOT_CONTROLS_SCRIPT
 from features.ui.copilot_script import COPILOT_SCRIPT
 from features.ui.eco_sync_script import ECO_SYNC_SCRIPT
 from features.ui.editor_script import EDITOR_SCRIPT
@@ -42,6 +43,7 @@ UX_BUNDLE_SCRIPT: str = (
     + SHELL_SCRIPT
     + WORKBENCH_TABS_SCRIPT
     + FILE_TAB_SCRIPT
+    + COPILOT_CONTROLS_SCRIPT
     + COPILOT_SCRIPT
     + LOCAL_AI_SCRIPT
     + r"""
@@ -65,6 +67,7 @@ function bindAllUXBundles() {
     typeof bindSpatialShellUX === "function" && bindSpatialShellUX,
     typeof bindWorkbenchTabsUX === "function" && bindWorkbenchTabsUX,
     typeof bindFileTabUX === "function" && bindFileTabUX,
+    typeof bindCopilotControlsUX === "function" && bindCopilotControlsUX,
     typeof bindCopilotUX === "function" && bindCopilotUX,
     typeof bindLocalAiUX === "function" && bindLocalAiUX,
   ]) {

@@ -42,6 +42,7 @@ class CopilotChatRequest(StrictModel):
     model: str | None = None
     api_key: str | None = None
     agent_id: str = Field(default="saga", max_length=64)
+    format_id: str | None = Field(default=None, max_length=64)
 
 
 class CopilotActionProposal(StrictModel):

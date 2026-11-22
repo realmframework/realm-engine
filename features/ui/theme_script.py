@@ -199,6 +199,7 @@ function setFixedGlobalTheme(locked, persist) {
     applyThemeTokens(mode, "#4BB8E8", "#6366F1", true);
   }
   if (typeof syncSplitPaneAccent === "function") { syncSplitPaneAccent(); }
+  if (typeof syncCopilotPaneAccent === "function") { syncCopilotPaneAccent(); }
   if (typeof currentTurns !== "undefined" && currentTurns.length && typeof renderChatStream === "function") { renderChatStream(); }
   if (persist !== false) { persistAppearancePatch({ sync_agent_palette: !isLocked }); }
 }

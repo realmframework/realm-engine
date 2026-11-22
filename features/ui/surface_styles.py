@@ -53,8 +53,11 @@ progress.focus-ring { filter: drop-shadow(0 0 18px color-mix(in oklab, var(--acc
 
 /* Right Sidebar Context-Aware Copilot Pane, Diff Previews & Action Cards */
 .right-copilot-pane { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-.cp-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 0.45rem; padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--border-subtle); }
-.cp-ctx-badge { display: inline-flex; align-items: center; gap: 0.35rem; min-width: 0; max-width: 100%; padding: 0.22rem 0.6rem; border-radius: 999px; background: color-mix(in oklab, var(--accent) 13%, var(--surface-glass)); border: 1px solid color-mix(in oklab, var(--accent) 34%, transparent); color: var(--accent); font-family: ui-monospace, monospace; font-size: calc(0.73rem * var(--ui-scale, 1)); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cp-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; padding: 0.48rem 0.65rem; border-bottom: 1px solid var(--border-subtle); }
+.cp-head-actions { display: inline-flex; align-items: center; gap: 0.32rem; flex-shrink: 0; }
+.cp-agent-select { max-width: 7.4rem; height: 1.75rem; font-size: calc(0.76rem * var(--ui-scale, 1)); }
+.cp-ctx-badge { display: inline-flex; align-items: center; gap: 0.35rem; min-width: 0; flex: 0 1 auto; padding: 0.2rem 0.55rem; border-radius: 999px; background: color-mix(in oklab, var(--accent) 13%, var(--surface-glass)); border: 1px solid color-mix(in oklab, var(--accent) 34%, transparent); color: var(--accent); font-family: ui-monospace, monospace; font-size: calc(0.72rem * var(--ui-scale, 1)); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cp-msg-meta { font-family: ui-monospace, monospace; font-size: calc(0.68rem * var(--ui-scale, 1)); color: var(--text-muted); letter-spacing: 0.02em; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
 .cp-messages { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0.75rem 0.7rem 1rem; display: flex; flex-direction: column; gap: 0.65rem; }
 .cp-empty { margin: auto 0; padding: 1.15rem 0.9rem; border-radius: 0.95rem; background: var(--surface-glass); background-image: var(--accent-sheen); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow); display: flex; flex-direction: column; gap: 0.65rem; }
 .cp-empty-title { margin: 0; font-size: calc(0.92rem * var(--ui-scale, 1)); font-weight: 600; color: var(--text); }
@@ -76,7 +79,13 @@ progress.focus-ring { filter: drop-shadow(0 0 18px color-mix(in oklab, var(--acc
 .cp-diff-add { padding: 0.32rem 0.55rem; background: color-mix(in oklab, var(--status-ok) 14%, transparent); color: var(--status-ok); white-space: pre-wrap; word-break: break-word; }
 .cp-act-btns { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; padding-top: 0.15rem; }
 .cp-act-done { font-family: ui-monospace, monospace; font-size: calc(0.74rem * var(--ui-scale, 1)); font-weight: 600; color: var(--status-ok); }
-.cp-dock { flex: none; display: flex; align-items: flex-end; gap: 0.4rem; padding: 0.55rem 0.65rem 0.7rem; border-top: 1px solid var(--border-subtle); background: var(--surface-glass-strong); }
+.cp-dock { flex: none; display: flex; flex-direction: column; gap: 0.4rem; padding: 0.52rem 0.65rem 0.62rem; border-top: 1px solid var(--border-subtle); background: var(--surface-glass-strong); }
+.cp-dock-row { display: flex; align-items: flex-end; gap: 0.4rem; }
+.cp-meta-bar { display: flex; align-items: center; gap: 0.35rem; min-width: 0; }
+.cp-meta-select { flex: 1 1 0; min-width: 0; height: 1.72rem; border-radius: 0.5rem; border: 1px solid var(--border-subtle); background-color: var(--surface-glass); color: var(--text-muted); font-size: calc(0.72rem * var(--ui-scale, 1)); padding: 0 0.5rem; outline: none; cursor: pointer; text-overflow: ellipsis; }
+.cp-meta-select:hover:not(:disabled) { border-color: color-mix(in oklab, var(--accent) 44%, var(--border)); color: var(--text); }
+.cp-meta-select:focus-visible { border-color: var(--accent); color: var(--text); }
+.cp-meta-select:disabled { opacity: 0.85; cursor: default; color: var(--accent); border-color: color-mix(in oklab, var(--accent) 32%, transparent); }
 .cp-input { flex: 1; min-width: 0; max-height: 7.5rem; resize: none; border-radius: 0.75rem; border: 1px solid var(--border-control); background: color-mix(in oklab, var(--background) 74%, var(--surface-raised)); color: var(--text); padding: 0.48rem 0.7rem; font-size: calc(0.84rem * var(--ui-scale, 1)); line-height: 1.45; outline: none; }
 .cp-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 22%, transparent); }
 .cp-send { width: 2.05rem; height: 2.05rem; border-radius: 999px; border: 0; background: var(--accent); color: var(--text-on-accent); font-weight: 700; font-size: 0.95rem; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; box-shadow: 0 3px 12px color-mix(in oklab, var(--accent) 34%, transparent); transition: filter 0.14s ease; }
@@ -88,10 +97,10 @@ progress.focus-ring { filter: drop-shadow(0 0 18px color-mix(in oklab, var(--acc
   #library-guides article:hover, .wb-card:hover, .wb-task-row:hover, .wb-project-card:hover, .impact-card:hover, .goal-card:hover, .wf-step-card:hover { transform: none; }
 }
 @media (prefers-contrast: more) {
-  #activity-rail, #sidebar, #inspector-sidebar, .wb-zone-bar, #bottom-panel, #center-file-view, .library-folders, #library-guides article, .wb-col, .wb-card, .kpi-card, .timer-bar, .impact-card, .roi-table, .goal-card, .plan-card, #imp-rate-form, .wf-toolbar, .wf-meta-bar, .wf-side-panel, .wf-node-card, .cp-empty, .cp-action-card, .cp-dock, dialog { background-color: var(--surface-raised) !important; background-image: none !important; backdrop-filter: none !important; border-color: var(--border-control) !important; }
+  #activity-rail, #sidebar, #inspector-sidebar, .wb-zone-bar, #bottom-panel, #center-file-view, .library-folders, #library-guides article, .wb-col, .wb-card, .kpi-card, .timer-bar, .impact-card, .roi-table, .goal-card, .plan-card, #imp-rate-form, .wf-toolbar, .wf-meta-bar, .wf-side-panel, .wf-node-card, .cp-empty, .cp-action-card, .cp-dock, .cp-meta-select, dialog { background-color: var(--surface-raised) !important; background-image: none !important; backdrop-filter: none !important; border-color: var(--border-control) !important; }
 }
 @media (forced-colors: active) {
-  #activity-rail, #sidebar, #inspector-sidebar, .wb-zone-bar, #bottom-panel, #center-file-view, .library-folders, #library-guides article, .wb-col, .wb-card, .kpi-card, .timer-bar, .impact-card, .roi-table, .goal-card, .plan-card, #imp-rate-form, .wf-toolbar, .wf-meta-bar, .wf-canvas-viewport, .wf-side-panel, .wf-node-card, .cp-empty, .cp-action-card, .cp-dock, dialog { background-color: Canvas !important; background-image: none !important; backdrop-filter: none !important; box-shadow: none !important; border-color: ButtonBorder !important; }
+  #activity-rail, #sidebar, #inspector-sidebar, .wb-zone-bar, #bottom-panel, #center-file-view, .library-folders, #library-guides article, .wb-col, .wb-card, .kpi-card, .timer-bar, .impact-card, .roi-table, .goal-card, .plan-card, #imp-rate-form, .wf-toolbar, .wf-meta-bar, .wf-canvas-viewport, .wf-side-panel, .wf-node-card, .cp-empty, .cp-action-card, .cp-dock, .cp-meta-select, dialog { background-color: Canvas !important; background-image: none !important; backdrop-filter: none !important; box-shadow: none !important; border-color: ButtonBorder !important; }
   progress.focus-ring { filter: none !important; }
   .timer-clock { text-shadow: none !important; }
 }

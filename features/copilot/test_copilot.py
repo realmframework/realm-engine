@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import json
 from collections.abc import AsyncIterator
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from core import agent_personas
 from core.contracts import WorkspaceConfig
 from core.copilot_contracts import CopilotChatRequest, CopilotContext, CopilotMessage
 from features.copilot import router as copilot_router
@@ -60,10 +62,24 @@ def test_parse_copilot_task_agent_and_workflow_actions() -> None:
     assert len(actions[3].payload["nodes"]) == 2  # type: ignore[arg-type]
 
 
-def test_copilot_stream_route_hides_action_xml_and_emits_done() -> None:
+def test_copilot_stream_route_hides_action_xml_and_emits_done(tmp_path: Path) -> None:
     cfg = WorkspaceConfig(app_title="Copilot Test", knowledge_dir="", active_dirs=[], strict_local_only=True)
+    agent_personas.save_agent(
+        tmp_path,
+        name="Security Hawk",
+        role="Auditor",
+        palette="lisbeth",
+        model_provider="ollama",
+        model_name="qwen3.5:9b",
+        temperature=0.1,
+        instructions="Always highlight threat models first.",
+    )
+    captured_sys: list[str] = []
+    captured_models: list[str] = []
 
-    async def fake_stream(_msgs: list[dict[str, str]], _cfg: object, **_kw: object) -> AsyncIterator[dict[str, object]]:
+    async def fake_stream(msgs: list[dict[str, str]], tcfg: object, **_kw: object) -> AsyncIterator[dict[str, object]]:
+        captured_sys.append(msgs[0]["content"])
+        captured_models.append(str(getattr(tcfg, "model", "")))
         chunks = [
             "Here is a ",
             "proposed task.\n<copi",
@@ -73,13 +89,15 @@ def test_copilot_stream_route_hides_action_xml_and_emits_done() -> None:
             yield {"type": "token", "delta": ch}
 
     app = FastAPI()
-    app.include_router(copilot_router.build_router(lambda: cfg, fake_stream))
+    app.include_router(copilot_router.build_router(lambda: cfg, fake_stream, lambda: tmp_path))
     client = TestClient(app)
     req = CopilotChatRequest(
         messages=[CopilotMessage(role="user", content="Add a task to review the API spec")],
         context=CopilotContext(view="file", doc_id="API", filename="API.md", doc_content="# API\n"),
         provider="ollama",
         model="qwen3:8b",
+        agent_id="security_hawk",
+        format_id="executive_brief",
     )
     res = client.post("/api/copilot/chat/stream", json=req.model_dump())
     assert res.status_code == 200
@@ -92,6 +110,10 @@ def test_copilot_stream_route_hides_action_xml_and_emits_done() -> None:
             events.append((cur_ev, json.loads(line.removeprefix("data: "))))
     token_text = "".join(str(d.get("delta") or "") for ev, d in events if ev == "token")
     assert "<copilot_action>" not in token_text and "proposed task." in token_text
+    assert captured_models == ["qwen3.5:9b"]
+    assert "Security Hawk" in captured_sys[0] and "threat models" in captured_sys[0]
+    meta = next(d for ev, d in events if ev == "meta")
+    assert meta["agent_name"] == "Security Hawk" and meta["model"] == "qwen3.5:9b" and meta["model_pinned"] is True
     done = next(d for ev, d in events if ev == "done")
     actions = done["actions"]
     assert isinstance(actions, list) and len(actions) == 1 and actions[0]["kind"] == "create_task"

@@ -135,6 +135,7 @@ function syncModelMirrors() {
     const mirror = document.getElementById(id);
     if (mirror) { mirror.innerHTML = modelEl.innerHTML; if (modelEl.selectedIndex >= 0) { mirror.selectedIndex = modelEl.selectedIndex; } mirror.disabled = modelEl.disabled; }
   }
+  if (typeof syncCopilotControls === "function") { syncCopilotControls(); }
 }
 function selectActiveModel(value, optProvider) {
   if (!value) { return; }

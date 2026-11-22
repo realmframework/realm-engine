@@ -46,6 +46,7 @@ function syncActiveAgentBadge() {
   if (typeof syncFixedThemeControlsUI === "function") { syncFixedThemeControlsUI(); }
   if (typeof renderDrawerDynamicLists === "function") { renderDrawerDynamicLists(); }
   if (typeof syncSplitSelectors === "function") { syncSplitSelectors(); }
+  if (typeof syncCopilotControls === "function") { syncCopilotControls(); }
   if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
 }
 function resolveSessionAgentId(session) {

@@ -85,7 +85,7 @@ async function attachVaultToActiveChat(areaName) {
   } catch (err) { showToast(err.message || t("err_connect_ws")); }
 }
 async function loadOutputFormats() {
-  try { const res = await fetch("/api/formats"); if (res.ok) { const d = await safeJson(res); availableFormats = Array.isArray(d.formats) ? d.formats : []; } } catch (_e) {}
+  try { const res = await fetch("/api/formats"); if (res.ok) { const d = await safeJson(res); availableFormats = Array.isArray(d.formats) ? d.formats : []; if (typeof syncCopilotControls === "function") { syncCopilotControls(); } } } catch (_e) {}
 }
 function setFormatStudioTab(tab) {
   const isCustom = tab === "custom", bBtn = document.getElementById("format-tab-browse"), cBtn = document.getElementById("format-tab-custom");
@@ -143,13 +143,14 @@ async function saveCustomFormatUI(event) {
     document.getElementById("custom-format-form").reset();
     if (status) { status.textContent = "Saved custom format “" + data.format.name + "”."; }
     setFormatStudioTab("browse"); renderFormatStudio();
+    if (typeof syncCopilotControls === "function") { syncCopilotControls(); }
   } catch (err) { if (status) { status.textContent = err.message; } }
 }
 async function deleteCustomFormatUI(fmtId) {
   if (!await confirmDeletion(t("cf_del_fmt_t"), t("cf_del_fmt_m"), t("delete_btn"))) { return; }
   try {
     const res = await fetch("/api/formats/" + encodeURIComponent(fmtId), { method: "DELETE" });
-    if (res.ok) { const d = await safeJson(res); availableFormats = d.formats || []; if (pinnedFormatId === fmtId) { pinnedFormatId = null; } renderFormatStudio(); }
+    if (res.ok) { const d = await safeJson(res); availableFormats = d.formats || []; if (pinnedFormatId === fmtId) { pinnedFormatId = null; } renderFormatStudio(); if (typeof syncCopilotControls === "function") { syncCopilotControls(); } }
   } catch (_e) {}
 }
 async function runFormatSynthesis(formatId) {

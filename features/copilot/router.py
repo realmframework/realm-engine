@@ -2,19 +2,25 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import AsyncIterator, Callable
+from pathlib import Path
+from typing import cast
 
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import StreamingResponse
 
+from core import model_routing
+from core.agent_personas import active_persona_prompt
 from core.ai_stream import (
     StreamMessagesFn,
     build_workspace_tutor_config,
     require_local_policy,
 )
-from core.contracts import WorkspaceConfig
+from core.contracts import ProviderName, WorkspaceConfig
 from core.copilot_contracts import CopilotChatRequest
+from core.output_formats import build_format_instruction, get_format
 from features.copilot import service
 
 
@@ -25,6 +31,7 @@ def _sse(event: str, data: dict[str, object]) -> str:
 def build_router(
     get_config: Callable[[], WorkspaceConfig],
     stream_messages: StreamMessagesFn,
+    get_data_root: Callable[[], Path] | None = None,
 ) -> APIRouter:
     router = APIRouter()
 
@@ -35,17 +42,41 @@ def build_router(
         x_api_key: str | None = Header(default=None, alias="x-api-key"),
     ) -> StreamingResponse:
         cfg = get_config()
-        require_local_policy(cfg, body.provider, body.model)
+        root = get_data_root() if get_data_root is not None else Path.cwd()
         api_key = x_api_key or body.api_key
-        tcfg = build_workspace_tutor_config(cfg, body.provider, body.model or "", api_key, temperature=0.25)
-        prompt_msgs = service.build_copilot_messages(body, cfg.language, cfg.agent_name or "Saga")
+        agent, persona_instr = await asyncio.to_thread(
+            active_persona_prompt, root, body.agent_id or cfg.active_agent, cfg.agent_name
+        )
+        eff_prov, eff_model, eff_key, is_pinned, _notice = await asyncio.to_thread(
+            model_routing.resolve_agent_model, agent, cfg, body.provider, body.model, api_key
+        )
+        require_local_policy(cfg, eff_prov, eff_model)
+        fmt = await asyncio.to_thread(get_format, root, body.format_id or "") if body.format_id else None
+        fmt_instr = build_format_instruction(fmt) if fmt else ""
+        eff_temp = max(0.0, min(1.0, float(agent.temperature)))
+        eff_provider = cast(ProviderName, eff_prov)
+        tcfg = build_workspace_tutor_config(cfg, eff_provider, eff_model, eff_key, temperature=eff_temp)
+        prompt_msgs = service.build_copilot_messages(
+            body, cfg.language, agent.name, persona_instr, fmt_instr
+        )
+        run_meta: dict[str, object] = {
+            "agent_id": agent.id,
+            "agent_name": agent.name,
+            "provider": eff_prov,
+            "model": eff_model or tcfg.model,
+            "model_pinned": is_pinned,
+            "format_id": fmt.id if fmt else "",
+            "format_name": fmt.name if fmt else "",
+        }
 
         async def _gen() -> AsyncIterator[str]:
             raw_buf = ""
             emitted_len = 0
             in_action = False
             try:
-                async for ev in stream_messages(prompt_msgs, tcfg, temperature=0.25, max_tokens=2200):
+                await asyncio.to_thread(model_routing.maybe_unload_previous_ollama, eff_prov, eff_model or "")
+                yield _sse("meta", run_meta)
+                async for ev in stream_messages(prompt_msgs, tcfg, temperature=eff_temp, max_tokens=2200):
                     if await request.is_disconnected():
                         return
                     ev_type = str(ev.get("type") or "")
@@ -72,7 +103,7 @@ def build_router(
                 if not in_action and emitted_len < len(raw_buf):
                     yield _sse("token", {"delta": raw_buf[emitted_len:]})
                 reply, actions = service.parse_copilot_response(raw_buf, body.context)
-                yield _sse("done", {"reply": reply, "actions": [a.model_dump() for a in actions]})
+                yield _sse("done", {"reply": reply, "actions": [a.model_dump() for a in actions], "meta": run_meta})
             except Exception as exc:
                 yield _sse("error", {"detail": str(exc) or "Copilot request failed"})
 

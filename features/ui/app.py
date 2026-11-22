@@ -127,7 +127,7 @@ def _build_local_app() -> FastAPI:
         impact_router.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events, lambda a: work_board_service.project_name_map(a, workspace.REPO_ROOT), lambda: workspace.REPO_ROOT),
         focus_router.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events, lambda a, lbl, mins, pid, tid, nt: impact_router.log_focus_time(a, workspace.REPO_ROOT, lbl, mins, pid, tid, nt), lambda a: work_board_service.open_task_summaries(a, workspace.REPO_ROOT), lambda a, blks: work_board_service.schedule_focus_events(a, list(blks), workspace.REPO_ROOT), lambda: workspace.REPO_ROOT),
         workflow_router.build_router(lambda: WORKSPACE_CONFIG, wf_cbs, lambda: workspace.REPO_ROOT),
-        copilot_router.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events),
+        copilot_router.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events, lambda: workspace.REPO_ROOT),
         local_ai_router.build_router(lambda: workspace.REPO_ROOT),
     )
     for router in routers:
