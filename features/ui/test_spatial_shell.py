@@ -7,6 +7,7 @@ def test_spatial_shell_activity_rail_drawer_panels_and_topbar(area_client: TestC
     html = area_client.get("/").text
     for needle in (
         'id="activity-rail"',
+        'id="rail-drawer-toggle"',
         'id="rail-home-btn"',
         'id="rail-library-btn"',
         'id="rail-work-btn"',
@@ -28,14 +29,13 @@ def test_spatial_shell_activity_rail_drawer_panels_and_topbar(area_client: TestC
     ):
         assert needle in html
     assert 'id="sidebar-collapse-btn"' not in html
-    assert 'id="rail-drawer-toggle"' not in html
+    assert 'id="layout-left-btn"' not in html
     assert 'id="sidebar-workflows-btn"' not in html
 
 
 def test_four_zone_workbench_controls_and_zero_fake_mini_widgets(area_client: TestClient) -> None:
     html = area_client.get("/").text
     for needle in (
-        'id="layout-left-btn"',
         'id="layout-bottom-btn"',
         'id="layout-right-btn"',
         'id="inspector-token-label"',

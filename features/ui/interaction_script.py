@@ -12,7 +12,7 @@ const sidebarNarrowMq = window.matchMedia("(max-width: 900px)");
 function syncSidebarDrawer(moveFocus) {
   const sb = document.getElementById("sidebar"), main = document.getElementById("main-shell");
   const openBtn = document.getElementById("sidebar-open-btn"), bd = document.getElementById("sidebar-backdrop");
-  const topLeftBtn = document.getElementById("layout-left-btn");
+  const railTog = document.getElementById("rail-drawer-toggle");
   const mobClose = document.getElementById("mobile-drawer-close-btn");
   if (!sb || !main || !openBtn) { return; }
   const narrow = sidebarNarrowMq.matches;
@@ -36,7 +36,7 @@ function syncSidebarDrawer(moveFocus) {
     main.inert = false;
     if (bd) { bd.hidden = true; }
     openBtn.classList.add("hidden"); openBtn.classList.remove("flex");
-    if (topLeftBtn) { topLeftBtn.setAttribute("aria-pressed", String(!desktopDrawerCollapsed)); topLeftBtn.setAttribute("aria-expanded", String(!desktopDrawerCollapsed)); }
+    if (railTog) { railTog.setAttribute("aria-expanded", String(!desktopDrawerCollapsed)); }
   }
   if (moveFocus === "open" && narrow && mobClose && visible) { mobClose.focus({ preventScroll: true }); }
   if (moveFocus === "close" && narrow && !visible) { openBtn.focus({ preventScroll: true }); }

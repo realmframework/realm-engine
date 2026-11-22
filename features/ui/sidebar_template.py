@@ -25,6 +25,8 @@ from features.ui.icons import (
 
 ACTIVITY_RAIL_HTML: str = (
     '<nav aria-label="Primary" id="activity-rail">'
+    f'<button id="rail-drawer-toggle" type="button" aria-expanded="true" aria-controls="sidebar" class="rail-btn" aria-label="Toggle left sidebar" title="Toggle left sidebar" data-i18n-aria-label="sh_toggle_drawer" data-i18n-title="sh_toggle_drawer">{ICON_SIDEBAR_LEFT}</button>'
+    '<span class="rail-divider" aria-hidden="true"></span>'
     f'<button id="rail-home-btn" type="button" data-rail-section="chat" aria-current="page" class="rail-btn" aria-label="Chat &amp; Home" title="Chat &amp; Home" data-i18n-aria-label="sh_rail_chat" data-i18n-title="sh_rail_chat">{ICON_HOME}</button>'
     f'<button id="rail-library-btn" type="button" data-rail-section="library" class="rail-btn" aria-label="Library &amp; Space" title="Library &amp; Space" data-i18n-aria-label="sh_rail_library" data-i18n-title="sh_rail_library">{ICON_LIBRARY}</button>'
     f'<button id="rail-work-btn" type="button" data-rail-section="work" class="rail-btn" aria-label="Work OS: Board, Focus &amp; Impact" title="Work OS: Board, Focus &amp; Impact" data-i18n-aria-label="sh_rail_work" data-i18n-title="sh_rail_work">{ICON_WORK}<span id="rail-work-dot" hidden class="rail-badge-dot" aria-hidden="true"></span></button>'
@@ -131,7 +133,6 @@ APP_TOPBAR_HTML: str = (
     "</div>"
     '<div id="top-right-tools" class="topbar-right">'
     f'<button id="inspector-toggle-btn" type="button" hidden aria-expanded="false" aria-controls="inspector-sidebar" aria-label="Open Engine Inspector" data-i18n-aria-label="aria_open_inspector" title="Engine Inspector (⌘I)" class="topbar-pill-btn">{ICON_TOKENS}<span id="inspector-token-label" data-i18n="insp_tokens_short">Tokens</span></button>'
-    f'<button id="layout-left-btn" type="button" aria-pressed="true" aria-expanded="true" aria-controls="sidebar" aria-label="Toggle left sidebar" title="Toggle left sidebar" data-i18n-aria-label="sh_toggle_drawer" data-i18n-title="sh_toggle_drawer" class="topbar-icon-btn">{ICON_SIDEBAR_LEFT}</button>'
     f'<button id="layout-bottom-btn" type="button" aria-pressed="false" aria-label="Toggle bottom panel" title="Toggle bottom panel" data-i18n-aria-label="sh_toggle_bottom" data-i18n-title="sh_toggle_bottom" class="topbar-icon-btn">{ICON_BOTTOM_PANEL}</button>'
     f'<button id="layout-right-btn" type="button" aria-pressed="false" aria-label="Toggle right sidebar" title="Toggle right sidebar" data-i18n-aria-label="sh_toggle_right_sb" data-i18n-title="sh_toggle_right_sb" class="topbar-icon-btn">{ICON_RIGHT_SIDEBAR}</button>'
     f'<button id="topbar-more-btn" type="button" popovertarget="topbar-more-menu" aria-expanded="false" aria-label="Workspace actions" title="Workspace actions" data-i18n-aria-label="sh_actions_aria" data-i18n-title="sh_actions_aria" class="topbar-icon-btn">{ICON_MORE}</button>'

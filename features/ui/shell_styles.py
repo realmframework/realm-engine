@@ -59,7 +59,7 @@ body.drawer-collapsed #sidebar { transform: translateX(calc(-100% - var(--rail-w
 .wb-view { min-height: 100% !important; padding: 1.15rem clamp(0.95rem, 2vw, 1.85rem) 2.75rem !important; gap: 0.95rem !important; }
 .wb-header { padding-inline-end: 0 !important; }
 @media (max-width: 900px) {
-  #activity-rail, #layout-left-btn { display: none !important; }
+  #activity-rail { display: none !important; }
   #sidebar { left: 0 !important; width: 274px !important; }
   body.drawer-collapsed #sidebar { transform: translateX(-100%) !important; }
   #sidebar.-translate-x-full { transform: translateX(-100%) !important; pointer-events: none; }

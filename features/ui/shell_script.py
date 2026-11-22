@@ -139,8 +139,8 @@ function handleShellAction(act) {
 }
 
 function bindSpatialShellUX() {
-  const topLeftBtn = document.getElementById("layout-left-btn");
-  if (topLeftBtn) { topLeftBtn.addEventListener("click", function () { toggleContextDrawer(); }); }
+  const railTog = document.getElementById("rail-drawer-toggle");
+  if (railTog) { railTog.addEventListener("click", function () { toggleContextDrawer(); }); }
   document.querySelectorAll("[data-rail-section]").forEach(function (btn) {
     btn.addEventListener("click", function () {
       const sec = btn.getAttribute("data-rail-section") || "chat";
