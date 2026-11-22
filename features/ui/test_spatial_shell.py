@@ -14,23 +14,30 @@ def test_spatial_shell_activity_rail_drawer_panels_and_topbar(area_client: TestC
         'id="rail-workflows-btn"',
         'id="rail-studio-btn"',
         'id="mobile-rail-strip"',
-        'id="rail-more-menu" popover="auto"',
         'id="rail-status-popover" popover="auto"',
         'id="drawer-panel-chat"',
         'id="drawer-panel-library"',
         'id="drawer-panel-work"',
         'id="drawer-panel-workflows"',
         'id="drawer-panel-studio"',
-        'id="app-topbar"',
-        'id="topbar-title"',
+        'id="wb-global-controls"',
         'id="topbar-timer-pill"',
-        'id="topbar-more-menu" popover="auto"',
+        'id="clear-areas-btn"',
         'data-i18n-span="sh_new_note"',
     ):
         assert needle in html
-    assert 'id="sidebar-collapse-btn"' not in html
-    assert 'id="layout-left-btn"' not in html
-    assert 'id="sidebar-workflows-btn"' not in html
+    for removed in (
+        'id="sidebar-collapse-btn"',
+        'id="layout-left-btn"',
+        'id="sidebar-workflows-btn"',
+        'id="app-topbar"',
+        'id="topbar-more-menu"',
+        'id="rail-more-menu"',
+        'id="new-chat-btn"',
+        'id="free-chat-mode-btn"',
+        'id="right-tab-doc"',
+    ):
+        assert removed not in html
 
 
 def test_four_zone_workbench_controls_and_zero_fake_mini_widgets(area_client: TestClient) -> None:
@@ -48,6 +55,7 @@ def test_four_zone_workbench_controls_and_zero_fake_mini_widgets(area_client: Te
         "renderChatTabStrip",
         "populateAgentSelect",
         "syncSplitPaneAccent",
+        "syncGlobalControlsWidth",
         'id="bottom-panel-tablist"',
         'id="bottom-panel-more-btn"',
         'id="bottom-panel-max-btn"',
@@ -59,8 +67,7 @@ def test_four_zone_workbench_controls_and_zero_fake_mini_widgets(area_client: Te
         'data-bp-tool="library"',
         'data-bp-vis="work"',
         'role="menuitemcheckbox"',
-        'id="right-sidebar-tablist"',
-        'id="right-doc-select"',
+        'id="right-panel-inspector"',
         "syncCenterChatTab",
         "toggleContextDrawer",
         "openChatInSplit",

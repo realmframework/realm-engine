@@ -117,7 +117,7 @@ function activateWorkspaceView(viewId, opts) {
   if (gv) { gv.classList.toggle("hidden", viewId !== "graph-view"); }
   const target = document.getElementById(viewId);
   if (target) { target.classList.remove("hidden"); }
-  ["sidebar-work-btn", "sidebar-focus-btn", "sidebar-impact-btn", "sidebar-workflows-btn"].forEach(function (bid) {
+  ["sidebar-work-btn", "sidebar-focus-btn", "sidebar-impact-btn"].forEach(function (bid) {
     const el = document.getElementById(bid);
     if (el) { el.classList.toggle("is-active", Boolean(opt.sidebarBtnId && bid === opt.sidebarBtnId)); }
   });

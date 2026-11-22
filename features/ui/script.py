@@ -103,7 +103,7 @@ function setViewMode(active, hideDock) {
     shell.className = chatLayout ? "flex flex-col w-full h-screen overflow-hidden items-center" : (active ? "flex flex-col w-full flex-1 items-center px-4 sm:px-6" : "flex flex-col w-full flex-1 justify-center items-center px-4 sm:px-6");
     stream.className = chatLayout ? "flex w-full flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 pt-8 pb-10 flex-col items-center gap-8 outline-none chat-scroll-mask" : ((active ? "flex " : "hidden ") + "w-full max-w-3xl flex-1 pt-8 pb-16 flex-col gap-8 outline-none");
     dock.className = chatLayout ? "chat-dock shrink-0 z-30 w-full max-w-3xl px-4 sm:px-6 pb-6 pt-2 flex flex-col items-center" : (active ? "hidden" : "w-full max-w-3xl mx-auto flex flex-col items-center justify-center relative z-30");
-    document.getElementById("hero-heading").classList.toggle("hidden", active); document.getElementById("seed-chips").classList.toggle("hidden", active);
+    document.getElementById("hero-heading").classList.toggle("hidden", active); document.getElementById("seed-chips").classList.toggle("hidden", active || Boolean(typeof freeChatMode !== "undefined" && freeChatMode));
     if (typeof syncCenterTabbarVisibility === "function") { syncCenterTabbarVisibility(!hideDock); }
   };
   if (isActiveView === active) { applyLayout(); if (typeof updateTopbarContext === "function") { updateTopbarContext(); } return Promise.resolve(); }
@@ -276,7 +276,6 @@ function submitQuery() { if (typeof tryExpandInlineSlashSubmit === "function" &&
 document.getElementById("search-form").addEventListener("submit", function (e) { e.preventDefault(); if (activeController) { stopActiveRequest(); return; } submitQuery(); }); document.getElementById("model-refresh").addEventListener("click", loadModels);
 if (submitBtn) { submitBtn.addEventListener("click", function (e) { if (activeController) { e.preventDefault(); stopActiveRequest(); } }); }
 document.addEventListener("keydown", function (e) { if (e.key === "Escape" && activeController && !document.querySelector("dialog[open]")) { stopActiveRequest(); } });
-document.getElementById("new-chat-btn").addEventListener("click", resetHome);
 document.getElementById("chunks-toggle-btn").addEventListener("click", function () { chunksCollapsed = !chunksCollapsed; syncChunksToggle(true); });
 document.getElementById("sidebar-browse-btn").addEventListener("click", function () { setActiveTag(null); openLibraryCatalog(null); }); document.getElementById("sidebar-graph-btn").addEventListener("click", function () { setActiveTag(null); openGraphView(); }); document.getElementById("home-browse-btn").addEventListener("click", function () { setActiveTag(null); openLibraryCatalog(null); }); document.getElementById("more-ideas-btn").addEventListener("click", cycleIdeas);
 document.getElementById("open-settings-btn").addEventListener("click", function () { openSettings(); }); document.getElementById("close-settings-modal").addEventListener("click", function () { settingsModal.close(); }); document.getElementById("save-workspace-btn").addEventListener("click", saveWorkspace);

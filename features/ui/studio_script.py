@@ -7,24 +7,18 @@ const COMPRESS_SVG = "<svg aria-hidden='true' class='w-3.5 h-3.5 shrink-0' fill=
 function pinnedFormatObj() { return availableFormats.find(f => f.id === pinnedFormatId) || null; }
 function fmtTokens(n) { const v = Number(n || 0); return v >= 1000 ? (v / 1000).toFixed(1) + "k" : String(v); }
 function syncFreeChatUI() {
-  const btn = document.getElementById("free-chat-mode-btn"), pill = document.getElementById("free-chat-pill");
-  if (btn) { btn.setAttribute("aria-pressed", String(freeChatMode)); btn.classList.toggle("border-[#4BB8E8]", freeChatMode); }
-  if (pill) { pill.textContent = freeChatMode ? "ON" : "OFF"; pill.className = "text-2xs font-mono " + (freeChatMode ? "text-[#38D399]" : "text-[#738196]"); }
-  if (freeChatMode) {
-    const title = document.getElementById("brand-title"), dot = document.getElementById("workspace-color-dot");
-    if (title) { title.textContent = t("free_chat_short"); title.style.fontSize = ""; }
-    if (dot) { dot.innerHTML = "<span class='w-2.5 h-2.5 rounded-full border-2 border-[#4BB8E8] shrink-0'></span>"; }
-  }
+  if (typeof renderKnowledgeAreas === "function") { renderKnowledgeAreas(); }
 }
-async function setFreeChatMode(on) {
+async function setFreeChatMode(on, closeMenu) {
   const next = Boolean(on);
-  if (!next && !knowledgeAreas.length) { freeChatMode = true; syncFreeChatUI(); closeWorkspaceMenu(); showToast(t("free_chat_need_ws")); return; }
-  if (next === freeChatMode) { closeWorkspaceMenu(); return; }
-  freeChatMode = next; closeWorkspaceMenu();
+  if (!next && !knowledgeAreas.length) { freeChatMode = true; safeStorageSet("realm_free_chat", "1"); syncFreeChatUI(); if (closeMenu !== false) { closeWorkspaceMenu(); } showToast(t("free_chat_need_ws")); return; }
+  if (next === freeChatMode) { if (closeMenu !== false) { closeWorkspaceMenu(); } return; }
+  freeChatMode = next; safeStorageSet("realm_free_chat", freeChatMode ? "1" : "0");
+  if (closeMenu !== false) { closeWorkspaceMenu(); }
   abortActiveRequest(); stopActiveAudio(); stopGraphSimulation(); resetHome();
   activeAttachedNotes = []; lastContextUsage = null; if (typeof renderAttachedChips === "function") { renderAttachedChips(); }
-  if (freeChatMode) { syncFreeChatUI(); showToast(t("toast_free_chat_on")); }
-  else { renderKnowledgeAreas(); }
+  syncFreeChatUI();
+  if (freeChatMode) { showToast(t("toast_free_chat_on")); }
   await loadRecentChats();
 }
 function setUploadDestinationMode(mode) {
@@ -81,7 +75,7 @@ async function attachVaultToActiveChat(areaName) {
     const data = await safeJson(res);
     if (version !== areaVersion || currentChatId !== chatAtStart) { return; }
     if (!res.ok) { showToast(data.detail || t("err_connect_ws")); return; }
-    freeChatMode = false;
+    freeChatMode = false; safeStorageSet("realm_free_chat", "0");
     if (data.area && data.area !== activeKnowledgeArea) {
       const wsRes = await areaFetch("/api/workspace", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.assign({}, workspaceConfig, { knowledge_dir: data.area, active_dirs: [data.area] })) });
       if (wsRes.ok && version === areaVersion) { activeKnowledgeArea = null; applyWorkspacePayload(await safeJson(wsRes)); }
@@ -266,9 +260,10 @@ function syncInspectorSidebar() {
   const rightOpen = typeof wbLayout !== "undefined" ? Boolean(wbLayout.rightOpen) : inspectorOpen;
   if (toggleBtn) {
     toggleBtn.hidden = !hasChat;
-    toggleBtn.setAttribute("aria-expanded", String(Boolean(hasChat && rightOpen && (typeof wbLayout === "undefined" || wbLayout.rightTab === "inspector"))));
+    toggleBtn.setAttribute("aria-expanded", String(Boolean(hasChat && rightOpen)));
     const tokLbl = document.getElementById("inspector-token-label");
     if (tokLbl) { tokLbl.textContent = (lastContextUsage && lastContextUsage.used_tokens > 0) ? fmtTokens(lastContextUsage.used_tokens) : t("insp_tokens_short"); }
+    if (typeof syncGlobalControlsWidth === "function") { syncGlobalControlsWidth(); }
   }
   if (!aside || !body) { return; }
   if (typeof wbLayout === "undefined") { aside.hidden = !Boolean(hasChat && inspectorOpen); }
@@ -317,11 +312,10 @@ function syncInspectorSidebar() {
   if (typeof refreshInspectorXray === "function") { refreshInspectorXray(); }
 }
 function bindStudioControls() {
-  const freeBtn = document.getElementById("free-chat-mode-btn"), sideFmtBtn = document.getElementById("sidebar-formats-btn");
+  const sideFmtBtn = document.getElementById("sidebar-formats-btn");
   const closeFmt = document.getElementById("close-format-studio-modal"), tabB = document.getElementById("format-tab-browse"), tabC = document.getElementById("format-tab-custom");
   const customForm = document.getElementById("custom-format-form"), vBtn = document.getElementById("upload-mode-vault-btn"), cBtn = document.getElementById("upload-mode-chat-btn");
   const inspBtn = document.getElementById("inspector-toggle-btn"), closeInsp = document.getElementById("close-inspector-btn");
-  if (freeBtn) { freeBtn.addEventListener("click", () => setFreeChatMode(!freeChatMode)); }
   if (sideFmtBtn) { sideFmtBtn.addEventListener("click", () => openFormatStudio("browse")); }
   if (closeFmt) { closeFmt.addEventListener("click", () => document.getElementById("format-studio-modal").close()); }
   if (tabB) { tabB.addEventListener("click", () => setFormatStudioTab("browse")); } if (tabC) { tabC.addEventListener("click", () => setFormatStudioTab("custom")); }

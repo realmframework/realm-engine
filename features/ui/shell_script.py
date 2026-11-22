@@ -4,38 +4,13 @@ SHELL_SCRIPT: str = r"""
 let activeRailSection = "chat";
 
 function closeShellPopovers() {
-  ["rail-more-menu", "rail-status-popover", "topbar-more-menu", "wb-more-menu", "bottom-panel-more-menu"].forEach(function (id) {
+  ["rail-status-popover", "wb-more-menu", "bottom-panel-more-menu"].forEach(function (id) {
     const el = document.getElementById(id);
     if (el && el.matches && el.matches(":popover-open") && el.hidePopover) { try { el.hidePopover(); } catch (_e) {} }
   });
 }
 
-function updateTopbarContext(customTitle) {
-  const titleEl = document.getElementById("topbar-title");
-  if (titleEl) {
-    let label = customTitle || "";
-    if (!label) {
-      if (typeof wbViewOpen !== "undefined" && wbViewOpen) { label = t("wb_title"); }
-      else if (typeof focViewOpen !== "undefined" && focViewOpen) { label = t("foc_title"); }
-      else if (typeof impViewOpen !== "undefined" && impViewOpen) { label = t("imp_title"); }
-      else if (typeof wfViewOpen !== "undefined" && wfViewOpen) {
-        const aw = typeof activeWorkflow === "function" ? activeWorkflow() : null;
-        label = aw ? (t("wf_title") + " · " + aw.name) : t("wf_title");
-      } else if (document.getElementById("graph-view") && !document.getElementById("graph-view").classList.contains("hidden")) {
-        label = t("graph_view");
-      } else if (document.getElementById("reader-heading") && resultsEl && !resultsEl.classList.contains("hidden") && isActiveView) {
-        label = document.getElementById("reader-heading").textContent.trim() || t("library");
-      } else if (document.getElementById("library-view") && resultsEl && !resultsEl.classList.contains("hidden") && isActiveView) {
-        label = t("library");
-      } else if (typeof currentChatId !== "undefined" && currentChatId && Array.isArray(savedChats)) {
-        const cur = savedChats.find(function (c) { return c.chat_id === currentChatId; });
-        label = (cur && cur.title) || (typeof areaTitle === "function" && activeKnowledgeArea ? areaTitle(activeKnowledgeArea) : "REALM Engine");
-      } else {
-        label = (typeof areaTitle === "function" && activeKnowledgeArea) ? areaTitle(activeKnowledgeArea) : "REALM Engine";
-      }
-    }
-    titleEl.textContent = label;
-  }
+function updateTopbarContext() {
   const privEl = document.getElementById("sh-pop-privacy"), agEl = document.getElementById("sh-pop-agent"), tmEl = document.getElementById("sh-pop-timer"), topTm = document.getElementById("topbar-timer-pill");
   if (privEl) { privEl.textContent = (typeof localOnly === "function" && localOnly()) ? t("sh_local_only") : t("sh_cloud_ready"); }
   if (typeof syncOfflineStatusChrome === "function") { syncOfflineStatusChrome(); }
@@ -44,6 +19,7 @@ function updateTopbarContext(customTitle) {
   const hms = typeof fmtHMS === "function" && typeof impTimerClientSecs !== "undefined" ? fmtHMS(impTimerClientSecs) : "00:00:00";
   if (tmEl) { tmEl.textContent = activeTimer ? hms : "00:00"; }
   if (topTm) { topTm.hidden = !activeTimer; topTm.textContent = hms; }
+  if (typeof syncGlobalControlsWidth === "function") { syncGlobalControlsWidth(); }
   const dot = document.getElementById("rail-work-dot");
   if (dot) {
     const hasOverdue = typeof wbState !== "undefined" && wbState && wbState.summary && (wbState.summary.overdue_tasks > 0 || wbState.summary.today_tasks > 0);
@@ -162,9 +138,7 @@ function bindSpatialShellUX() {
   const topTimer = document.getElementById("topbar-timer-pill");
   if (topTimer) { topTimer.addEventListener("click", function () { setActiveRailSection("work", false); if (typeof openImpactView === "function") { openImpactView("time"); } }); }
   if (typeof bindAnchoredPopover === "function") {
-    bindAnchoredPopover("rail-more-menu", "rail-more-btn", { side: "right" });
     bindAnchoredPopover("rail-status-popover", "rail-status-btn", { side: "right", align: "bottom" });
-    bindAnchoredPopover("topbar-more-menu", "topbar-more-btn", { align: "right" });
     bindAnchoredPopover("wb-more-menu", "wb-more-btn", { align: "right" });
     bindAnchoredPopover("bottom-panel-more-menu", "bottom-panel-more-btn", { align: "right" });
   }

@@ -19,7 +19,7 @@ from features.ui.script import CLIENT_SCRIPT
 from features.ui.shell_styles import SHELL_STYLES_CSS
 from features.ui.sidebar_template import (
     ACTIVITY_RAIL_HTML,
-    APP_TOPBAR_HTML,
+    GLOBAL_LAYOUT_CONTROLS_HTML,
     SIDEBAR_HTML,
 )
 from features.ui.split_styles import SPLIT_STYLES_CSS
@@ -193,7 +193,7 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
 <div id="main-shell" class="relative pl-[300px] min-h-screen bg-[#04060F] flex flex-col transition-all duration-200">
   <div id="ambient-stage" aria-hidden="true" class="ambient-stage"><canvas id="ambient-aurora-canvas" class="supernova-beam"></canvas><canvas id="ambient-dots-canvas"></canvas></div>
 """
-    + APP_TOPBAR_HTML
+    + GLOBAL_LAYOUT_CONTROLS_HTML
     + '\n<div id="workbench-grid"><div id="workbench-center-col">\n'
     + '<div id="center-editor-row"><div id="center-primary-col">\n'
     + CENTER_TABBAR_HTML
@@ -274,7 +274,7 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
 <dialog id="area-modal" closedby="any" aria-labelledby="area-modal-title" class="m-auto w-[calc(100%_-_2rem)] max-w-md rounded-2xl bg-[#0B1020] text-[#EEF2F8] border border-white/15 p-6 shadow-2xl"><h2 id="area-modal-title" class="text-lg font-semibold mb-4"><span data-everyday-only data-i18n="area_new_title">New Workspace</span><span data-specialist-only data-i18n="area_new_title">New Knowledge Area</span></h2><form id="new-area-form" class="flex flex-col gap-3"><label for="area-name" data-i18n="area_name_lbl" class="text-xs text-[#A0B0C8]">Workspace name</label><input id="area-name" name="area" autofocus required maxlength="64" placeholder="e.g. Care Notes" data-i18n-placeholder="area_name_ph" aria-describedby="area-name-help" class="rounded-lg bg-[#04060F] border border-white/15 px-3 py-2 text-sm"/><p id="area-name-help" data-i18n="area_name_help" class="text-xs text-[#738196]">Give it a name, like Care Notes. Each workspace keeps its documents and chats separate.</p>"""
     + AREA_TEMPLATE_SELECT
     + """<p id="new-area-status" role="status" class="text-xs text-[#A0B0C8]"></p><div class="flex justify-end gap-3"><button type="submit" formmethod="dialog" formnovalidate value="cancel" data-i18n="cancel" class="rounded-xl border border-white/15 px-4 py-2 text-sm">Cancel</button><button id="create-area-btn" type="submit" data-i18n="area_create_btn" class="rounded-xl bg-[#4BB8E8] text-[#04060F] px-4 py-2 text-sm font-medium">Create Workspace</button></div></form></dialog>"""
-    + '<div id="upload-toast" role="status" aria-live="polite" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[70] max-w-md rounded-xl border border-white/15 bg-[#0B1020] px-4 py-2.5 text-sm text-[#EEF2F8] shadow-2xl pointer-events-none text-center"></div>'
+    + '<div id="upload-toast" role="status" aria-live="polite" class="hidden fixed top-14 left-1/2 -translate-x-1/2 z-[70] max-w-md rounded-xl border border-white/15 bg-[#0B1020] px-4 py-2.5 text-sm text-[#EEF2F8] shadow-2xl pointer-events-none text-center"></div>'
     + '<p id="app-live-status" role="status" aria-live="polite" aria-atomic="true" class="visually-hidden"></p>'
     + '<div id="global-drop-overlay" hidden aria-hidden="true" class="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-6"><div class="rounded-2xl border-2 border-dashed border-[#4BB8E8] bg-[#0B1020] px-8 py-6 flex flex-col items-center gap-2.5 shadow-2xl"><svg aria-hidden="true" class="w-8 h-8 text-[#4BB8E8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span data-i18n="drop_overlay_title" class="text-base font-medium text-[#EEF2F8]">Drop files or whole folders to add to your Library</span><span data-i18n="drop_overlay_sub" class="text-xs text-[#A0B0C8]">PDF, Word, Excel, PowerPoint, CSV, Markdown, or nested folders · Private &amp; local</span></div></div>'
     + MODALS_HTML

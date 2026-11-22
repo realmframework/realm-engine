@@ -50,58 +50,28 @@ function renderChatTabStrip(listId, tabs, activeId, attrPrefix, onActivate, onCl
   return selId;
 }
 
+function syncGlobalControlsWidth() {
+  const ctrls = document.getElementById("wb-global-controls"), shell = document.getElementById("main-shell");
+  if (!ctrls || !shell) { return; }
+  const w = ctrls.offsetWidth;
+  if (w > 0) { shell.style.setProperty("--global-ctrl-w", (w + 10) + "px"); }
+}
+
 function syncCenterTabbarVisibility(isChatView) {
   if (typeof IS_EMBED !== "undefined" && IS_EMBED) { return; }
   wbCenterIsChat = Boolean(isChatView);
-  const bar = document.getElementById("center-tabbar");
-  if (bar) { bar.hidden = !wbCenterIsChat; }
+  const grp = document.getElementById("center-chat-tabs-group"), acts = document.getElementById("center-chat-actions");
+  if (grp) { grp.hidden = !wbCenterIsChat; }
+  if (acts) { acts.hidden = !wbCenterIsChat; }
   if (typeof applyWorkbenchGrid === "function") { applyWorkbenchGrid(); }
+  syncGlobalControlsWidth();
 }
 
-function syncRightDocSelector() {
-  const sel = document.getElementById("right-doc-select"); if (!sel) { return; }
-  const guides = typeof allGuides !== "undefined" && Array.isArray(allGuides) ? allGuides : [];
-  sel.innerHTML = guides.length ? guides.map(function (g) {
-    return "<option value='" + escapeHtml(g.doc_id) + "'" + (g.doc_id === wbLayout.rightDocId ? " selected" : "") + ">" + escapeHtml(g.title || g.doc_id) + "</option>";
-  }).join("") : "<option value=''>" + escapeHtml(t("sp_no_guides")) + "</option>";
-  if (guides.length && (!wbLayout.rightDocId || !guides.some(function (g) { return g.doc_id === wbLayout.rightDocId; }))) {
-    wbLayout.rightDocId = guides[0].doc_id; sel.value = wbLayout.rightDocId;
-  }
-}
-
-function renderRightDocumentPane() {
-  syncRightDocSelector();
-  const box = document.getElementById("right-doc-scroll"); if (!box) { return; }
-  const guides = typeof allGuides !== "undefined" && Array.isArray(allGuides) ? allGuides : [];
-  const g = guides.find(function (item) { return item.doc_id === wbLayout.rightDocId; }) || guides[0];
-  if (!g) { box.innerHTML = "<div class='wb-empty'>" + escapeHtml(t("sp_no_guides")) + "</div>"; return; }
-  wbLayout.rightDocId = g.doc_id;
-  box.innerHTML = "<h2 style='margin:0;font-size:calc(1.1rem * var(--ui-scale,1));font-weight:600'>" + escapeHtml(g.title) + "</h2>"
-    + (g.sections || []).map(function (s) {
-      return "<section style='padding:0.85rem 0.95rem;border-radius:0.8rem;background:var(--background);border:1px solid var(--border-subtle)'><h3 style='margin:0 0 0.45rem;font-size:calc(0.95rem * var(--ui-scale,1));font-weight:600'>" + escapeHtml(s.section_title) + "</h3><div class='md-body text-sm leading-relaxed flex flex-col gap-2'>" + formatMarkdown(s.content || "", false, 3) + "</div></section>";
-    }).join("");
-}
-
-function setRightSidebarTab(tab) {
-  wbLayout.rightTab = tab === "doc" ? "doc" : "inspector";
-  document.querySelectorAll("[data-right-tab]").forEach(function (btn) {
-    const active = btn.getAttribute("data-right-tab") === wbLayout.rightTab;
-    btn.setAttribute("aria-selected", String(active)); btn.tabIndex = active ? 0 : -1;
-  });
-  const pInsp = document.getElementById("right-panel-inspector"), pDoc = document.getElementById("right-panel-doc");
-  if (pInsp) { pInsp.hidden = wbLayout.rightTab !== "inspector"; }
-  if (pDoc) { pDoc.hidden = wbLayout.rightTab !== "doc"; }
-  if (wbLayout.rightTab === "doc") { renderRightDocumentPane(); }
-  else if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
-}
-
-function setRightSidebarOpen(open, tab) {
+function setRightSidebarOpen(open) {
   wbLayout.rightOpen = Boolean(open);
   if (typeof inspectorOpen !== "undefined") { inspectorOpen = wbLayout.rightOpen; }
-  if (tab) { wbLayout.rightTab = tab === "doc" ? "doc" : "inspector"; }
   applyWorkbenchGrid();
-  if (wbLayout.rightOpen) { setRightSidebarTab(wbLayout.rightTab); }
-  else if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
+  if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
 }
 
 function snapshotActiveCenterTab() {
@@ -215,5 +185,6 @@ function bindWorkbenchTabsUX() {
     });
   }
   renderCenterChatTabs();
+  syncGlobalControlsWidth();
 }
 """

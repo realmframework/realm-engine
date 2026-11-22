@@ -6,7 +6,7 @@ const wbLayout = {
   splitOpen: false, splitRatio: 50,
   bottomOpen: false, bottomMax: false, bottomTool: "work", editorHeightPct: 58,
   bottomVisible: { work: true, focus: true, impact: true, workflows: true, library: true },
-  rightOpen: false, rightTab: "inspector", rightWidthPx: 348, rightDocId: "",
+  rightOpen: false, rightWidthPx: 348,
   splitAgentId: "lisbeth",
   splitTabs: [{ id: "sp_0", chatId: "", title: "" }],
   activeSplitTabId: "sp_0",
@@ -76,6 +76,7 @@ function applyWorkbenchGrid() {
       ? '<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>'
       : '<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>';
   }
+  if (typeof syncGlobalControlsWidth === "function") { syncGlobalControlsWidth(); }
 }
 
 function ensureEmbedFrame(frameId, url, onReadyMsg) {
@@ -127,7 +128,6 @@ function syncSplitSelectors() {
     wbLayout.splitAgentId = populateAgentSelect(agSel, wbLayout.splitAgentId);
   }
   syncSplitPaneAccent();
-  syncRightDocSelector();
 }
 
 function renderSplitChatTabs() {
@@ -246,11 +246,9 @@ function toggleBottomToolVisibility(tool) {
 }
 
 function resetSplitOnAreaChange() {
-  wbLayout.rightDocId = "";
   wbLayout.splitTabs = [{ id: "sp_" + (++wbTabSeq), chatId: "", title: "" }];
   wbLayout.activeSplitTabId = wbLayout.splitTabs[0].id;
   renderSplitChatTabs();
-  if (wbLayout.rightOpen && wbLayout.rightTab === "doc") { renderRightDocumentPane(); }
   if (typeof broadcastToEmbedFrames === "function") { broadcastToEmbedFrames({ type: "realm:sync-area" }); }
 }
 
@@ -314,13 +312,6 @@ function bindSplitUX() {
 
   const rsBtn = document.getElementById("layout-right-btn");
   if (rsBtn) { rsBtn.addEventListener("click", function () { setRightSidebarOpen(!wbLayout.rightOpen); }); }
-  document.querySelectorAll("[data-right-tab]").forEach(function (btn) {
-    btn.addEventListener("click", function () { setRightSidebarTab(btn.getAttribute("data-right-tab")); });
-  });
-  if (typeof bindRovingTablist === "function") { bindRovingTablist("#right-sidebar-tablist [role='tab']", function (btn) { setRightSidebarTab(btn.getAttribute("data-right-tab")); }); }
-  const rDocSel = document.getElementById("right-doc-select"), rDocExt = document.getElementById("right-doc-extract-btn");
-  if (rDocSel) { rDocSel.addEventListener("change", function () { wbLayout.rightDocId = rDocSel.value; renderRightDocumentPane(); }); }
-  if (rDocExt) { rDocExt.addEventListener("click", function () { if (wbLayout.rightDocId && typeof extractTasksToBoard === "function") { extractTasksToBoard({ doc_id: wbLayout.rightDocId }); } }); }
 
   bindWorkbenchResizer("center-split-resizer", "v", function (e) {
     const row = document.getElementById("center-editor-row"); if (!row) { return; }

@@ -17,12 +17,15 @@ function areaTitle(areaOrName) {
   const found = knowledgeAreas.find(function (a) { return a.name === areaOrName; });
   return (found && found.display_name) || areaLabel(areaOrName || "");
 }
-function selectedAreas() { return workspaceConfig.active_dirs || (activeKnowledgeArea ? [activeKnowledgeArea] : []); }
+function selectedAreas() {
+  if (typeof freeChatMode !== "undefined" && freeChatMode) { return []; }
+  return workspaceConfig.active_dirs || (activeKnowledgeArea ? [activeKnowledgeArea] : []);
+}
 function areaButtons() {
   const dirs = selectedAreas();
   if (!knowledgeAreas.length) { return "<div class='px-3 py-2 text-xs text-[#738196]'>" + escapeHtml(t("no_ws_menu_hint")) + "</div>"; }
   return knowledgeAreas.map(function (area, index) {
-    const selected = dirs.includes(area.name), disabled = areaSwitching || selected && dirs.length === 1;
+    const selected = dirs.includes(area.name), disabled = areaSwitching;
     const title = areaTitle(area);
     const subPath = area.linked && area.linked_path ? "<span class='block text-xs font-mono text-[#738196] truncate mt-0.5' title='" + escapeHtml(area.linked_path) + "'>" + escapeHtml(area.linked_path) + "</span>" : "";
     const rmLabel = area.linked ? "Unlink vault " + title + " (keeps files on disk)" : "Delete area " + title;
@@ -30,7 +33,7 @@ function areaButtons() {
       + "<label for='area-check-" + index + "' class='inline-flex items-center justify-center shrink-0' style='width:38px;height:38px;cursor:pointer'>"
       + "<input id='area-check-" + index + "' type='checkbox' name='active_dirs' value='" + escapeHtml(area.name) + "' data-area-toggle='" + escapeHtml(area.name) + "' style='accent-color:var(--accent)' " + (selected ? "checked " : "") + (disabled ? "disabled " : "") + ">"
       + "<span class='visually-hidden'>Include " + escapeHtml(title) + " in search</span></label>"
-      + "<button type='button' data-area='" + escapeHtml(area.name) + "' aria-current='" + (area.name === activeKnowledgeArea ? "page" : "false") + "' " + (areaSwitching ? "disabled " : "")
+      + "<button type='button' data-area='" + escapeHtml(area.name) + "' aria-current='" + (selected && area.name === activeKnowledgeArea ? "page" : "false") + "' " + (areaSwitching ? "disabled " : "")
       + "class='flex-1 min-w-0 flex items-center gap-2 px-2 py-2 rounded-lg text-xs text-left " + (selected ? "bg-white/10 text-[#EEF2F8]" : "text-[#A0B0C8] hover:bg-white/5") + "'>"
       + "<span aria-hidden='true' class='w-2 h-2 rounded-full shrink-0' style='background:" + area.color + "'></span><span class='min-w-0 flex-1'><span class='block truncate font-medium'>" + escapeHtml(title) + "</span>" + subPath + "</span>"
       + "<span class='ml-auto font-mono opacity-70 shrink-0'>" + area.doc_count + "</span></button>"
@@ -40,8 +43,11 @@ function areaButtons() {
 async function toggleAreaSelection(name) {
   if (areaSwitching) { return; }
   const dirs = selectedAreas(), next = dirs.includes(name) ? dirs.filter(dir => dir !== name) : [...dirs, name];
-  if (!next.length) { return; }
-  await switchKnowledgeArea(next[0], null, null, next);
+  if (!next.length) {
+    if (typeof setFreeChatMode === "function") { await setFreeChatMode(true, false); }
+  } else {
+    await switchKnowledgeArea(next[0], null, null, next);
+  }
   const input = Array.from(document.querySelectorAll("[data-area-toggle]")).find(el => el.dataset.areaToggle === name);
   if (input && document.getElementById("workspace-menu").matches(":popover-open")) { input.focus({ preventScroll: true }); }
 }
@@ -52,23 +58,30 @@ function bindAreaButtons(root) {
   root.querySelectorAll("[data-new-area]").forEach(function (button) { button.addEventListener("click", openNewAreaDialog); });
 }
 function renderKnowledgeAreas() {
-  const dirs = selectedAreas(), all = dirs.length > 0 && knowledgeAreas.length > 0 && knowledgeAreas.every(a => dirs.includes(a.name));
   if (!knowledgeAreas.length && typeof freeChatMode !== "undefined") { freeChatMode = true; }
-  const label = !knowledgeAreas.length ? t("free_chat_short") : (dirs.length > 1 ? (all ? t("all_areas_n", { n: dirs.length }) : t("areas_active_n", { n: dirs.length })) : areaTitle(activeKnowledgeArea || t("workspaces_lbl")));
+  const dirs = selectedAreas(), isFree = !dirs.length || !knowledgeAreas.length;
+  const all = dirs.length > 0 && knowledgeAreas.length > 0 && knowledgeAreas.every(a => dirs.includes(a.name));
+  const label = isFree ? t("no_ws_short") : (dirs.length > 1 ? (all ? t("all_areas_n", { n: dirs.length }) : t("areas_active_n", { n: dirs.length })) : areaTitle(activeKnowledgeArea || t("workspaces_lbl")));
   document.getElementById("brand-title").textContent = label;
   document.getElementById("brand-title").style.fontSize = dirs.length > 1 ? "calc(.875rem * var(--ui-scale, 1))" : "";
   document.getElementById("workspace-color-dot").style.gap = dirs.length > 3 ? ".125rem" : "";
   document.getElementById("workspace-switcher-btn").setAttribute("aria-label", "Switch workspace: " + label);
-  document.getElementById("workspace-color-dot").innerHTML = dirs.slice(0, 6).map(name => {
-    const area = knowledgeAreas.find(a => a.name === name);
-    return "<span class='w-2 h-2 rounded-full shrink-0' style='background:" + (area ? area.color : "#4BB8E8") + "'></span>";
-  }).join("");
-  const selectAll = document.getElementById("select-all-areas-btn"), linkBtn = document.getElementById("link-vault-btn");
-  selectAll.setAttribute("aria-pressed", String(all)); selectAll.disabled = areaSwitching || !knowledgeAreas.length; document.getElementById("new-area-btn").disabled = areaSwitching; if (linkBtn) { linkBtn.disabled = areaSwitching; }
+  document.getElementById("workspace-color-dot").innerHTML = isFree
+    ? "<span class='w-2.5 h-2.5 rounded-full border-2 border-[#4BB8E8] shrink-0'></span>"
+    : dirs.slice(0, 6).map(name => {
+        const area = knowledgeAreas.find(a => a.name === name);
+        return "<span class='w-2 h-2 rounded-full shrink-0' style='background:" + (area ? area.color : "#4BB8E8") + "'></span>";
+      }).join("");
+  const selectAll = document.getElementById("select-all-areas-btn"), clearBtn = document.getElementById("clear-areas-btn"), freeNote = document.getElementById("free-chat-menu-note"), linkBtn = document.getElementById("link-vault-btn");
+  if (selectAll) { selectAll.setAttribute("aria-pressed", String(all)); selectAll.disabled = areaSwitching || !knowledgeAreas.length; selectAll.hidden = all; }
+  if (clearBtn) { clearBtn.hidden = isFree || !knowledgeAreas.length; clearBtn.disabled = areaSwitching; }
+  if (freeNote) { freeNote.hidden = !isFree; }
+  document.getElementById("new-area-btn").disabled = areaSwitching; if (linkBtn) { linkBtn.disabled = areaSwitching; }
   const note = document.getElementById("selection-primary-note"); note.hidden = dirs.length < 2; note.textContent = t("primary_area_note", { area: areaTitle(activeKnowledgeArea || "") });
   document.getElementById("backup-scope-note").textContent = activeKnowledgeArea ? t("backup_scope_note", { area: areaTitle(activeKnowledgeArea) }) : t("backup_no_ws");
   const nav = document.getElementById("knowledge-areas"), scroll = nav.scrollTop; nav.innerHTML = areaButtons(); bindAreaButtons(nav); nav.scrollTop = scroll;
-  if (typeof syncFreeChatUI === "function" && typeof freeChatMode !== "undefined" && freeChatMode) { syncFreeChatUI(); }
+  const seeds = document.getElementById("seed-chips");
+  if (seeds && !isActiveView) { seeds.classList.toggle("hidden", isFree); }
 }
 function adoptWorkspace(data) {
   if (JSON.stringify(selectedAreas()) !== JSON.stringify((data.config || {}).active_dirs || [])) { invalidateAudit(); }
@@ -96,7 +109,7 @@ async function restoreWorkspaceView(view) {
 async function switchKnowledgeArea(name, showLibrary = null, template = null, dirs = [name]) {
   if (areaSwitching) { return false; }
   const leavingFree = typeof freeChatMode !== "undefined" && freeChatMode;
-  if (leavingFree) { freeChatMode = false; if (typeof syncFreeChatUI === "function") { syncFreeChatUI(); } }
+  if (leavingFree) { freeChatMode = false; safeStorageSet("realm_free_chat", "0"); }
   if (!leavingFree && JSON.stringify(dirs) === JSON.stringify(selectedAreas()) && template === null) { return true; }
   const view = showLibrary === null ? currentWorkspaceView() : showLibrary ? "library" : "chat";
   areaSwitching = true; document.querySelectorAll("#knowledge-areas input, #knowledge-areas button, #select-all-areas-btn, #new-area-btn").forEach(el => { el.disabled = true; }); const version = ++areaVersion, previous = activeKnowledgeArea;
@@ -173,7 +186,7 @@ async function linkExistingFolder() {
       return;
     }
     abortActiveRequest(); stopActiveAudio(); stopGraphSimulation(); resetHome(); stagedFiles = []; clearRedactionPreview();
-    if (typeof freeChatMode !== "undefined" && freeChatMode) { freeChatMode = false; if (typeof syncFreeChatUI === "function") { syncFreeChatUI(); } }
+    if (typeof freeChatMode !== "undefined" && freeChatMode) { freeChatMode = false; safeStorageSet("realm_free_chat", "0"); }
     allGuides = []; savedChats = []; workspacePrompts = []; renderRecentChats(); document.getElementById("seed-list").replaceChildren();
     activeKnowledgeArea = null; applyWorkspacePayload(data);
     await Promise.all([loadGuidesCatalog(null), loadRecentChats(), loadModels()]);
@@ -185,18 +198,27 @@ async function linkExistingFolder() {
   finally { areaSwitching = false; renderKnowledgeAreas(); }
 }
 document.getElementById("select-all-areas-btn").addEventListener("click", async function () {
-  if (areaSwitching) { return; }
-  const primary = activeKnowledgeArea, all = knowledgeAreas.every(area => selectedAreas().includes(area.name));
-  const dirs = all ? [primary] : [primary, ...knowledgeAreas.map(area => area.name).filter(name => name !== primary)];
+  if (areaSwitching || !knowledgeAreas.length) { return; }
+  const primary = activeKnowledgeArea || knowledgeAreas[0].name;
+  const dirs = [primary, ...knowledgeAreas.map(area => area.name).filter(name => name !== primary)];
   await switchKnowledgeArea(primary, null, null, dirs);
-  if (document.getElementById("workspace-menu").matches(":popover-open")) { document.getElementById("select-all-areas-btn").focus(); }
+  if (document.getElementById("workspace-menu").matches(":popover-open")) { document.getElementById("clear-areas-btn").focus(); }
 });
+const clearAreasBtn = document.getElementById("clear-areas-btn");
+if (clearAreasBtn) {
+  clearAreasBtn.addEventListener("click", async function () {
+    if (areaSwitching) { return; }
+    if (typeof setFreeChatMode === "function") { await setFreeChatMode(true, false); }
+    if (document.getElementById("workspace-menu").matches(":popover-open")) { document.getElementById("select-all-areas-btn").focus(); }
+  });
+}
 for (const linkId of ["link-vault-btn", "settings-link-vault-btn"]) {
   const el = document.getElementById(linkId);
   if (el) { el.addEventListener("click", linkExistingFolder); }
 }
 async function initializeWorkspace() {
   try {
+    if (typeof freeChatMode !== "undefined" && safeStorageGet("realm_free_chat") === "1") { freeChatMode = true; }
     await loadWorkspace();
     await Promise.all([loadKeyStatus().then(loadModels), loadSystemStatus(), loadRecentChats(), loadGuidesCatalog(null), typeof loadWorkBoardSummary === "function" ? loadWorkBoardSummary(true) : Promise.resolve(), typeof loadFocusSummary === "function" ? loadFocusSummary() : Promise.resolve(), typeof loadImpactSummary === "function" ? loadImpactSummary() : Promise.resolve(), typeof loadWorkflowsSummary === "function" ? loadWorkflowsSummary() : Promise.resolve()]);
     if (typeof bootstrapEmbeddedPane === "function") { await bootstrapEmbeddedPane(); }
