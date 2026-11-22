@@ -23,7 +23,7 @@ APPEARANCE_FIELDS = r"""    <div class="flex flex-col gap-3 text-sm">
         </div>
       </div>
       <label for="theme-fixed-toggle" class="flex items-center justify-between gap-3 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-4 py-3 cursor-pointer select-none">
-        <span><span data-i18n="fixed_theme_title" class="block text-sm font-medium text-[#EEF2F8]">Fix Global Theme</span><span id="theme-fixed-hint" class="block text-xs text-[#A0B0C8] mt-0.5">Theme follows the active agent (Saga · Realm). Turn on to lock a global theme across all agents.</span></span>
+        <span><span data-i18n="fixed_theme_title" class="block text-sm font-medium text-[#EEF2F8]">Fix Global Theme</span><span id="theme-fixed-hint" class="block text-xs text-[#A0B0C8] mt-0.5">Theme follows each active agent. Turn on to lock one theme everywhere.</span></span>
         <input id="theme-fixed-toggle" type="checkbox" switch role="switch" class="shrink-0" />
       </label>
       <div id="theme-custom-controls" class="flex flex-col gap-3 transition-opacity theme-custom-locked">

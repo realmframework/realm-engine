@@ -51,7 +51,7 @@ const I18N = {
     web_search_provider_label: "Search Engine", web_btn_off: "Web search OFF for this message (click to enable)", web_btn_on: "Web search ON for this message (click to disable)",
     free_chat: "Free Chat (No Workspace)", free_chat_short: "Free Chat", agents_nav: "Agents", formats_nav: "Answer Formats",
     agent_name_title: "Name Your Agent", agent_name_label: "Agent Display Name", agent_name_desc: "Display name shown on AI replies and exported notes (default: Saga).", reset_agent_name: "Reset to Saga",
-    fixed_theme_title: "Fix Global Theme", fixed_theme_hint_agent: "Theme follows the active agent ({agent} · {palette}). Turn on to lock one theme for all agents.", fixed_theme_hint_locked: "Fixed global theme active — switching agents will never override these colors."
+    fixed_theme_title: "Fix Global Theme", fixed_theme_hint_agent: "Theme follows each active agent. Turn on to lock one theme everywhere.", fixed_theme_hint_locked: "Fixed global theme active — switching agents will never override these colors."
   },
   de: {
     new_chat: "+ Neuer Chat", library: "Bibliothek", graph_view: "Wissensgraph", recent_chats: "Letzte Chats", settings: "Einstellungen",
@@ -88,7 +88,7 @@ const I18N = {
     web_search_provider_label: "Suchmaschine", web_btn_off: "Websuche für diese Nachricht AUS (zum Aktivieren klicken)", web_btn_on: "Websuche für diese Nachricht AN (zum Deaktivieren klicken)",
     free_chat: "Freier Chat (Ohne Arbeitsbereich)", free_chat_short: "Freier Chat", agents_nav: "Agenten", formats_nav: "Antwortformate",
     agent_name_title: "Benenne deinen Agenten", agent_name_label: "Anzeigename des Agenten", agent_name_desc: "Wird bei jeder KI-Antwort und in Exporten angezeigt (Standard: Saga).", reset_agent_name: "Auf Saga zurücksetzen",
-    fixed_theme_title: "Globales Design festlegen", fixed_theme_hint_agent: "Folgt dem aktiven Agenten ({agent} · {palette}). Einschalten, um ein festes Design für alle Agenten zu wählen.", fixed_theme_hint_locked: "Festes globales Design aktiv — ein Agentenwechsel überschreibt diese Farben nicht."
+    fixed_theme_title: "Globales Design festlegen", fixed_theme_hint_agent: "Folgt jeweils dem aktiven Agenten. Einschalten, um ein festes Design überall zu wählen.", fixed_theme_hint_locked: "Festes globales Design aktiv — ein Agentenwechsel überschreibt diese Farben nicht."
   },
   es: {
     new_chat: "+ Nuevo Chat", library: "Biblioteca", graph_view: "Grafo 2D", recent_chats: "Chats recientes", settings: "Ajustes",
@@ -125,7 +125,7 @@ const I18N = {
     web_search_provider_label: "Buscador", web_btn_off: "Búsqueda web DESACTIVADA en este mensaje (clic para activar)", web_btn_on: "Búsqueda web ACTIVA en este mensaje (clic para desactivar)",
     free_chat: "Chat libre (Sin espacio)", free_chat_short: "Chat libre", agents_nav: "Agentes", formats_nav: "Formatos",
     agent_name_title: "Nombra a tu agente", agent_name_label: "Nombre del agente", agent_name_desc: "Se muestra en cada respuesta de la IA y en las exportaciones (por defecto: Saga).", reset_agent_name: "Restaurar a Saga",
-    fixed_theme_title: "Fijar tema global", fixed_theme_hint_agent: "El tema sigue al agente activo ({agent} · {palette}). Actívalo para fijar un tema único para todos los agentes.", fixed_theme_hint_locked: "Tema global fijado — cambiar de agente nunca sobrescribirá estos colores."
+    fixed_theme_title: "Fijar tema global", fixed_theme_hint_agent: "El tema sigue a cada agente activo. Actívalo para fijar un tema único en toda la app.", fixed_theme_hint_locked: "Tema global fijado — cambiar de agente nunca sobrescribirá estos colores."
   }
 };
 """

@@ -165,12 +165,7 @@ async function resetCustomLogo() {
 }
 function syncFixedThemeControlsUI() {
   const locked = typeof syncAgentPalette !== "undefined" ? !syncAgentPalette : false;
-  const ag = typeof activeAgentObj === "function" ? activeAgentObj() : null;
-  const agName = (ag && ag.name) || activeAgentName();
-  const palObj = ag && typeof paletteColorsFor === "function" ? paletteColorsFor(ag.palette) : THEME_PRESETS[0];
-  const hintTxt = locked
-    ? t("fixed_theme_hint_locked")
-    : t("fixed_theme_hint_agent", { agent: agName, palette: (palObj && palObj.name) || "Realm" });
+  const hintTxt = locked ? t("fixed_theme_hint_locked") : t("fixed_theme_hint_agent");
   for (const id of ["theme-fixed-toggle", "onboarding-fixed-theme-toggle"]) {
     const chk = document.getElementById(id); if (chk) { chk.checked = locked; }
   }
