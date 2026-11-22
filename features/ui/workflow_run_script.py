@@ -246,7 +246,7 @@ function bindWorkflowStudioUX() {
   document.querySelectorAll("[data-wf-side]").forEach(function (b) { b.addEventListener("click", function () { setWorkflowSideTab(b.getAttribute("data-wf-side")); }); });
   document.querySelectorAll("[data-wf-mode]").forEach(function (b) { b.addEventListener("click", function () { wfViewMode = b.getAttribute("data-wf-mode") || "canvas"; renderWorkflowsView(); }); });
   const sel = document.getElementById("wf-select");
-  if (sel) { sel.addEventListener("change", function () { wfActiveId = sel.value; wfSelectedNodeId = ""; wfNodeRunState = {}; wfLiveSteps = []; wfLastFitId = ""; renderWorkflowsView(); }); }
+  if (sel) { sel.addEventListener("change", function () { wfActiveId = sel.value; wfSelectedNodeId = ""; wfNodeRunState = {}; wfLiveSteps = []; wfLastFitId = ""; renderWorkflowsView(); if (typeof syncCopilotContextUI === "function") { syncCopilotContextUI(); } }); }
   ["wf-templates-btn", "wf-empty-tpl-btn"].forEach(function (id) { const el = document.getElementById(id); if (el) { el.addEventListener("click", openWorkflowTemplatesModal); } });
   ["wf-new-btn", "wf-empty-new-btn"].forEach(function (id) { const el = document.getElementById(id); if (el) { el.addEventListener("click", createBlankWorkflowAndOpen); } });
   const nameIn = document.getElementById("wf-name-in"), trigSel = document.getElementById("wf-trig-sel"), schIn = document.getElementById("wf-sched-mins");

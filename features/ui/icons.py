@@ -15,6 +15,7 @@ ICON_BOTTOM_PANEL: str = _svg(17, '<rect x="3" y="4" width="18" height="16" rx="
 ICON_RIGHT_SIDEBAR: str = _svg(17, '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>')
 ICON_SPLIT_EDITOR: str = _svg(17, '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/>')
 ICON_INSPECTOR_LUPE: str = _svg(15, '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M11 8v6M8 11h6"/>', "1.65")
+ICON_COPILOT: str = _svg(15, '<path d="M12 3 14.3 9.7 21 12l-6.7 2.3L12 21l-2.3-6.7L3 12l6.7-2.3Z"/>', "1.6")
 ICON_FOLDER_TREE: str = _svg(15, '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/>')
 ICON_REFRESH: str = _svg(14, '<path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>', "1.65")
 ICON_COLLAPSE_ALL: str = _svg(14, '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12h8"/>', "1.65")

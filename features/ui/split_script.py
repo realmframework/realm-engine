@@ -6,7 +6,7 @@ const wbLayout = {
   splitOpen: false, splitRatio: 50,
   bottomOpen: false, bottomMax: false, bottomTool: "work", editorHeightPct: 58,
   bottomVisible: { work: true, focus: true, impact: true, workflows: true, library: true },
-  rightOpen: false, rightTab: "files", rightWidthPx: 320,
+  rightOpen: false, rightTab: "files", rightWidthPx: 348,
   splitAgentId: "lisbeth",
   splitTabs: [{ id: "sp_0", chatId: "", title: "" }],
   activeSplitTabId: "sp_0",

@@ -13,6 +13,7 @@ from core.http_guard import install_safe_error_handlers
 from core.linked_vaults import cache_index_for_dir
 from core.runtime import app_mode, bundle_root
 from core.version import APP_VERSION
+from features.copilot import router as copilot_router
 from features.focus import router as focus_router
 from features.impact_ledger import router as impact_router
 from features.ingestion import converters, embedder
@@ -126,6 +127,7 @@ def _build_local_app() -> FastAPI:
         impact_router.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events, lambda a: work_board_service.project_name_map(a, workspace.REPO_ROOT), lambda: workspace.REPO_ROOT),
         focus_router.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events, lambda a, lbl, mins, pid, tid, nt: impact_router.log_focus_time(a, workspace.REPO_ROOT, lbl, mins, pid, tid, nt), lambda a: work_board_service.open_task_summaries(a, workspace.REPO_ROOT), lambda a, blks: work_board_service.schedule_focus_events(a, list(blks), workspace.REPO_ROOT), lambda: workspace.REPO_ROOT),
         workflow_router.build_router(lambda: WORKSPACE_CONFIG, wf_cbs, lambda: workspace.REPO_ROOT),
+        copilot_router.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events),
         local_ai_router.build_router(lambda: workspace.REPO_ROOT),
     )
     for router in routers:

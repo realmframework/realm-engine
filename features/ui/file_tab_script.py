@@ -258,7 +258,7 @@ function renderCenterFileTab(tab) {
   }
   box.innerHTML = "<div class='cf-bar'><div class='cf-crumb' title='" + escapeHtml(tab.breadcrumb) + "'>" + FT_FILE_SVG + "<span>" + escapeHtml(tab.breadcrumb) + "</span>" + roBadge + "</div>"
     + "<div class='cf-controls'><span id='cf-status' class='cf-status'></span>" + modeSeg + saveBtn
-    + "<button id='cf-chat-file-btn' type='button' class='wb-btn wb-btn-sm'>" + escapeHtml(t("md_chat_file")) + "</button></div></div>"
+    + "<button id='cf-copilot-btn' type='button' class='wb-btn wb-btn-sm'>✦ " + escapeHtml(t("md_copilot_btn")) + "</button></div></div>"
     + "<div class='cf-body" + (mode === "split" ? " is-split" : "") + "'>" + bodyHtml + "</div>";
   box.querySelectorAll("[data-cf-mode]").forEach(function (b) {
     b.addEventListener("click", function () { tab.mdMode = b.getAttribute("data-cf-mode") || "preview"; renderCenterFileTab(tab); });
@@ -283,10 +283,11 @@ function renderCenterFileTab(tab) {
       }
     });
   }
-  const sBtn = document.getElementById("cf-save-btn"), cBtn = document.getElementById("cf-chat-file-btn");
+  const sBtn = document.getElementById("cf-save-btn"), cBtn = document.getElementById("cf-copilot-btn");
   if (sBtn) { sBtn.addEventListener("click", function () { saveCenterFileTab(tab); }); }
-  if (cBtn) { cBtn.addEventListener("click", function () { if (typeof startScopedChat === "function") { startScopedChat({ doc_id: tab.docId, subfolder: null }); } }); }
+  if (cBtn) { cBtn.addEventListener("click", function () { if (typeof openCopilotForCurrentContext === "function") { openCopilotForCurrentContext(); } }); }
   renderRightFilesTree();
+  if (typeof syncCopilotContextUI === "function") { syncCopilotContextUI(); }
 }
 
 function bindFileTabUX() {

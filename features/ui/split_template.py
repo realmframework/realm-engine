@@ -3,6 +3,7 @@
 from features.ui.icons import (
     ICON_CHEVRON_UP,
     ICON_COLLAPSE_ALL,
+    ICON_COPILOT,
     ICON_FOLDER_TREE,
     ICON_INSPECTOR_LUPE,
     ICON_MORE,
@@ -80,12 +81,13 @@ BOTTOM_PANEL_HTML: str = (
 )
 
 RIGHT_SIDEBAR_HTML: str = (
-    '<div id="right-sidebar-resizer" hidden role="separator" tabindex="0" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="560" aria-valuenow="320" aria-label="Resize right sidebar" data-i18n-aria-label="rs_resize_aria" class="wb-resizer wb-resizer-v"></div>'
-    '<aside id="inspector-sidebar" hidden aria-label="Right sidebar: Workspace Files and Engine Inspector">'
+    '<div id="right-sidebar-resizer" hidden role="separator" tabindex="0" aria-orientation="vertical" aria-valuemin="260" aria-valuemax="560" aria-valuenow="348" aria-label="Resize right sidebar" data-i18n-aria-label="rs_resize_aria" class="wb-resizer wb-resizer-v"></div>'
+    '<aside id="inspector-sidebar" hidden aria-label="Right sidebar: Files, Copilot and Engine Inspector">'
     '<header class="wb-zone-bar">'
     '<div id="right-sidebar-tablist" role="tablist" aria-label="Right sidebar views" class="wb-tab-strip">'
     f'<button id="right-tab-files" type="button" role="tab" data-right-tab="files" aria-selected="true" class="wb-zone-tab">{ICON_FOLDER_TREE}<span data-i18n="rs_tab_files">Files</span></button>'
-    f'<button id="right-tab-inspector" type="button" role="tab" data-right-tab="inspector" aria-selected="false" class="wb-zone-tab">{ICON_INSPECTOR_LUPE}<span data-i18n="rs_tab_inspector">Inspector</span></button>'
+    f'<button id="right-tab-copilot" type="button" role="tab" data-right-tab="copilot" aria-selected="false" tabindex="-1" class="wb-zone-tab">{ICON_COPILOT}<span data-i18n="rs_tab_copilot">Copilot</span></button>'
+    f'<button id="right-tab-inspector" type="button" role="tab" data-right-tab="inspector" aria-selected="false" tabindex="-1" class="wb-zone-tab">{ICON_INSPECTOR_LUPE}<span data-i18n="rs_tab_inspector">Inspector</span></button>'
     "</div>"
     '<button id="close-inspector-btn" type="button" aria-label="Close right sidebar" data-i18n-aria-label="aria_close_inspector" class="wb-icon-btn inspector-mobile-close">✕</button>'
     "</header>"
@@ -99,6 +101,17 @@ RIGHT_SIDEBAR_HTML: str = (
     "</div>"
     "</div>"
     '<nav id="right-files-tree" aria-label="Workspace files" class="ft-tree"></nav>'
+    "</div>"
+    '<div id="right-panel-copilot" role="tabpanel" aria-labelledby="right-tab-copilot" hidden class="right-copilot-pane">'
+    '<div class="cp-head">'
+    '<span id="cp-ctx-badge" class="cp-ctx-badge">Workspace</span>'
+    '<button id="cp-clear-btn" type="button" data-i18n="cp_new" class="wb-btn wb-btn-sm">New</button>'
+    "</div>"
+    '<div id="cp-messages" class="cp-messages" aria-live="polite"></div>'
+    '<form id="cp-form" class="cp-dock">'
+    '<textarea id="cp-input" rows="1" aria-label="Ask Copilot" placeholder="Ask or describe an edit…" data-i18n-placeholder="cp_ph" class="cp-input"></textarea>'
+    '<button id="cp-send-btn" type="submit" aria-label="Send to Copilot" class="cp-send">↑</button>'
+    "</form>"
     "</div>"
     '<div id="right-panel-inspector" role="tabpanel" aria-labelledby="right-tab-inspector" hidden class="right-sidebar-scroll">'
     '<div id="inspector-sidebar-body" class="flex flex-col gap-4 text-sm shrink-0 pb-10"></div>'

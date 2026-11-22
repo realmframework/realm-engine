@@ -127,6 +127,7 @@ function activateWorkspaceView(viewId, opts) {
   if (typeof syncCenterTabbarVisibility === "function") { syncCenterTabbarVisibility(viewId === "workspace-shell"); }
   if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
   if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
+  if (typeof syncCopilotContextUI === "function") { syncCopilotContextUI(); }
 }
 
 function notifyParentFrame(msg) {
