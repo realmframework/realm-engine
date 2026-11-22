@@ -47,10 +47,10 @@ def test_local_ai_routes_setup_config_unload_and_uninstall(tmp_path: Path, monke
     assert st0.status_code == 200
     body0 = st0.json()
     assert body0["supported"] is True and body0["offline_ready"] is False
-    assert body0["recommended_model_id"] == "balanced-qwen3-8b" and len(body0["presets"]) == 4
+    assert body0["recommended_model_id"] == "balanced-qwen35-9b" and len(body0["presets"]) == 5
 
     asset = local_ai_catalog.RUNTIME_ASSETS[pkey]
-    preset = local_ai_catalog.MODEL_BY_ID["ultra-qwen25-1.5b"]
+    preset = local_ai_catalog.MODEL_BY_ID["ultra-qwen35-2b"]
     rt_bytes = _build_fake_archive(asset.archive_name, asset.binary_name)
     model_bytes = b"GGUF-FAKE-MODEL-BYTES" * 64
     monkeypatch.setitem(
@@ -72,11 +72,11 @@ def test_local_ai_routes_setup_config_unload_and_uninstall(tmp_path: Path, monke
     orig_client = httpx.Client
     monkeypatch.setattr(local_ai_installer.httpx, "Client", lambda **_kw: orig_client(transport=httpx.MockTransport(respond)))
 
-    setup_res = client.post("/api/local-ai/setup/stream", json={"model_id": "ultra-qwen25-1.5b"})
+    setup_res = client.post("/api/local-ai/setup/stream", json={"model_id": "ultra-qwen35-2b"})
     assert setup_res.status_code == 200 and "event: progress" in setup_res.text and "event: done" in setup_res.text
     done_line = [ln for ln in setup_res.text.splitlines() if ln.startswith("data:")][-1][5:].strip()
     done_payload = json.loads(done_line)
-    assert done_payload["offline_ready"] is True and done_payload["active_model_id"] == "ultra-qwen25-1.5b"
+    assert done_payload["offline_ready"] is True and done_payload["active_model_id"] == "ultra-qwen35-2b"
 
     cfg_res = client.post("/api/local-ai/config", json={"profile": "performance"})
     assert cfg_res.status_code == 200 and cfg_res.json()["profile"] == "performance" and cfg_res.json()["idle_minutes"] == 10

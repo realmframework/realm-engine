@@ -13,6 +13,7 @@ _SHIELD_SVG = (
 
 def builtin_ai_panel(prefix: str) -> str:
     """Render one accessible, jargon-free Built-in Private AI card for Onboarding or Settings."""
+    picker_open = " open" if prefix == "settings" else ""
     return (
         f'<section id="{prefix}-lai-panel" data-lai-panel="{prefix}" aria-labelledby="{prefix}-lai-heading" '
         'class="rounded-xl border border-[#4BB8E8]/30 bg-[#04060F] p-4 flex flex-col gap-3 text-left">'
@@ -30,15 +31,17 @@ def builtin_ai_panel(prefix: str) -> str:
         f'<p id="{prefix}-lai-low-ram" hidden data-i18n="lai_low_ram_warn" '
         'class="text-xs text-amber-300 leading-relaxed rounded-lg border border-amber-400/25 bg-[#0B1020] px-3 py-2">'
         'This computer has limited memory, so local AI answers may feel slow. You can still try Ultra-Light, or use instant offline Search &amp; Privacy Shield with zero AI memory load.</p>'
-        '<div class="flex items-end gap-2 flex-wrap">'
-        '<div class="flex-1 min-w-[12rem] flex flex-col gap-1">'
-        f'<label for="{prefix}-lai-tier-select" data-i18n="lai_tier_lbl" class="text-xs text-[#A0B0C8]">Private AI Size</label>'
-        f'<select id="{prefix}-lai-tier-select" data-lai-tier-select="{prefix}" '
-        'class="w-full rounded-lg bg-[#0B1020] border border-[rgba(238,242,248,0.14)] focus:border-[#4BB8E8] px-3 py-1.5 text-sm text-[#EEF2F8] outline-none cursor-pointer"></select>'
-        '</div>'
+        '<div class="flex items-center gap-2 flex-wrap">'
         f'<button id="{prefix}-lai-setup-btn" type="button" data-lai-setup-btn="{prefix}" data-i18n="lai_setup_btn" '
         'class="px-4 py-2 rounded-xl bg-[#4BB8E8] text-[#04060F] text-xs font-semibold hover:brightness-110 shrink-0 transition">Set Up Private AI</button>'
         '</div>'
+        f'<details id="{prefix}-lai-size-details"{picker_open} class="flex flex-col gap-2">'
+        '<summary data-i18n="lai_customize_size" class="text-xs text-[#A0B0C8] hover:text-[#EEF2F8] cursor-pointer select-none">Choose another size</summary>'
+        '<div class="pt-2 flex flex-col gap-1">'
+        f'<label for="{prefix}-lai-tier-select" data-i18n="lai_tier_lbl" class="text-xs text-[#A0B0C8]">Private AI Size</label>'
+        f'<select id="{prefix}-lai-tier-select" data-lai-tier-select="{prefix}" '
+        'class="w-full rounded-lg bg-[#0B1020] border border-[rgba(238,242,248,0.14)] focus:border-[#4BB8E8] px-3 py-1.5 text-sm text-[#EEF2F8] outline-none cursor-pointer"></select>'
+        '</div></details>'
         f'<div id="{prefix}-lai-progress-box" hidden class="rounded-xl bg-[#0B1020] border border-[#4BB8E8]/35 px-3.5 py-2.5 flex flex-col gap-2">'
         '<div class="flex items-center justify-between gap-2 text-xs">'
         f'<span id="{prefix}-lai-progress-stage" class="text-[#EEF2F8] font-medium truncate"></span>'

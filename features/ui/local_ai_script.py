@@ -15,7 +15,8 @@ function formatBuiltinModelLabel(modelId) {
   if (id.startsWith("ultra-")) { return t("lai_tier_ultra"); }
   if (id.startsWith("compact-")) { return t("lai_tier_compact"); }
   if (id.startsWith("balanced-")) { return t("lai_tier_balanced"); }
-  if (id.startsWith("deep-")) { return t("lai_tier_deep"); }
+  if (id.startsWith("advanced-")) { return t("lai_tier_advanced"); }
+  if (id.startsWith("flagship-")) { return t("lai_tier_flagship"); }
   return id;
 }
 
@@ -82,7 +83,7 @@ function renderLocalAiPanels() {
       if (!st.supported) { fit.textContent = t("lai_unsupported"); }
       else {
         fit.textContent = st.ram_gb
-          ? t("lai_fit_detected", { ram: st.ram_gb, size: st.recommended_size_gb, free: st.free_disk_gb })
+          ? t("lai_fit_detected", { tier: formatBuiltinModelLabel(st.recommended_model_id), size: st.recommended_size_gb, free: st.free_disk_gb })
           : t("lai_fit_unknown", { size: st.recommended_size_gb, free: st.free_disk_gb });
       }
     }

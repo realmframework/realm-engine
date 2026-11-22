@@ -81,7 +81,7 @@ def test_stream_messages_emits_structured_error_on_http_401_and_inband_error(mon
 
 def test_builtin_provider_streams_reasoning_tokens_with_zero_cloud_budget(monkeypatch: pytest.MonkeyPatch) -> None:
     assert budget.check_and_record_budget("builtin", 999999, request_limit=0, usd_limit=0.0) is None
-    monkeypatch.setattr(providers, "ensure_sidecar_running", lambda m: ("http://127.0.0.1:43210/v1/chat/completions", "tok-secret", m or "compact-qwen3-4b"))
+    monkeypatch.setattr(providers, "ensure_sidecar_running", lambda m: ("http://127.0.0.1:43210/v1/chat/completions", "tok-secret", m or "compact-qwen35-4b"))
     captured: dict[str, Any] = {}
 
     class _FakeResp:
@@ -106,7 +106,7 @@ def test_builtin_provider_streams_reasoning_tokens_with_zero_cloud_budget(monkey
             return _FakeResp()
 
     monkeypatch.setattr(httpx, "AsyncClient", lambda **_kw: _FakeClient())
-    cfg = TutorConfig(provider="builtin", model="compact-qwen3-4b", daily_cloud_request_limit=0, daily_budget_usd_limit=0.0)
+    cfg = TutorConfig(provider="builtin", model="compact-qwen35-4b", daily_cloud_request_limit=0, daily_budget_usd_limit=0.0)
     events = asyncio.run(_run_collect(cfg))
     assert captured["url"] == "http://127.0.0.1:43210/v1/chat/completions"
     assert captured["headers"]["Authorization"] == "Bearer tok-secret"

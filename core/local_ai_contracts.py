@@ -9,7 +9,7 @@ from pydantic import Field
 from core.contracts import StrictModel
 
 LocalAiProfile = Literal["eco", "performance"]
-LocalAiTier = Literal["ultra_light", "compact", "balanced", "deep"]
+LocalAiTier = Literal["ultra_light", "compact", "balanced", "advanced", "flagship"]
 LocalAiPlatformKey = Literal[
     "macos-arm64",
     "macos-x64",

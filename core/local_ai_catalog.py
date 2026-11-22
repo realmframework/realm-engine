@@ -56,10 +56,11 @@ RUNTIME_ASSETS: dict[LocalAiPlatformKey, LocalAiRuntimeAsset] = {
 }
 
 MODEL_PRESETS: tuple[LocalAiModelPreset, ...] = (
-    _preset("ultra-qwen25-1.5b", "ultra_light", "lai_tier_ultra", "Qwen/Qwen2.5-1.5B-Instruct-GGUF", "qwen2.5-1.5b-instruct-q4_k_m.gguf", "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e", 1_117_320_736, 4, reasoning=False, ctx_eco=2048, ctx_perf=4096),
-    _preset("compact-qwen3-4b", "compact", "lai_tier_compact", "Qwen/Qwen3-4B-GGUF", "Qwen3-4B-Q4_K_M.gguf", "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5", 2_497_280_256, 8, ctx_eco=4096, ctx_perf=4096),
-    _preset("balanced-qwen3-8b", "balanced", "lai_tier_balanced", "Qwen/Qwen3-8B-GGUF", "Qwen3-8B-Q4_K_M.gguf", "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785", 5_027_783_488, 16, ctx_eco=4096, ctx_perf=8192),
-    _preset("deep-qwen3-14b", "deep", "lai_tier_deep", "Qwen/Qwen3-14B-GGUF", "Qwen3-14B-Q4_K_M.gguf", "500a8806e85ee9c83f3ae08420295592451379b4f8cf2d0f41c15dffeb6b81f0", 9_001_752_960, 32, ctx_eco=8192, ctx_perf=16384),
+    _preset("ultra-qwen35-2b", "ultra_light", "lai_tier_ultra", "unsloth/Qwen3.5-2B-GGUF", "Qwen3.5-2B-Q4_K_M.gguf", "aaf42c8b7c3cab2bf3d69c355048d4a0ee9973d48f16c731c0520ee914699223", 1_280_835_840, 4, ctx_eco=2048, ctx_perf=4096),
+    _preset("compact-qwen35-4b", "compact", "lai_tier_compact", "unsloth/Qwen3.5-4B-GGUF", "Qwen3.5-4B-Q4_K_M.gguf", "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4", 2_740_937_888, 8, ctx_eco=4096, ctx_perf=4096),
+    _preset("balanced-qwen35-9b", "balanced", "lai_tier_balanced", "unsloth/Qwen3.5-9B-GGUF", "Qwen3.5-9B-Q4_K_M.gguf", "03b74727a860a56338e042c4420bb3f04b2fec5734175f4cb9fa853daf52b7e8", 5_680_522_464, 16, ctx_eco=4096, ctx_perf=8192),
+    _preset("advanced-ministral3-14b", "advanced", "lai_tier_advanced", "unsloth/Ministral-3-14B-Instruct-2512-GGUF", "Ministral-3-14B-Instruct-2512-Q4_K_M.gguf", "76ce697c065f2e40f1e8e958118b02cab38e2c10a6015f7d7908036a292dc8c8", 8_239_067_840, 24, reasoning=False, ctx_eco=8192, ctx_perf=16384),
+    _preset("flagship-muse-glimmer-30b", "flagship", "lai_tier_flagship", "meta-models/Muse-Glimmer-30B-GGUF", "Muse-Glimmer-30B-KQuant-17GB-Q4_K_M.gguf", "4cc57c0f51040a226e5a72cc47b7613f7772950e460a665f7083de89f183f60e", 16_756_683_904, 32, ctx_eco=8192, ctx_perf=16384),
 )
 
 MODEL_BY_ID: dict[str, LocalAiModelPreset] = {p.id: p for p in MODEL_PRESETS}
@@ -88,12 +89,14 @@ def detect_platform_key(plat: str | None = None, arch: str | None = None) -> Loc
 
 def recommend_model_for_ram(ram_gb: int) -> LocalAiModelPreset:
     if ram_gb >= 32:
-        return MODEL_BY_ID["deep-qwen3-14b"]
+        return MODEL_BY_ID["flagship-muse-glimmer-30b"]
+    if ram_gb >= 24:
+        return MODEL_BY_ID["advanced-ministral3-14b"]
     if ram_gb >= 16:
-        return MODEL_BY_ID["balanced-qwen3-8b"]
+        return MODEL_BY_ID["balanced-qwen35-9b"]
     if ram_gb >= 8:
-        return MODEL_BY_ID["compact-qwen3-4b"]
-    return MODEL_BY_ID["ultra-qwen25-1.5b"]
+        return MODEL_BY_ID["compact-qwen35-4b"]
+    return MODEL_BY_ID["ultra-qwen35-2b"]
 
 
 def compute_runtime_limits(ram_gb: int, profile: LocalAiProfile, preset: LocalAiModelPreset, cores: int | None = None) -> tuple[int, int, int]:
@@ -120,7 +123,7 @@ def build_llama_server_args(binary: str, model: str, port: int, token: str, ctx:
         "--n-gpu-layers", "0" if use_cpu else "99",
     ]
     if reasoning:
-        args.extend(["--reasoning-format", "deepseek"])
+        args.extend(["--reasoning-format", "auto"])
     if use_cpu:
         args.extend(["--device", "none"])
     return args

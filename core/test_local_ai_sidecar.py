@@ -32,14 +32,15 @@ from core.contracts import WorkspaceConfig
 
 
 def test_catalog_ram_tiers_platforms_and_thermal_limits() -> None:
-    assert local_ai_catalog.recommend_model_for_ram(4).id == "ultra-qwen25-1.5b"
-    assert local_ai_catalog.recommend_model_for_ram(8).id == "compact-qwen3-4b"
-    assert local_ai_catalog.recommend_model_for_ram(16).id == "balanced-qwen3-8b"
-    assert local_ai_catalog.recommend_model_for_ram(32).id == "deep-qwen3-14b"
+    assert local_ai_catalog.recommend_model_for_ram(4).id == "ultra-qwen35-2b"
+    assert local_ai_catalog.recommend_model_for_ram(8).id == "compact-qwen35-4b"
+    assert local_ai_catalog.recommend_model_for_ram(16).id == "balanced-qwen35-9b"
+    assert local_ai_catalog.recommend_model_for_ram(24).id == "advanced-ministral3-14b"
+    assert local_ai_catalog.recommend_model_for_ram(32).id == "flagship-muse-glimmer-30b"
     assert local_ai_catalog.detect_platform_key("darwin", "arm64") == "macos-arm64"
     assert local_ai_catalog.detect_platform_key("win32", "AMD64") == "win-vulkan-x64"
     assert local_ai_catalog.detect_platform_key("linux", "x86_64") == "linux-vulkan-x64"
-    preset = local_ai_catalog.MODEL_BY_ID["balanced-qwen3-8b"]
+    preset = local_ai_catalog.MODEL_BY_ID["balanced-qwen35-9b"]
     assert local_ai_catalog.compute_runtime_limits(16, "eco", preset, cores=8) == (4, 4096, 5)
     assert local_ai_catalog.compute_runtime_limits(16, "performance", preset, cores=8) == (6, 8192, 10)
     assert local_ai_catalog.compute_runtime_limits(4, "performance", preset, cores=8)[1] == 2048
@@ -57,7 +58,7 @@ def test_installer_resume_sha256_host_allowlist_and_zip_slip(tmp_path: Path, mon
             return httpx.Response(206, content=payload[64:], headers={"Content-Length": str(len(payload) - 64)})
         return httpx.Response(200, content=payload)
 
-    hf_url = "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf"
+    hf_url = "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf"
     with httpx.Client(transport=httpx.MockTransport(respond)) as client:
         assert local_ai_installer.download_verified_file(hf_url, dest, digest, len(payload), "model", client=client).read_bytes() == payload
         assert not part.exists()
@@ -105,7 +106,7 @@ def test_sidecar_lifecycle_gpu_fallback_and_policy_routing(tmp_path: Path, monke
         bin_file = local_ai_paths.bin_dir(tmp_path) / ("llama-server.exe" if sys.platform == "win32" else "llama-server")
         bin_file.parent.mkdir(parents=True, exist_ok=True)
         bin_file.write_text("#!/bin/sh\n", encoding="utf-8")
-        m_file = local_ai_paths.model_file_path("compact-qwen3-4b", tmp_path)
+        m_file = local_ai_paths.model_file_path("compact-qwen35-4b", tmp_path)
         m_file.parent.mkdir(parents=True, exist_ok=True)
         m_file.write_bytes(b"GGUF")
         monkeypatch.setattr(local_ai_sidecar, "_pick_loopback_port", lambda: port)
@@ -130,10 +131,10 @@ def test_sidecar_lifecycle_gpu_fallback_and_policy_routing(tmp_path: Path, monke
             return _FakeProc(len(calls) == 1, kw.get("stdout"))  # type: ignore[return-value]
 
         monkeypatch.setattr(local_ai_sidecar.subprocess, "Popen", fake_popen)
-        url, token, mid = local_ai_sidecar.ensure_sidecar_running("compact-qwen3-4b", root=tmp_path)
-        assert url == f"http://127.0.0.1:{port}/v1/chat/completions" and len(token) >= 16 and mid == "compact-qwen3-4b"
-        assert len(calls) == 2 and "--device" in calls[1] and "none" in calls[1]
-        assert context_meter.model_context_window("builtin", "compact-qwen3-4b") == 4096
+        url, token, mid = local_ai_sidecar.ensure_sidecar_running("compact-qwen35-4b", root=tmp_path)
+        assert url == f"http://127.0.0.1:{port}/v1/chat/completions" and len(token) >= 16 and mid == "compact-qwen35-4b"
+        assert len(calls) == 2 and "--device" in calls[1] and "none" in calls[1] and "auto" in calls[1]
+        assert context_meter.model_context_window("builtin", "compact-qwen35-4b") == 4096
         assert local_ai_sidecar.shutdown_sidecar() is True
     finally:
         local_ai_sidecar.shutdown_sidecar()
@@ -141,9 +142,9 @@ def test_sidecar_lifecycle_gpu_fallback_and_policy_routing(tmp_path: Path, monke
         httpd.server_close()
 
     strict_cfg = WorkspaceConfig(strict_local_only=True)
-    assert ai_stream.is_local_policy_satisfied(strict_cfg, "builtin", "compact-qwen3-4b") is True
+    assert ai_stream.is_local_policy_satisfied(strict_cfg, "builtin", "compact-qwen35-4b") is True
     assert ai_stream.is_local_policy_satisfied(strict_cfg, "openai", "gpt-4o-mini") is False
     saga = AgentPersona(id="saga", name="Saga", role="Analyst", tagline="t", instructions="i")
-    assert model_routing.resolve_agent_model(saga, strict_cfg, "builtin", "compact-qwen3-4b", None)[:2] == ("builtin", "compact-qwen3-4b")
+    assert model_routing.resolve_agent_model(saga, strict_cfg, "builtin", "compact-qwen35-4b", None)[:2] == ("builtin", "compact-qwen35-4b")
     with pytest.raises(HTTPException):
         model_routing.resolve_agent_model(saga, strict_cfg, "openai", "gpt-4o-mini", None)
