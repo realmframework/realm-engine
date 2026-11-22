@@ -125,8 +125,10 @@ async function openFocusView() {
   const shell = document.getElementById("workspace-shell"), gv = document.getElementById("graph-view"), v = document.getElementById("focus-view");
   if (shell) { shell.classList.add("hidden"); } if (gv) { gv.classList.add("hidden"); } if (v) { v.classList.remove("hidden"); }
   const b = document.getElementById("sidebar-focus-btn"); if (b) { b.classList.add("bg-[#4BB8E8]/15", "text-[#4BB8E8]"); }
+  if (typeof setActiveRailSection === "function") { setActiveRailSection("work", false); }
   await focApi("/api/focus");
   renderFocusView();
+  if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
 }
 function renderFocusView() {
   const an = focState.analytics || {}, stats = document.getElementById("foc-stats");

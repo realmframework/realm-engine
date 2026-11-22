@@ -53,13 +53,16 @@ function applySplitLayout() {
   const mChat = document.getElementById("split-mode-chat-btn"), mGuide = document.getElementById("split-mode-guide-btn");
   const agSel = document.getElementById("split-agent-select"), thSel = document.getElementById("split-thread-select"), newBtn = document.getElementById("split-new-chat-btn");
   const isChat = splitState.bMode === "chat";
-  if (chatBody) { chatBody.hidden = !isChat; }
-  if (guideBody) { guideBody.hidden = isChat; }
   if (mChat) { mChat.setAttribute("aria-pressed", String(isChat)); }
   if (mGuide) { mGuide.setAttribute("aria-pressed", String(!isChat)); }
   if (agSel) { agSel.hidden = !isChat; }
   if (thSel) { thSel.hidden = !isChat; }
   if (newBtn) { newBtn.hidden = !isChat; }
+  if (typeof syncSideWorkbenchBody === "function") { syncSideWorkbenchBody(); }
+  else {
+    if (chatBody) { chatBody.hidden = !isChat; }
+    if (guideBody) { guideBody.hidden = isChat; }
+  }
 }
 function abortSplitRequest() {
   if (splitState.reqId) { cancelBackendRequest(splitState.reqId); splitState.reqId = null; }
@@ -222,20 +225,26 @@ async function openSplitView(preset) {
   if (menu && typeof menu.hidePopover === "function") { try { menu.hidePopover(); } catch (_e) {} }
   if (preset === "close") { closeSplitView(); return; }
   splitState.open = true;
-  if (preset === "board-h" || preset === "board-v") {
+  let targetTab = "chat";
+  if (preset === "launcher") {
+    splitState.orientation = "vertical";
+    targetTab = "launcher";
+  } else if (preset === "board-h" || preset === "board-v") {
     splitState.orientation = preset === "board-h" ? "horizontal" : "vertical";
-    splitState.bMode = "chat";
+    splitState.bMode = "chat"; targetTab = "chat";
     if (!wbViewOpen && typeof openWorkBoardView === "function") { await openWorkBoardView(); }
   } else if (preset === "guide-v") {
-    splitState.orientation = "vertical"; splitState.bMode = "guide";
+    splitState.orientation = "vertical"; splitState.bMode = "guide"; targetTab = "guide";
     if (wbViewOpen && typeof closeWorkBoardView === "function") { closeWorkBoardView(); document.getElementById("workspace-shell").classList.remove("hidden"); }
     if (typeof loadGuidesCatalog === "function") { await loadGuidesCatalog(null); }
   } else {
-    splitState.orientation = "vertical"; splitState.bMode = "chat";
+    splitState.orientation = "vertical"; splitState.bMode = "chat"; targetTab = "chat";
     if (wbViewOpen && typeof closeWorkBoardView === "function") { closeWorkBoardView(); document.getElementById("workspace-shell").classList.remove("hidden"); }
   }
-  syncSplitSelectors(); applySplitLayout();
-  if (splitState.bMode === "guide") { renderSplitGuide(); } else { renderSplitChatStream(); }
+  syncSplitSelectors();
+  if (typeof openSideWorkbenchTab === "function") { openSideWorkbenchTab(targetTab, { reuse: targetTab !== "launcher" }); }
+  applySplitLayout();
+  if (targetTab === "guide") { renderSplitGuide(); } else if (targetTab === "chat") { renderSplitChatStream(); }
 }
 function closeSplitView() {
   abortSplitRequest(); splitState.open = false; applySplitLayout();

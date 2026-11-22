@@ -15,7 +15,12 @@ from features.ui.impact_template import IMPACT_MODALS_HTML, IMPACT_VIEW_HTML
 from features.ui.modals import MODALS_HTML
 from features.ui.power_template import POWER_MODAL_HTML, POWER_STYLES_CSS
 from features.ui.script import CLIENT_SCRIPT
-from features.ui.sidebar_template import SIDEBAR_HTML
+from features.ui.shell_styles import SHELL_STYLES_CSS
+from features.ui.sidebar_template import (
+    ACTIVITY_RAIL_HTML,
+    APP_TOPBAR_HTML,
+    SIDEBAR_HTML,
+)
 from features.ui.split_styles import SPLIT_STYLES_CSS
 from features.ui.split_template import SPLIT_MENU_HTML, SPLIT_PANE_HTML
 from features.ui.study_template import STUDY_MODAL_HTML, STUDY_STYLES_CSS
@@ -171,18 +176,23 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
     + SPLIT_STYLES_CSS
     + IMPACT_FOCUS_STYLES_CSS
     + WORKFLOW_STUDIO_STYLES_CSS
+    + SHELL_STYLES_CSS
     + """
 </head>
 <body class="bg-[#04060F] font-sans text-base text-[#EEF2F8] antialiased">
 <a href="#main-content" data-i18n="skip_main" class="skip-link visually-hidden">Skip to main content</a>
-<button id="sidebar-open-btn" aria-label="Expand sidebar" data-i18n-aria-label="aria_expand_rail" type="button" class="hidden fixed left-4 top-4 z-40 h-9 w-9 rounded-full bg-[#0B1020] text-[#A0B0C8] hover:text-[#EEF2F8] shadow-[inset_0_0_0_1px_var(--border)] items-center justify-center transition-colors"><svg aria-hidden="true" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>
 <div id="sidebar-backdrop" hidden class="fixed inset-0 z-40"></div>
 """
+    + ACTIVITY_RAIL_HTML
+    + "\n"
     + SIDEBAR_HTML
     + """
-<div id="main-shell" class="relative pl-[268px] min-h-screen bg-[#04060F] flex flex-col transition-all duration-200">
+<div id="main-shell" class="relative pl-[300px] min-h-screen bg-[#04060F] flex flex-col transition-all duration-200">
   <div id="ambient-stage" aria-hidden="true" class="ambient-stage"><canvas id="ambient-aurora-canvas" class="supernova-beam"></canvas><canvas id="ambient-dots-canvas"></canvas></div>
-  <main id="main-content" tabindex="-1" class="relative z-10 w-full flex-1 flex flex-col pt-0 outline-none">
+"""
+    + APP_TOPBAR_HTML
+    + "\n"
+    + """  <main id="main-content" tabindex="-1" class="relative z-10 w-full flex-1 flex flex-col pt-0 outline-none">
     <div id="graph-view" class="graph-viewport hidden w-full relative overflow-hidden bg-[#04060F]"></div>
 """
     + WORK_BOARD_HTML

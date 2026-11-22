@@ -1,0 +1,188 @@
+"""Codex-inspired Two-Tier Spatial Shell controller: 52px Rail, Context Drawer & Calm Top Bar."""
+
+SHELL_SCRIPT: str = r"""
+let activeRailSection = "chat";
+let desktopDrawerCollapsed = safeStorageGet("realm_drawer_collapsed") === "1";
+
+function closeShellPopovers() {
+  ["rail-more-menu", "rail-status-popover", "topbar-more-menu", "wb-more-menu"].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el && el.matches && el.matches(":popover-open") && el.hidePopover) { try { el.hidePopover(); } catch (_e) {} }
+  });
+}
+function applyDesktopDrawerState() {
+  const narrow = typeof sidebarNarrowMq !== "undefined" && sidebarNarrowMq.matches;
+  const sb = document.getElementById("sidebar"), railTog = document.getElementById("rail-drawer-toggle");
+  if (!narrow) {
+    document.body.classList.toggle("drawer-collapsed", desktopDrawerCollapsed);
+    if (sb) { sb.inert = desktopDrawerCollapsed; sb.classList.remove("-translate-x-full"); }
+    if (railTog) { railTog.setAttribute("aria-expanded", String(!desktopDrawerCollapsed)); }
+  }
+}
+function toggleContextDrawer(forceOpen) {
+  const narrow = typeof sidebarNarrowMq !== "undefined" && sidebarNarrowMq.matches;
+  if (narrow) {
+    if (typeof mobileDrawerOpen !== "undefined" && typeof syncSidebarDrawer === "function") {
+      mobileDrawerOpen = forceOpen !== undefined ? Boolean(forceOpen) : !mobileDrawerOpen;
+      syncSidebarDrawer(mobileDrawerOpen ? "open" : "close");
+    }
+    return;
+  }
+  desktopDrawerCollapsed = forceOpen !== undefined ? !Boolean(forceOpen) : !desktopDrawerCollapsed;
+  safeStorageSet("realm_drawer_collapsed", desktopDrawerCollapsed ? "1" : "0");
+  applyDesktopDrawerState();
+}
+function updateTopbarContext(customTitle) {
+  const titleEl = document.getElementById("topbar-title");
+  if (titleEl) {
+    let label = customTitle || "";
+    if (!label) {
+      if (typeof wbViewOpen !== "undefined" && wbViewOpen) { label = t("wb_title"); }
+      else if (typeof focViewOpen !== "undefined" && focViewOpen) { label = t("foc_title"); }
+      else if (typeof impViewOpen !== "undefined" && impViewOpen) { label = t("imp_title"); }
+      else if (typeof wfViewOpen !== "undefined" && wfViewOpen) {
+        const aw = typeof activeWorkflow === "function" ? activeWorkflow() : null;
+        label = aw ? (t("wf_title") + " · " + aw.name) : t("wf_title");
+      } else if (document.getElementById("graph-view") && !document.getElementById("graph-view").classList.contains("hidden")) {
+        label = t("graph_view");
+      } else if (document.getElementById("library-view")) {
+        label = t("library");
+      } else if (typeof currentChatId !== "undefined" && currentChatId && Array.isArray(savedChats)) {
+        const cur = savedChats.find(function (c) { return c.chat_id === currentChatId; });
+        label = (cur && cur.title) || (typeof areaTitle === "function" && activeKnowledgeArea ? areaTitle(activeKnowledgeArea) : "REALM Engine");
+      } else {
+        label = (typeof areaTitle === "function" && activeKnowledgeArea) ? areaTitle(activeKnowledgeArea) : "REALM Engine";
+      }
+    }
+    titleEl.textContent = label;
+  }
+  const privEl = document.getElementById("sh-pop-privacy"), agEl = document.getElementById("sh-pop-agent"), tmEl = document.getElementById("sh-pop-timer"), topTm = document.getElementById("topbar-timer-pill");
+  if (privEl) { privEl.textContent = (typeof localOnly === "function" && localOnly()) ? t("sh_local_only") : t("sh_cloud_ready"); }
+  if (agEl) { agEl.textContent = typeof activeAgentName === "function" ? activeAgentName() : "Saga"; }
+  const activeTimer = typeof impState !== "undefined" && impState && impState.active_timer;
+  const hms = typeof fmtHMS === "function" && typeof impTimerClientSecs !== "undefined" ? fmtHMS(impTimerClientSecs) : "00:00:00";
+  if (tmEl) { tmEl.textContent = activeTimer ? hms : "00:00"; }
+  if (topTm) { topTm.hidden = !activeTimer; topTm.textContent = hms; }
+  const dot = document.getElementById("rail-work-dot");
+  if (dot) {
+    const hasOverdue = typeof wbState !== "undefined" && wbState && wbState.summary && (wbState.summary.overdue_tasks > 0 || wbState.summary.today_tasks > 0);
+    dot.hidden = !(activeTimer || hasOverdue);
+  }
+}
+function renderDrawerDynamicLists() {
+  const wfList = document.getElementById("drawer-workflows-list");
+  if (wfList && typeof wfState !== "undefined" && Array.isArray(wfState.workflows)) {
+    wfList.innerHTML = wfState.workflows.length ? wfState.workflows.map(function (w) {
+      const act = typeof wfActiveId !== "undefined" && wfActiveId === w.id;
+      return "<button type='button' data-drawer-wf='" + escapeHtml(w.id) + "' class='drawer-item" + (act ? " is-active" : "") + "'><span class='drawer-item-lead'><span>" + escapeHtml(w.name) + "</span></span><span class='drawer-badge'>" + (w.nodes ? w.nodes.length : 0) + "</span></button>";
+    }).join("") : "<div class='px-2.5 py-1.5 text-xs text-[#738196]'>—</div>";
+    wfList.querySelectorAll("[data-drawer-wf]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (typeof wfActiveId !== "undefined") { wfActiveId = btn.getAttribute("data-drawer-wf") || ""; wfSelectedNodeId = ""; wfNodeRunState = {}; wfLiveSteps = []; }
+        if (typeof openWorkflowsView === "function") { openWorkflowsView(); }
+        renderDrawerDynamicLists(); updateTopbarContext();
+      });
+    });
+  }
+  const agList = document.getElementById("drawer-agents-list");
+  if (agList && typeof agentTeam !== "undefined" && Array.isArray(agentTeam)) {
+    agList.innerHTML = agentTeam.map(function (ag) {
+      const act = typeof activeAgentId !== "undefined" && activeAgentId === ag.id;
+      const col = typeof paletteColorsFor === "function" ? paletteColorsFor(ag.palette).accent : "#4BB8E8";
+      return "<button type='button' data-drawer-agent='" + escapeHtml(ag.id) + "' class='drawer-item" + (act ? " is-active" : "") + "'><span class='drawer-item-lead'><span class='w-2 h-2 rounded-full shrink-0' style='background:" + escapeHtml(col) + "'></span><span>" + escapeHtml(ag.name) + "</span></span><span class='drawer-badge'>" + escapeHtml((ag.role || "").split(" ")[0]) + "</span></button>";
+    }).join("");
+    agList.querySelectorAll("[data-drawer-agent]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (typeof selectAgentUI === "function") { selectAgentUI(btn.getAttribute("data-drawer-agent")); }
+        renderDrawerDynamicLists(); updateTopbarContext();
+      });
+    });
+  }
+}
+function setActiveRailSection(section, navigate) {
+  const safe = ["chat", "library", "work", "workflows", "studio"].includes(section) ? section : "chat";
+  activeRailSection = safe;
+  document.querySelectorAll("[data-rail-section]").forEach(function (btn) {
+    const active = btn.getAttribute("data-rail-section") === safe;
+    if (active) { btn.setAttribute("aria-current", "page"); } else { btn.removeAttribute("aria-current"); }
+  });
+  ["chat", "library", "work", "workflows", "studio"].forEach(function (name) {
+    const p = document.getElementById("drawer-panel-" + name);
+    if (p) { p.hidden = name !== safe; }
+  });
+  if (navigate) {
+    if (desktopDrawerCollapsed && !(typeof sidebarNarrowMq !== "undefined" && sidebarNarrowMq.matches)) { toggleContextDrawer(true); }
+    if (safe === "chat") {
+      if (typeof closeWorkBoardView === "function") { closeWorkBoardView(); }
+      if (typeof closeFocusView === "function") { closeFocusView(); }
+      if (typeof closeImpactView === "function") { closeImpactView(); }
+      if (typeof closeWorkflowsView === "function") { closeWorkflowsView(); }
+      if (typeof stopGraphSimulation === "function") { stopGraphSimulation(); }
+      if (typeof setViewMode === "function") { setViewMode(Boolean(currentTurns && currentTurns.length)); }
+    } else if (safe === "library" && typeof openLibraryCatalog === "function") {
+      setActiveTag(null); openLibraryCatalog(null);
+    } else if (safe === "work" && typeof openWorkBoardView === "function") {
+      if (!(typeof wbViewOpen !== "undefined" && wbViewOpen) && !(typeof focViewOpen !== "undefined" && focViewOpen) && !(typeof impViewOpen !== "undefined" && impViewOpen)) {
+        openWorkBoardView("kanban");
+      }
+    } else if (safe === "workflows" && typeof openWorkflowsView === "function") {
+      openWorkflowsView();
+    }
+  }
+  renderDrawerDynamicLists();
+  updateTopbarContext();
+}
+function handleShellAction(act) {
+  closeShellPopovers();
+  if (act === "graph" && typeof openGraphView === "function") { setActiveRailSection("library", false); openGraphView(); }
+  else if (act === "study" && typeof openStudyDeck === "function") { openStudyDeck({}); }
+  else if (act === "gaps" && typeof openGapAnalysisModal === "function") { openGapAnalysisModal(); }
+  else if (act === "briefing" && typeof openBriefingModal === "function") { openBriefingModal({}); }
+  else if (act === "link-folder" && typeof linkExistingFolder === "function") { linkExistingFolder(); }
+  else if (act === "settings" && typeof openSettings === "function") { openSettings("workspace"); }
+  else if (act === "new-note" && typeof openNewNoteModal === "function") { openNewNoteModal(); }
+  else if (act === "upload" && typeof openUploadDialog === "function") { openUploadDialog(); }
+  else if (act === "new-chat" && typeof resetHome === "function") { setActiveRailSection("chat", false); resetHome(); }
+  else if (act === "deep-focus" && typeof openDeepFocusModal === "function") { openDeepFocusModal("", ""); }
+  else if (act === "log-impact" && typeof openImpactEntryModal === "function") { openImpactEntryModal(null); }
+  else if (act === "open-kanban" && typeof openWorkBoardView === "function") { setActiveRailSection("work", false); openWorkBoardView("kanban"); }
+  else if (act === "wf-new") { const b = document.getElementById("wf-new-btn"); if (b) { b.click(); } }
+  else if (act === "wf-templates" && typeof openWorkflowTemplatesModal === "function") { openWorkflowTemplatesModal(); }
+}
+function bindSpatialShellUX() {
+  applyDesktopDrawerState();
+  const railTog = document.getElementById("rail-drawer-toggle");
+  if (railTog) { railTog.addEventListener("click", function () { toggleContextDrawer(); }); }
+  const colBtn = document.getElementById("sidebar-collapse-btn");
+  if (colBtn) {
+    colBtn.addEventListener("click", function (e) {
+      if (!(typeof sidebarNarrowMq !== "undefined" && sidebarNarrowMq.matches)) {
+        e.stopImmediatePropagation();
+        toggleContextDrawer(false);
+      }
+    }, true);
+  }
+  document.querySelectorAll("[data-rail-section]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      const sec = btn.getAttribute("data-rail-section") || "chat";
+      if (sec === activeRailSection && sec !== "chat" && sec !== "work" && !desktopDrawerCollapsed) { toggleContextDrawer(false); return; }
+      setActiveRailSection(sec, true);
+    });
+  });
+  document.querySelectorAll("[data-shell-act]").forEach(function (btn) {
+    btn.addEventListener("click", function () { handleShellAction(btn.getAttribute("data-shell-act") || ""); });
+  });
+  document.querySelectorAll("[data-work-jump]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      const tab = btn.getAttribute("data-work-jump") || "kanban";
+      setActiveRailSection("work", false);
+      if (typeof openWorkBoardView === "function") { openWorkBoardView(tab); }
+    });
+  });
+  const topTimer = document.getElementById("topbar-timer-pill");
+  if (topTimer) { topTimer.addEventListener("click", function () { setActiveRailSection("work", false); if (typeof openImpactView === "function") { openImpactView("time"); } }); }
+  const stPop = document.getElementById("rail-status-popover");
+  if (stPop) { stPop.addEventListener("toggle", function () { updateTopbarContext(); }); }
+  setActiveRailSection("chat", false);
+}
+"""

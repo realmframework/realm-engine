@@ -24,6 +24,7 @@ function syncImpactTimerUI() {
   if (stopBtn) { stopBtn.hidden = !timer; }
   if (timer && lblEl && !lblEl.matches(":focus")) { lblEl.value = timer.label || ""; }
   if (timer && projEl && timer.project_id) { projEl.value = timer.project_id; }
+  if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
 }
 function syncImpactTimerInterval() {
   if (impTimerTick) { clearInterval(impTimerTick); impTimerTick = null; }
@@ -70,8 +71,10 @@ async function openImpactView(tab) {
   if (shell) { shell.classList.add("hidden"); } if (gv) { gv.classList.add("hidden"); } if (v) { v.classList.remove("hidden"); }
   const b = document.getElementById("sidebar-impact-btn"); if (b) { b.classList.add("bg-[#4BB8E8]/15", "text-[#4BB8E8]"); }
   if (tab) { setImpactTab(tab); }
+  if (typeof setActiveRailSection === "function") { setActiveRailSection("work", false); }
   await impApi("/api/impact");
   renderImpactView();
+  if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
 }
 function setImpactTab(tab) {
   impActiveTab = tab || "roi";

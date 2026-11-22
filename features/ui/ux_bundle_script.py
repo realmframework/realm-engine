@@ -10,9 +10,11 @@ from features.ui.guide_script import GUIDE_SCRIPT
 from features.ui.impact_script import IMPACT_SCRIPT
 from features.ui.mention_script import MENTION_SCRIPT
 from features.ui.power_script import POWER_SCRIPT
+from features.ui.shell_script import SHELL_SCRIPT
 from features.ui.split_script import SPLIT_SCRIPT
 from features.ui.study_script import STUDY_SCRIPT
 from features.ui.work_board_script import WORK_BOARD_SCRIPT
+from features.ui.workbench_tabs_script import WORKBENCH_TABS_SCRIPT
 from features.ui.workflow_canvas_script import WORKFLOW_CANVAS_SCRIPT
 from features.ui.workflow_run_script import WORKFLOW_RUN_SCRIPT
 from features.ui.workflow_script import WORKFLOW_SCRIPT
@@ -34,6 +36,8 @@ UX_BUNDLE_SCRIPT: str = (
     + IMPACT_SCRIPT
     + WORKFLOW_CANVAS_SCRIPT
     + WORKFLOW_RUN_SCRIPT
+    + SHELL_SCRIPT
+    + WORKBENCH_TABS_SCRIPT
     + r"""
 function bindAllUXBundles() {
   for (const fn of [
@@ -52,6 +56,8 @@ function bindAllUXBundles() {
     typeof bindFocusUX === "function" && bindFocusUX,
     typeof bindImpactUX === "function" && bindImpactUX,
     typeof bindWorkflowStudioUX === "function" && bindWorkflowStudioUX,
+    typeof bindSpatialShellUX === "function" && bindSpatialShellUX,
+    typeof bindWorkbenchTabsUX === "function" && bindWorkbenchTabsUX,
   ]) {
     if (fn) { try { fn(); } catch (err) { console.error("UX bundle init failed:", err); } }
   }

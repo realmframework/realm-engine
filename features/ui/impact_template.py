@@ -41,10 +41,7 @@ IMPACT_VIEW_HTML: str = r"""<section id="impact-view" class="wb-view hidden" ari
   </div>
 
   <div id="imp-panel-journal" role="tabpanel" aria-labelledby="imp-tab-journal" hidden>
-    <div class="wb-list-toolbar">
-      <p data-i18n="imp_journal_sub" style="margin:0;color:var(--text-muted);font-size:calc(0.875rem * var(--ui-scale,1))">Document when you did what, what changed, and what effect it created — in your own plain words.</p>
-      <button id="imp-add-journal-btn" type="button" data-i18n="imp_log_btn" class="wb-btn wb-btn-primary">+ Log Impact</button>
-    </div>
+    <p data-i18n="imp_journal_sub" style="margin:0 0 0.85rem;color:var(--text-muted);font-size:calc(0.875rem * var(--ui-scale,1))">Document when you did what, what changed, and what effect it created — in your own plain words.</p>
     <div id="imp-journal-list"></div>
   </div>
 

@@ -26,6 +26,7 @@ function applyWorkBoardState(data) {
   wbState = { columns: data.columns, projects: data.projects || [], tasks: data.tasks || [], events: data.events || [], summary: data.summary || {} };
   const badge = document.getElementById("sidebar-work-badge");
   if (badge) { badge.textContent = String((wbState.summary && wbState.summary.open_tasks) || 0); }
+  if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
   if (wbViewOpen) { renderWorkBoardAll(); }
 }
 async function wbApi(path, opts) {
@@ -77,8 +78,10 @@ async function openWorkBoardView(tab) {
   const btn = document.getElementById("sidebar-work-btn");
   if (btn) { btn.classList.add("bg-[#4BB8E8]/15", "text-[#4BB8E8]"); }
   if (tab) { setWorkBoardTab(tab); }
+  if (typeof setActiveRailSection === "function") { setActiveRailSection("work", false); }
   await wbApi("/api/work-board");
   renderWorkBoardAll();
+  if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
 }
 function setWorkBoardTab(tab) {
   wbActiveTab = tab || "kanban";

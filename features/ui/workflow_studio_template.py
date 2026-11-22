@@ -4,12 +4,12 @@ WORKFLOWS_VIEW_HTML: str = r"""<section id="workflows-view" class="wb-view hidde
   <header class="wb-header">
     <div class="wb-title-row">
       <h1 data-i18n="wf_title" class="wb-title">Workflows</h1>
-      <select id="wf-select" aria-label="Active workflow" data-i18n-aria-label="wf_select_aria" class="wb-select" style="min-width:14rem;max-width:24rem"></select>
+      <select id="wf-select" aria-label="Active workflow" data-i18n-aria-label="wf_select_aria" class="wb-select" style="min-width:11rem;max-width:16rem"></select>
       <span id="wf-trigger-pill" class="wb-stat-pill">Manual</span>
     </div>
     <div class="wb-controls">
-      <button id="wf-templates-btn" type="button" data-i18n="wf_templates_btn" class="wb-btn">Templates</button>
-      <button id="wf-new-btn" type="button" data-i18n="wf_new_btn" class="wb-btn">+ New Pipeline</button>
+      <button id="wf-templates-btn" type="button" data-i18n="wf_templates_btn" class="wb-btn wb-btn-sm">Templates</button>
+      <button id="wf-new-btn" type="button" data-i18n="wf_new_btn" class="wb-btn wb-btn-sm">+ New Pipeline</button>
       <button id="wf-run-btn" type="button" data-i18n="wf_run_btn" class="wb-btn wb-btn-primary">Run Pipeline</button>
       <button id="wf-stop-btn" type="button" hidden data-i18n="wf_stop_btn" class="wb-btn wb-btn-danger">Stop Run</button>
     </div>

@@ -29,6 +29,7 @@ function applyWorkflowState(data, selectId) {
   }
   const badge = document.getElementById("sidebar-workflows-badge");
   if (badge) { badge.textContent = String(wfState.workflows.length); }
+  if (typeof renderDrawerDynamicLists === "function") { renderDrawerDynamicLists(); }
   if (wfViewOpen) { renderWorkflowsView(); }
 }
 async function wfApi(path, opts, selectId) {
@@ -62,8 +63,10 @@ async function openWorkflowsView() {
   const shell = document.getElementById("workspace-shell"), gv = document.getElementById("graph-view"), v = document.getElementById("workflows-view");
   if (shell) { shell.classList.add("hidden"); } if (gv) { gv.classList.add("hidden"); } if (v) { v.classList.remove("hidden"); }
   const b = document.getElementById("sidebar-workflows-btn"); if (b) { b.classList.add("bg-[#4BB8E8]/15", "text-[#4BB8E8]"); }
+  if (typeof setActiveRailSection === "function") { setActiveRailSection("workflows", false); }
   await wfApi("/api/workflows");
   renderWorkflowsView();
+  if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
 }
 function wfNodeSummary(node) {
   const c = node.config || {};

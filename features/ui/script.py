@@ -103,9 +103,9 @@ function setViewMode(active, hideDock) {
     dock.className = chatLayout ? "chat-dock shrink-0 z-30 w-full max-w-3xl px-4 sm:px-6 pb-6 pt-2 flex flex-col items-center" : (active ? "hidden" : "w-full max-w-3xl mx-auto flex flex-col items-center justify-center relative z-30");
     document.getElementById("hero-heading").classList.toggle("hidden", active); document.getElementById("seed-chips").classList.toggle("hidden", active);
   };
-  if (isActiveView === active) { applyLayout(); return Promise.resolve(); }
+  if (isActiveView === active) { applyLayout(); if (typeof updateTopbarContext === "function") { updateTopbarContext(); } return Promise.resolve(); }
   isActiveView = active;
-  return withViewTransition(applyLayout, active ? stream : queryEl);
+  return withViewTransition(applyLayout, active ? stream : queryEl).finally(function () { if (typeof updateTopbarContext === "function") { updateTopbarContext(); } });
 }
 async function toggleDictation() {
   if (activeRecognition) { activeRecognition.stop(); activeRecognition = null; return; }
