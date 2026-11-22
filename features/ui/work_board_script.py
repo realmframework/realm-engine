@@ -45,7 +45,9 @@ async function wbApi(path, opts) {
 async function loadWorkBoardSummary(force) {
   const area = activeKnowledgeArea || "";
   if (!force && wbLoadedArea === area) { return; }
+  const changed = wbLoadedArea !== null && wbLoadedArea !== area;
   wbLoadedArea = area; wbProjectFilter = "";
+  if (changed && typeof resetSplitOnAreaChange === "function") { resetSplitOnAreaChange(); }
   await wbApi("/api/work-board");
 }
 function closeWorkBoardView() {

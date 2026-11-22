@@ -28,8 +28,11 @@ WORK_BOARD_MODALS_HTML: str = r"""<dialog id="work-task-modal" closedby="any" ar
       </div>
     </div>
     <div id="wb-tf-links" hidden style="display:flex;flex-wrap:wrap;gap:0.45rem;font-size:calc(0.8125rem * var(--ui-scale, 1));color:var(--text-muted)"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;padding-top:0.65rem;border-top:1px solid var(--border-subtle)">
-      <button id="wb-tf-delete" type="button" hidden data-i18n="delete_btn" class="wb-btn wb-btn-danger">Delete</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;padding-top:0.65rem;border-top:1px solid var(--border-subtle);flex-wrap:wrap">
+      <div style="display:flex;gap:0.45rem">
+        <button id="wb-tf-delete" type="button" hidden data-i18n="delete_btn" class="wb-btn wb-btn-danger">Delete</button>
+        <button id="wb-tf-ask-chat" type="button" hidden data-i18n="sp_ask_in_chat" class="wb-btn">Ask in Split Chat</button>
+      </div>
       <div style="display:flex;gap:0.5rem;margin-inline-start:auto">
         <button type="button" data-wb-close="work-task-modal" data-i18n="cancel" class="wb-btn">Cancel</button>
         <button type="submit" data-i18n="save" class="wb-btn wb-btn-primary">Save</button>

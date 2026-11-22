@@ -1,6 +1,9 @@
 """Native <dialog> for Output Formats & Requirements Synthesis Studio."""
 
-STUDIO_MODAL_HTML: str = r"""<dialog id="format-studio-modal" closedby="any" aria-labelledby="format-studio-title" class="m-auto w-full max-w-3xl max-h-[88vh] overflow-hidden flex-col gap-4 rounded-2xl bg-[#0B1020] text-[#EEF2F8] border border-[rgba(238,242,248,0.16)] p-6 shadow-2xl">
+from features.ui.split_template import SPLIT_TOGGLE_BTN_HTML
+
+STUDIO_MODAL_HTML: str = (
+    r"""<dialog id="format-studio-modal" closedby="any" aria-labelledby="format-studio-title" class="m-auto w-full max-w-3xl max-h-[88vh] overflow-hidden flex-col gap-4 rounded-2xl bg-[#0B1020] text-[#EEF2F8] border border-[rgba(238,242,248,0.16)] p-6 shadow-2xl">
   <div class="shrink-0 flex items-center justify-between gap-3 border-b border-[rgba(238,242,248,0.08)] pb-3">
     <div class="flex flex-col gap-0.5">
       <h2 id="format-studio-title" data-i18n="fmt_title" class="text-lg font-semibold text-[#EEF2F8]">Format &amp; Synthesis Studio</h2>
@@ -36,7 +39,7 @@ STUDIO_MODAL_HTML: str = r"""<dialog id="format-studio-modal" closedby="any" ari
     </div>
   </form>
 </dialog>
-<button id="inspector-toggle-btn" type="button" hidden aria-expanded="false" aria-controls="inspector-sidebar" aria-label="Open Engine Inspector" data-i18n-aria-label="aria_open_inspector" title="Engine Inspector (Context, Tokens &amp; Thinking · ⌘I)" class="fixed right-4 top-4 z-40 h-9 w-9 rounded-full bg-[#0B1020] text-[#A0B0C8] hover:text-[#EEF2F8] shadow-[inset_0_0_0_1px_var(--border)] flex items-center justify-center transition-colors"><svg aria-hidden="true" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M11 8v6M8 11h6"/></svg></button>
+<div id="top-right-tools">""" + SPLIT_TOGGLE_BTN_HTML + r"""<button id="inspector-toggle-btn" type="button" hidden aria-expanded="false" aria-controls="inspector-sidebar" aria-label="Open Engine Inspector" data-i18n-aria-label="aria_open_inspector" title="Engine Inspector (Context, Tokens &amp; Thinking · ⌘I)" class="h-9 w-9 rounded-full bg-[#0B1020] text-[#A0B0C8] hover:text-[#EEF2F8] shadow-[inset_0_0_0_1px_var(--border)] flex items-center justify-center transition-colors"><svg aria-hidden="true" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M11 8v6M8 11h6"/></svg></button></div>
 <aside id="inspector-sidebar" hidden aria-label="Engine Inspector" class="fixed right-0 top-0 h-screen w-[356px] max-w-[92vw] z-50 bg-[#0B1020] border-l border-[rgba(238,242,248,0.12)] shadow-2xl flex flex-col p-4 gap-4 overflow-y-auto overscroll-contain">
   <div class="shrink-0 flex items-center justify-between gap-2 pb-3 border-b border-[rgba(238,242,248,0.08)]">
     <div class="flex items-center gap-2 text-sm font-medium text-[#EEF2F8]"><svg aria-hidden="true" class="w-4 h-4 text-[#4BB8E8] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span data-i18n="insp_title">Engine Inspector</span></div>
@@ -44,3 +47,4 @@ STUDIO_MODAL_HTML: str = r"""<dialog id="format-studio-modal" closedby="any" ari
   </div>
   <div id="inspector-sidebar-body" class="flex flex-col gap-4 text-sm shrink-0 pb-10"></div>
 </aside>"""
+)

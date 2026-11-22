@@ -4,7 +4,7 @@ WORK_BOARD_STYLES_CSS: str = r"""<style id="realm-work-board-styles">
 #work-board-view [hidden] { display: none !important; }
 .wb-view { width: 100%; min-height: 100vh; padding: 1.75rem clamp(1rem, 2.5vw, 2.25rem) 4.5rem; display: flex; flex-direction: column; gap: 1.25rem; color: var(--text); }
 .wb-view.hidden { display: none !important; }
-.wb-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.85rem; }
+.wb-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.85rem; padding-inline-end: 3.25rem; }
 .wb-title-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 .wb-title { margin: 0; font-size: calc(1.5rem * var(--ui-scale, 1)); font-weight: 600; letter-spacing: -0.02em; color: var(--text); }
 .wb-stat-strip { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; }

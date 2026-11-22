@@ -128,6 +128,7 @@ async function loadRecentChats() {
     const data = await safeJson(res);
     if (version === areaVersion && op === recentChatsOp && free === Boolean(typeof freeChatMode !== "undefined" && freeChatMode) && Array.isArray(data)) {
       savedChats = data; renderRecentChats();
+      if (typeof syncSplitSelectors === "function" && typeof splitState !== "undefined" && splitState.open) { syncSplitSelectors(); }
     }
   } catch (_e) {}
 }

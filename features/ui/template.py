@@ -13,6 +13,8 @@ from features.ui.modals import MODALS_HTML
 from features.ui.power_template import POWER_MODAL_HTML, POWER_STYLES_CSS
 from features.ui.script import CLIENT_SCRIPT
 from features.ui.sidebar_template import SIDEBAR_HTML
+from features.ui.split_styles import SPLIT_STYLES_CSS
+from features.ui.split_template import SPLIT_MENU_HTML, SPLIT_PANE_HTML
 from features.ui.study_template import STUDY_MODAL_HTML, STUDY_STYLES_CSS
 from features.ui.theme_styles import THEME_BRIDGE_CSS
 from features.ui.work_board_modals import WORK_BOARD_MODALS_HTML
@@ -158,6 +160,7 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
     + STUDY_STYLES_CSS
     + POWER_STYLES_CSS
     + WORK_BOARD_STYLES_CSS
+    + SPLIT_STYLES_CSS
     + """
 </head>
 <body class="bg-[#04060F] font-sans text-base text-[#EEF2F8] antialiased">
@@ -226,6 +229,9 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
         </div>
       </div>
     </div>
+"""
+    + SPLIT_PANE_HTML
+    + """
   </main>
 </div>
 """
@@ -244,6 +250,7 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
     + STUDY_MODAL_HTML
     + POWER_MODAL_HTML
     + WORK_BOARD_MODALS_HTML
+    + SPLIT_MENU_HTML
     + "\n"
     + CLIENT_SCRIPT
     + "\n</body>\n</html>\n"

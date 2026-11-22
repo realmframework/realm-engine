@@ -43,6 +43,7 @@ function openWorkTaskModal(taskId) {
     if (cBtn && tk) { cBtn.addEventListener("click", function () { modal.close(); closeWorkBoardView(); openSavedChat(tk.linked_chat_id); }); }
   }
   const delBtn = document.getElementById("wb-tf-delete"); if (delBtn) { delBtn.hidden = !tk; }
+  const askBtn = document.getElementById("wb-tf-ask-chat"); if (askBtn) { askBtn.hidden = !tk; }
   modal.showModal(); document.getElementById("wb-tf-title").focus();
 }
 function openWorkProjectModal(projectId) {
@@ -98,6 +99,15 @@ function bindWorkBoardUX() {
       const res = await areaFetch("/api/work-board/sync-vault", { method: "POST" }), data = await safeJson(res);
       if (!res.ok) { showToast(data.detail || "Sync failed", 3500); return; }
       showToast(t("wb_synced_toast")); if (typeof loadGuidesCatalog === "function") { loadGuidesCatalog(null); }
+    });
+  }
+  const splitChatBtn = document.getElementById("wb-split-chat-btn");
+  if (splitChatBtn) { splitChatBtn.addEventListener("click", function () { if (typeof openSplitView === "function") { openSplitView("board-h"); } }); }
+  const askChatBtn = document.getElementById("wb-tf-ask-chat");
+  if (askChatBtn) {
+    askChatBtn.addEventListener("click", function () {
+      const id = document.getElementById("wb-tf-id").value.trim(), tk = (wbState.tasks || []).find(function (x) { return x.id === id; });
+      if (tk && typeof sendTaskToSplitChat === "function") { document.getElementById("work-task-modal").close(); sendTaskToSplitChat(tk); }
     });
   }
   document.querySelectorAll("[data-wb-filter]").forEach(function (btn) {

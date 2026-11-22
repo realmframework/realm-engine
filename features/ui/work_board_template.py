@@ -12,6 +12,7 @@ WORK_BOARD_HTML: str = r"""<section id="work-board-view" class="wb-view hidden" 
       </select>
       <button id="wb-extract-open-btn" type="button" data-i18n="wb_extract_btn" class="wb-btn">Extract Tasks</button>
       <button id="wb-sync-vault-btn" type="button" data-i18n="wb_sync_btn" class="wb-btn">Sync to Library</button>
+      <button id="wb-split-chat-btn" type="button" data-i18n="sp_split_chat_btn" class="wb-btn">Split Chat</button>
       <button id="wb-add-task-btn" type="button" data-i18n="wb_new_task" class="wb-btn wb-btn-primary">+ New Task</button>
     </div>
   </header>
