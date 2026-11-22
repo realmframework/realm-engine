@@ -39,7 +39,7 @@ def save_workspace_config(config: contracts.WorkspaceConfig, path: Path | None =
 def build_tutor_config(provider: str | None, model: str | None, api_key: str | None, temperature: float = 0.2) -> contracts.TutorConfig:
     clamped = max(0.0, min(1.0, float(temperature)))
     try:
-        return contracts.TutorConfig.model_validate({"provider": provider or "ollama", "model": model or "qwen3:8b", "api_key": api_key or None, "temperature": clamped})
+        return contracts.TutorConfig.model_validate({"provider": provider or "ollama", "model": (model or "").strip(), "api_key": api_key or None, "temperature": clamped})
     except ValueError:
         return contracts.TutorConfig(temperature=clamped)
 def build_search_query(q: str, tag: str | None, top_k: int = 5, retrieval_mode: str = "hybrid", rrf_k: int = 60) -> contracts.SearchQuery:

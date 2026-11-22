@@ -78,7 +78,7 @@ def build_router(
             query, results, routed = query_engine.retrieve(payload, chunks, history, route, search, embed, active)
             cancellation.check_cancelled()
             if payload.ask_tutor:
-                model_routing.maybe_unload_previous_ollama(eff_prov, eff_model or "qwen3:8b")
+                model_routing.maybe_unload_previous_ollama(eff_prov, eff_model or "")
             tutor_q = f"{payload.instruction_prefix.strip()}\n\n{payload.query}" if payload.instruction_prefix.strip() else payload.query
             tutor_payload = payload.model_copy(update={"query": tutor_q, "provider": eff_prov, "model": eff_model or None, "api_key": eff_key})
             response = query_engine.answer(tutor_payload, results, history, tutor, active, persona_instruction=persona_instr)

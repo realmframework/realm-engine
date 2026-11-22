@@ -12,10 +12,10 @@ BACKUP_PANEL = """<section class="rounded-xl border border-white/10 p-4" aria-la
 </section>"""
 
 INSTALLER_PANEL = """<section class="rounded-xl border border-white/10 p-4" aria-labelledby="local-install-heading">
-<h3 id="local-install-heading" data-i18n="ob_install_head" class="text-sm font-medium">Set up AI on this computer</h3>
-<p id="local-install-help" data-i18n="ob_install_help" class="text-xs text-[#A0B0C8] mt-2">Open Ollama, then download the recommended AI. This downloads several GB from Ollama’s catalog and can take several minutes. Your documents stay on your computer.</p>
+<h3 id="local-install-heading" data-i18n="ob_install_head" class="text-sm font-medium">Ollama Search Helper (Optional)</h3>
+<p id="local-install-help" data-i18n="ob_install_help" class="text-xs text-[#A0B0C8] mt-2">If you use Ollama, install the local search helper (~274 MB) for semantic hybrid search. Your chat models are discovered live from Ollama.</p>
 <p id="local-model-recommendation" class="text-xs text-[#A0B0C8] mt-2"></p>
-<button id="download-local-model-btn" type="button" data-i18n="ob_install_btn" aria-describedby="local-install-help" class="mt-3 rounded-lg border border-[#4BB8E8]/40 px-3 py-2 text-xs text-[#4BB8E8]">Download Recommended Local AI</button>
+<button id="download-local-model-btn" type="button" data-i18n="ob_install_btn" aria-describedby="local-install-help" class="mt-3 rounded-lg border border-[#4BB8E8]/40 px-3 py-2 text-xs text-[#4BB8E8]">Install Ollama Search Helper</button>
 <p id="local-install-status" role="status" class="text-xs text-[#A0B0C8] mt-2"></p>
 </section>"""
 

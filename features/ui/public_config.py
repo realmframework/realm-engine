@@ -26,23 +26,13 @@ from features.ui.upload_guard import public_body_guard
 
 VALID_PROVIDERS: set[str] = {"ollama", "openai", "kimi", "deepseek", "gemini", "anthropic", "xai", "mistral"}
 VALID_EFFORTS: set[str] = {"low", "medium", "high", "max"}
-DEFAULT_PUBLIC_MODELS: dict[str, str] = {
-    "kimi": "kimi-k3.1-pro",
-    "gemini": "gemini-3.8-flash",
-    "openai": "gpt-4o-mini",
-    "deepseek": "deepseek-chat",
-    "anthropic": "claude-haiku-5-5",
-    "mistral": "mistral-small-latest",
-    "xai": "grok-3-mini",
-    "ollama": "qwen3:8b",
-}
 
 
 def load_public_settings() -> dict[str, object]:
     """Read immutable server-side settings for the read-only public API."""
     raw_provider = os.environ.get("REALM_PUBLIC_PROVIDER", "kimi").strip().lower()
     provider: ProviderName = raw_provider if raw_provider in VALID_PROVIDERS else "kimi"  # type: ignore[assignment]
-    model = os.environ.get("REALM_PUBLIC_MODEL", "").strip() or DEFAULT_PUBLIC_MODELS[provider]
+    model = os.environ.get("REALM_PUBLIC_MODEL", "").strip()
     raw_effort = os.environ.get("REALM_PUBLIC_REASONING_EFFORT", "low" if provider == "kimi" else "").strip().lower()
     effort: ReasoningEffort | None = raw_effort if raw_effort in VALID_EFFORTS else None  # type: ignore[assignment]
     raw_areas = [item.strip() for item in os.environ.get("REALM_PUBLIC_AREAS", "").split(",") if item.strip()]

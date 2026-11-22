@@ -51,7 +51,7 @@ def build_router(config: Callable[[], contracts.WorkspaceConfig], stream_message
         if fmt is None:
             raise HTTPException(status_code=404, detail="Output format not found")
         free_chat, extra_note = bool(body.get("free_chat")), str(body.get("extra_instruction") or "").strip()
-        provider, model, api_key = str(body.get("provider") or "ollama"), str(body.get("model") or "qwen3:8b"), x_api_key or str(body.get("api_key") or "")
+        provider, model, api_key = str(body.get("provider") or "ollama"), str(body.get("model") or ""), x_api_key or str(body.get("api_key") or "")
 
         def _prep() -> tuple[contracts.WorkspaceConfig, str, list[str], Path, contracts.ChatSession, contracts.TutorConfig, list[str], AgentPersona, str, str, str]:
             with workspace.STATE_LOCK:
@@ -69,7 +69,7 @@ def build_router(config: Callable[[], contracts.WorkspaceConfig], stream_message
                 require_local(active, eff_prov, eff_model)
                 t_cfg = workspace.build_tutor_config(eff_prov, eff_model or None, eff_key, 0.2).model_copy(update={"daily_cloud_request_limit": active.daily_cloud_request_limit, "daily_budget_usd_limit": active.daily_budget_usd_limit, "response_language": active.language})
                 cited = list(dict.fromkeys(c for t in session.turns if t.tutor for c in t.tutor.cited_titles))[:8]
-                return active, area, dirs, path, session, t_cfg, cited, agent, persona_instr, eff_prov, eff_model or "qwen3:8b"
+                return active, area, dirs, path, session, t_cfg, cited, agent, persona_instr, eff_prov, eff_model or ""
 
         active, area, dirs, path, session, t_cfg, cited, agent, persona_instr, eff_prov, eff_model = await run_in_threadpool(_prep)
         summary, history, notes = context_meter.active_history_for_session(session)

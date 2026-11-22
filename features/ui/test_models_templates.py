@@ -9,8 +9,8 @@ from fastapi.testclient import TestClient
 from features.ui import model_routes
 
 
-@pytest.mark.parametrize("ram,model", [(0, "qwen2.5:3b"), (8, "qwen2.5:3b"), (16, "qwen3:8b"), (64, "qwen3:8b")])
-def test_recommended_download_and_embedding_companion(area_client: TestClient, monkeypatch: pytest.MonkeyPatch, ram: int, model: str) -> None:
+@pytest.mark.parametrize("ram", [0, 8, 16, 64])
+def test_recommended_download_and_embedding_companion(area_client: TestClient, monkeypatch: pytest.MonkeyPatch, ram: int) -> None:
     monkeypatch.setattr(model_routes, "physical_ram_gb", lambda: ram)
     calls: list[dict[str, object]] = []
     actual_client = httpx.Client
@@ -26,9 +26,9 @@ def test_recommended_download_and_embedding_companion(area_client: TestClient, m
         return actual_client(transport=httpx.MockTransport(respond), trust_env=False)
 
     monkeypatch.setattr(model_routes.httpx, "Client", local_client)
-    result = area_client.post("/api/system/pull-model", json={"model": "recommended"})
-    assert result.status_code == 200 and result.json()["installed_models"] == [model, "nomic-embed-text:v1.5"]
-    assert calls == [{"name": name, "model": name, "stream": False} for name in (model, "nomic-embed-text:v1.5")]
+    result = area_client.post("/api/system/pull-model", json={"model": "embedding"})
+    assert result.status_code == 200 and result.json()["installed_models"] == ["nomic-embed-text:v1.5"]
+    assert calls == [{"name": "nomic-embed-text:v1.5", "model": "nomic-embed-text:v1.5", "stream": False}]
 
 
 def test_unapproved_models_and_duplicate_downloads_block_before_dispatch(area_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:

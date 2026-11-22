@@ -9,9 +9,9 @@ import pytest
 from core.contracts import KnowledgeChunk, SearchResult, TutorConfig
 from features.tutor_agent.models_discovery import discover_models
 from features.tutor_agent.providers import (
-    FALLBACK_MODELS,
     call_provider,
     list_provider_models,
+    resolve_endpoint,
 )
 from features.tutor_agent.service import (
     ask_tutor,
@@ -49,7 +49,7 @@ def test_ask_tutor_valid_and_partial_json_and_http_errors(monkeypatch: pytest.Mo
         return _FakeChatResponse(content)
 
     monkeypatch.setattr(httpx, "post", fake_post)
-    response = ask_tutor("How does hybrid search work?", [make_result()])
+    response = ask_tutor("How does hybrid search work?", [make_result()], TutorConfig(provider="ollama", model="muse-mlx:latest"))
     assert response.answer == "Hybrid search combines BM25 and dense retrieval." and response.knowledge_gap_detected is False
 
     for code, expected in ((401, "rejected credentials"), (429, "rate limit")):
@@ -57,7 +57,7 @@ def test_ask_tutor_valid_and_partial_json_and_http_errors(monkeypatch: pytest.Mo
             return httpx.Response(code, request=httpx.Request("POST", url))
 
         monkeypatch.setattr(httpx, "post", status_post)
-        err_resp = ask_tutor("Test?", [make_result()], TutorConfig(provider="kimi", api_key="bad"))
+        err_resp = ask_tutor("Test?", [make_result()], TutorConfig(provider="kimi", model="kimi-k3.1-pro", api_key="bad"))
         assert err_resp.knowledge_gap_detected is True and expected in err_resp.answer.lower()
 
     for error in (httpx.ConnectError("refused"), ValueError("invalid")):
@@ -65,7 +65,7 @@ def test_ask_tutor_valid_and_partial_json_and_http_errors(monkeypatch: pytest.Mo
             raise error
 
         monkeypatch.setattr(httpx, "post", failing_post)
-        assert ask_tutor("How does hybrid search work?", []).knowledge_gap_detected is True
+        assert ask_tutor("How does hybrid search work?", [], TutorConfig(provider="ollama", model="muse-mlx:latest")).knowledge_gap_detected is True
 
 
 def test_call_provider_ollama_anthropic_kimi_and_deepseek(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -80,18 +80,20 @@ def test_call_provider_ollama_anthropic_kimi_and_deepseek(monkeypatch: pytest.Mo
         return _FakeChatResponse('{"answer": "ok"}', {"choices": [{"message": {"content": '{"answer": "ok"}'}}]})
 
     monkeypatch.setattr(httpx, "post", fake_post)
-    assert call_provider([{"role": "user", "content": "Hi"}], TutorConfig(provider="ollama")) == '{"answer": "ok"}'
-    assert captured["url"] == "http://127.0.0.1:11434/api/chat"
+    with pytest.raises(ValueError, match="No model selected"):
+        resolve_endpoint(TutorConfig(provider="openai", model=""))
+    assert call_provider([{"role": "user", "content": "Hi"}], TutorConfig(provider="ollama", model="muse-mlx:latest")) == '{"answer": "ok"}'
+    assert captured["url"] == "http://127.0.0.1:11434/api/chat" and captured["body"]["model"] == "muse-mlx:latest"
 
-    assert call_provider([{"role": "system", "content": "Sys"}, {"role": "user", "content": "Hi"}], TutorConfig(provider="anthropic", api_key="ak")) == "json-text"
+    assert call_provider([{"role": "system", "content": "Sys"}, {"role": "user", "content": "Hi"}], TutorConfig(provider="anthropic", model="claude-haiku", api_key="ak")) == "json-text"
     assert captured["headers"]["x-api-key"] == "ak"
 
-    assert call_provider([{"role": "user", "content": "Hi"}], TutorConfig(provider="kimi", api_key="kk")) == '{"answer": "ok"}'
+    assert call_provider([{"role": "user", "content": "Hi"}], TutorConfig(provider="kimi", model="kimi-k3.1-pro", api_key="kk")) == '{"answer": "ok"}'
     assert captured["url"] == "https://api.moonshot.ai/v1/chat/completions" and captured["headers"]["Authorization"] == "Bearer kk"
     assert "temperature" not in captured["body"] and captured["body"]["reasoning_effort"] == "low"
     assert captured["body"]["model"] == "kimi-k3.1-pro"
 
-    call_provider([{"role": "user", "content": "Hi"}], TutorConfig(provider="deepseek", api_key="dk"))
+    call_provider([{"role": "user", "content": "Hi"}], TutorConfig(provider="deepseek", model="deepseek-chat", api_key="dk"))
     assert captured["url"] == "https://api.deepseek.com/chat/completions" and captured["body"]["temperature"] == 0.2
 
 
@@ -100,13 +102,13 @@ def test_list_provider_models_uses_real_endpoints_and_filters(monkeypatch: pytes
 
     def fake_ollama_get(url: str, timeout: float = 5.0) -> _FakeChatResponse:
         seen_urls.append(url)
-        return _FakeChatResponse("", {"models": [{"name": "nomic-embed-text:v1.5"}, {"name": "phonon-tts:latest"}, {"name": "llama3:8b"}, {"name": "qwen3:8b"}]})
+        return _FakeChatResponse("", {"models": [{"name": "nomic-embed-text:v1.5"}, {"name": "phonon-tts:latest"}, {"name": "muse-mlx:latest"}, {"name": "llama-3.1-8b-instruct"}]})
 
     monkeypatch.setattr(httpx, "get", fake_ollama_get)
-    assert list_provider_models("ollama") == ["qwen3:8b", "llama3:8b"]
+    assert list_provider_models("ollama") == ["muse-mlx:latest", "llama-3.1-8b-instruct"]
     assert seen_urls[-1] == "http://127.0.0.1:11434/api/tags"
-    classified = discover_models(["nomic-embed-text:v1.5", "gemini-embedding-2", "phonon-tts", "whisper-large", "qwen3:8b"])
-    assert classified["chat_models"] == ["qwen3:8b"] and classified["embedding_models"] == ["nomic-embed-text:v1.5", "gemini-embedding-2"]
+    classified = discover_models(["nomic-embed-text:v1.5", "gemini-embedding-2", "phonon-tts", "whisper-large", "muse-mlx:latest"])
+    assert classified["chat_models"] == ["muse-mlx:latest"] and classified["embedding_models"] == ["nomic-embed-text:v1.5", "gemini-embedding-2"]
     assert classified["audio_models"] == ["phonon-tts", "whisper-large"]
 
     def fake_cloud_get(url: str, headers: dict[str, str] | None = None, timeout: float = 10.0) -> _FakeChatResponse:
@@ -120,7 +122,7 @@ def test_list_provider_models_uses_real_endpoints_and_filters(monkeypatch: pytes
     assert seen_urls[-1] == "https://api.moonshot.ai/v1/models"
     assert list_provider_models("gemini", api_key="gk") == ["kimi-k3.1-pro"]
     assert seen_urls[-1] == "https://generativelanguage.googleapis.com/v1beta/openai/models"
-    assert list_provider_models("openai") == FALLBACK_MODELS["openai"]
+    assert list_provider_models("openai") == []
 
 
 def test_stream_prompt_prioritizes_agent_identity_and_preserves_live_web_urls() -> None:

@@ -18,7 +18,7 @@ from core.local_ai_sidecar import mark_sidecar_busy, shutdown_sidecar
 from core.runtime import is_loopback_url, ollama_base_url
 from core.secrets import get_api_key
 
-OLLAMA_CHAT_URL, DEFAULT_LOCAL_MODEL, _ORIG_HTTPX_POST = f"{ollama_base_url()}/api/chat", "qwen3:8b", httpx.post
+OLLAMA_CHAT_URL, _ORIG_HTTPX_POST = f"{ollama_base_url()}/api/chat", httpx.post
 _OLLAMA_LOCK, _OLLAMA_EXEC_GATE, _LAST_OLLAMA_MODEL = Lock(), Semaphore(1), ""
 
 
@@ -47,7 +47,9 @@ def maybe_unload_previous_ollama(next_provider: str, next_model: str, *, unload_
         if prev:
             _post_unload(prev)
         return prev or None
-    target = (next_model or "").strip() or DEFAULT_LOCAL_MODEL
+    target = (next_model or "").strip()
+    if not target:
+        return None
     with _OLLAMA_LOCK:
         prev = _LAST_OLLAMA_MODEL if (_LAST_OLLAMA_MODEL and _LAST_OLLAMA_MODEL != target) else ""
         _LAST_OLLAMA_MODEL = target
@@ -135,7 +137,7 @@ def trim_history_for_model(history: list[tuple[str, str]], provider: str, model:
     """Keep the most recent turns that fit comfortably inside the target model's context window."""
     if not history:
         return []
-    budget = max(2048, int(model_context_window(provider, model or DEFAULT_LOCAL_MODEL) * 0.55) - approx_tokens(summary) - 1200)
+    budget = max(2048, int(model_context_window(provider, model or "") * 0.55) - approx_tokens(summary) - 1200)
     kept, used = [], 0
     for pair in reversed(history):
         cost = approx_tokens(pair[0]) + approx_tokens(pair[1])

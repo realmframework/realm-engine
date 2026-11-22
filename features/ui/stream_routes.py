@@ -91,7 +91,7 @@ def build_router(config: Callable[[], contracts.WorkspaceConfig], index: Callabl
                     yield _sse("token", {"delta": msg})
                     response = contracts.TutorResponse(answer=msg, cited_titles=[], knowledge_gap_detected=True, recommended_topics=[])
                 else:
-                    await asyncio.to_thread(model_routing.maybe_unload_previous_ollama, eff_prov, eff_model or "qwen3:8b")
+                    await asyncio.to_thread(model_routing.maybe_unload_previous_ollama, eff_prov, eff_model or "")
                     t_cfg = workspace.build_tutor_config(eff_prov, eff_model or None, eff_key, payload.temperature).model_copy(update={"daily_cloud_request_limit": active.daily_cloud_request_limit, "daily_budget_usd_limit": active.daily_budget_usd_limit, "response_language": active.language, **({"reasoning_effort": "low"} if active.eco_mode else {})})
                     web_kw = {"web_search_requested": bool(payload.use_web_search and not active.strict_local_only and active.web_search_enabled)} if supports_web_flag else {}
                     stream_it = stream_tutor(payload.query, results, t_cfg, history=history, temperature=payload.temperature, request_id=x_request_id, compacted_summary=summary, attached_notes=notes, format_instruction=fmt_instr, free_chat=is_free, persona_instruction=persona_instr, **web_kw) if rich_stream else stream_tutor(payload.query, results, t_cfg, history=history, temperature=payload.temperature, request_id=x_request_id)
@@ -139,7 +139,7 @@ def build_router(config: Callable[[], contracts.WorkspaceConfig], index: Callabl
                 if session is None:
                     yield _sse("error", {"detail": err})
                     return
-                ctx_usage = await asyncio.to_thread(context_meter.compute_context_usage, session, eff_prov, eff_model or "qwen3:8b", persona_tokens=p_tokens)
+                ctx_usage = await asyncio.to_thread(context_meter.compute_context_usage, session, eff_prov, eff_model or "", persona_tokens=p_tokens)
                 yield _sse("telemetry", {**meta, "context_usage": ctx_usage})
                 yield _sse("done", {**session.model_dump(), "router_decision": routed, "context_usage": ctx_usage, **({"notice": model_notice} if model_notice else {})})
             except (InterruptedError, asyncio.CancelledError):

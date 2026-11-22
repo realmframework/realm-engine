@@ -33,7 +33,7 @@ def test_provider_null_models_thinking_blocks_and_json_fences(monkeypatch: pytes
             return {"models": None}
 
     monkeypatch.setattr(httpx, "get", lambda *_a, **_kw: _NullModels())
-    assert providers.list_provider_models("ollama") == providers.FALLBACK_MODELS["ollama"]
+    assert providers.list_provider_models("ollama") == []
 
     assert providers._extract_anthropic_text({"content": [{"type": "thinking", "thinking": "hmm"}, {"type": "text", "text": '{"answer":"ok"}'}]}) == '{"answer":"ok"}'
     assert providers.strip_json_fence("<think>chain</think>\n```json\n{\"a\":1}\n```") == '{"a":1}'

@@ -66,7 +66,7 @@ async function extractTasksToBoard(opts) {
     chat_id: o.chat_id || "", turn_index: o.turn_index !== undefined ? o.turn_index : null, doc_id: o.doc_id || "",
     text: o.text || "", project_id: o.project_id !== undefined ? o.project_id : wbProjectFilter,
     column_id: o.column_id || "", use_ai: o.use_ai !== false, save: true,
-    provider: providerEl ? providerEl.value : "ollama", model: (modelEl && modelEl.value) || "qwen3:8b", language: activeLanguage || "en",
+    provider: providerEl ? providerEl.value : "ollama", model: (modelEl && modelEl.value) || "", language: activeLanguage || "en",
   };
   const data = await wbApi("/api/work-board/extract", { method: "POST", headers: headers, body: JSON.stringify(body) });
   if (data) { showToast(t("wb_extracted_toast", { n: data.created_count || 0 })); }

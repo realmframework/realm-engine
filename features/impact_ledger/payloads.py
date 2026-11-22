@@ -71,7 +71,7 @@ class ImpactDraftBody(StrictModel):
     hours: float = Field(default=0.0, ge=0.0, le=5000.0)
     use_ai: bool = True
     provider: ProviderName = "ollama"
-    model: str = Field(default="qwen3:8b", min_length=1, max_length=120)
+    model: str = Field(default="", max_length=120)
     language: str = Field(default="en", max_length=12)
 
 

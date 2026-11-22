@@ -138,7 +138,7 @@ async def tick_scheduled_workflows(cfg: WorkspaceConfig, callbacks: dict[str, ob
     with store_lock(path):
         st = store.load_workflows(path)
         due = due_scheduled_workflows(st.workflows, st.runs)
-    tcfg = build_workspace_tutor_config(cfg, "ollama", "qwen3:8b", temperature=0.2)
+    tcfg = build_workspace_tutor_config(cfg, "ollama", "", temperature=0.2)
     for wf in due:
         await run_workflow_silent(wf, wf.name, "schedule", cfg, tcfg, callbacks, lambda run: _save_locked(path, run), root)
     return len(due)

@@ -202,7 +202,7 @@ async function refreshContextUsage() {
   if (!currentChatId) { lastContextUsage = null; return; }
   const version = areaVersion, chatAtStart = currentChatId, op = ++contextUsageOp;
   try {
-    const params = new URLSearchParams({ provider: providerEl.value || "ollama", model: modelEl.value || "qwen3:8b", free_chat: String(freeChatMode), agent_id: (typeof activeAgentId !== "undefined" && activeAgentId) || "" });
+    const params = new URLSearchParams({ provider: providerEl.value || "ollama", model: modelEl.value || "", free_chat: String(freeChatMode), agent_id: (typeof activeAgentId !== "undefined" && activeAgentId) || "" });
     const res = await areaFetch("/api/chats/" + encodeURIComponent(chatAtStart) + "/context?" + params.toString());
     if (res.ok && op === contextUsageOp && version === areaVersion && currentChatId === chatAtStart) {
       const d = await safeJson(res), prevNotes = JSON.stringify(activeAttachedNotes);

@@ -15,30 +15,23 @@ from core.runtime import is_loopback_url, ollama_base_url
 from core.secrets import get_api_key
 from features.tutor_agent.models_discovery import filter_chat_models
 
-PROVIDER_DEFAULTS: dict[ProviderName, tuple[str, str, str]] = {
-    "builtin": ("http://127.0.0.1/v1/chat/completions", "balanced-qwen3-8b", ""),
-    "ollama": (f"{ollama_base_url()}/api/chat", "qwen3:8b", ""),
-    "openai": ("https://api.openai.com/v1/chat/completions", "gpt-4o-mini", "OPENAI_API_KEY"),
-    "kimi": ("https://api.moonshot.ai/v1/chat/completions", "kimi-k3.1-pro", "MOONSHOT_API_KEY"),
-    "deepseek": ("https://api.deepseek.com/chat/completions", "deepseek-chat", "DEEPSEEK_API_KEY"),
-    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", "gemini-3.8-flash", "GEMINI_API_KEY"),
-    "xai": ("https://api.x.ai/v1/chat/completions", "grok-3-mini", "XAI_API_KEY"),
-    "mistral": ("https://api.mistral.ai/v1/chat/completions", "mistral-small-latest", "MISTRAL_API_KEY"),
-    "anthropic": ("https://api.anthropic.com/v1/messages", "claude-haiku-5-5", "ANTHROPIC_API_KEY"),
-}
-FALLBACK_MODELS: dict[ProviderName, list[str]] = {
-    "builtin": [], "ollama": ["qwen3:8b", "qwen2.5:3b"], "openai": ["gpt-4o-mini", "gpt-6.1-sol", "gpt-6-luna", "gpt-6.1-terra"],
-    "kimi": ["kimi-k3.1-pro", "kimi-k3.1-pro-highspeed", "kimi-k3"], "deepseek": ["deepseek-chat", "deepseek-reasoner"],
-    "gemini": ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-4-hydrogen", "gemini-4-neon"],
-    "anthropic": ["claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-5-5"], "xai": ["grok-4", "grok-3", "grok-3-mini"],
-    "mistral": ["mistral-large-latest", "mistral-medium-latest", "mistral-small-latest", "codestral-latest"],
+PROVIDER_ENDPOINTS: dict[ProviderName, tuple[str, str]] = {
+    "builtin": ("http://127.0.0.1/v1/chat/completions", ""),
+    "ollama": (f"{ollama_base_url()}/api/chat", ""),
+    "openai": ("https://api.openai.com/v1/chat/completions", "OPENAI_API_KEY"),
+    "kimi": ("https://api.moonshot.ai/v1/chat/completions", "MOONSHOT_API_KEY"),
+    "deepseek": ("https://api.deepseek.com/chat/completions", "DEEPSEEK_API_KEY"),
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", "GEMINI_API_KEY"),
+    "xai": ("https://api.x.ai/v1/chat/completions", "XAI_API_KEY"),
+    "mistral": ("https://api.mistral.ai/v1/chat/completions", "MISTRAL_API_KEY"),
+    "anthropic": ("https://api.anthropic.com/v1/messages", "ANTHROPIC_API_KEY"),
 }
 BUILTIN_PROVIDER: ProviderName = "builtin"
 OLLAMA_PROVIDER: ProviderName = "ollama"
 ANTHROPIC_PROVIDER: ProviderName = "anthropic"
 ANTHROPIC_VERSION, OLLAMA_TAGS_URL = "2023-06-01", f"{ollama_base_url()}/api/tags"
 OLLAMA_TIMEOUT_SECONDS, REQUEST_TIMEOUT_SECONDS, LIST_TIMEOUT_SECONDS, MODELS_TIMEOUT_SECONDS = 90.0, 30.0, 5.0, 10.0
-_LOCAL_DEFAULT_MODELS, _OPENAI_REASONING_PREFIXES = {"qwen3:8b", "flint-64k"}, ("o1", "o3", "o4", "gpt-5", "gpt-6")
+_OPENAI_REASONING_PREFIXES = ("o1", "o3", "o4", "gpt-5", "gpt-6")
 _THINK_STRIP_RE, _ORIG_GET = re.compile(r"<think>[\s\S]*?(?:</think>|$)", re.IGNORECASE), httpx.get
 
 def supports_reasoning_effort(provider: str, model: str) -> bool:
@@ -57,10 +50,12 @@ def resolve_endpoint(config: TutorConfig) -> tuple[str, str, str | None]:
     if config.provider == BUILTIN_PROVIDER:
         url, token, resolved_id = ensure_sidecar_running(config.model)
         return url, resolved_id, token
-    endpoint_url, default_model, _ = PROVIDER_DEFAULTS[config.provider]
+    endpoint_url, _ = PROVIDER_ENDPOINTS[config.provider]
     if config.provider == OLLAMA_PROVIDER:
         endpoint_url = f"{ollama_base_url()}/api/chat"
-    model = default_model if config.provider != OLLAMA_PROVIDER and config.model in _LOCAL_DEFAULT_MODELS else config.model
+    model = config.model.strip()
+    if not model:
+        raise ValueError(f"No model selected for {config.provider}. Open Settings and choose an available model.")
     return endpoint_url, model, get_api_key(config.provider, config.api_key)
 def _check_status(response: object) -> None:
     status = getattr(response, "status_code", None)
@@ -118,7 +113,7 @@ def call_provider(messages: list[dict[str, str]], config: TutorConfig, temperatu
         return str(choices[0]["message"]["content"])
 
 def list_provider_models(provider: ProviderName, api_key: str | None = None) -> list[str]:
-    """List available chat models for a provider, filtering out embedding, audio, and non-chat models."""
+    """List only genuinely discovered chat models from installed local files or live provider APIs."""
     if provider == BUILTIN_PROVIDER:
         return list_installed_builtin_models()
     if provider == OLLAMA_PROVIDER:
@@ -128,14 +123,12 @@ def list_provider_models(provider: ProviderName, api_key: str | None = None) -> 
             _check_status(response)
             raw = response.json()
             models_list = raw.get("models") if isinstance(raw, dict) else None
-            if models := filter_chat_models([str(m.get("name", "")) for m in (models_list or []) if isinstance(m, dict)]):
-                return models
+            return filter_chat_models([str(m.get("name", "")) for m in (models_list or []) if isinstance(m, dict)])
         except (httpx.HTTPError, ValueError, TypeError):
-            pass
-        return FALLBACK_MODELS[provider]
-    base_url, _, _ = PROVIDER_DEFAULTS[provider]
+            return []
+    base_url, _ = PROVIDER_ENDPOINTS[provider]
     if not (key := get_api_key(provider, api_key)):
-        return FALLBACK_MODELS[provider]
+        return []
     models_url = base_url.replace("/chat/completions", "/models").replace("/messages", "/models")
     headers = {"x-api-key": key, "anthropic-version": ANTHROPIC_VERSION} if provider == ANTHROPIC_PROVIDER else {"Authorization": f"Bearer {key}"}
     try:
@@ -143,8 +136,6 @@ def list_provider_models(provider: ProviderName, api_key: str | None = None) -> 
         _check_status(response)
         raw = response.json()
         data_list = raw.get("data") if isinstance(raw, dict) else None
-        if models := filter_chat_models([str(m.get("id", "")).removeprefix("models/") for m in (data_list or []) if isinstance(m, dict)]):
-            return models
+        return filter_chat_models([str(m.get("id", "")).removeprefix("models/") for m in (data_list or []) if isinstance(m, dict)])
     except (httpx.HTTPError, ValueError, TypeError):
-        pass
-    return FALLBACK_MODELS[provider]
+        return []

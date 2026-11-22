@@ -121,7 +121,8 @@ async def stream_messages_events(messages: list[dict[str, str]], config: TutorCo
             yield {"type": "token", "delta": fallback_text}
         else:
             failed = True
-            yield {"type": "error", "code": 503, "detail": "Connection to the AI provider was interrupted before completion."}
+            detail = str(exc) if isinstance(exc, ValueError) and str(exc) else "Connection to the AI provider was interrupted before completion."
+            yield {"type": "error", "code": 400 if isinstance(exc, ValueError) else 503, "detail": detail}
             return
     finally:
         detach()

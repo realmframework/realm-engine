@@ -30,7 +30,6 @@ CLIENT_SCRIPT: str = (
     r"""<script>
 const resultsEl = document.getElementById("results"), tutorEl = document.getElementById("tutor"), queryEl = document.getElementById("query"), providerEl = document.getElementById("provider"), modelEl = document.getElementById("model"), apiKeyEl = document.getElementById("api-key"), askTutorToggle = document.getElementById("ask-tutor-toggle"), promptBox = document.getElementById("prompt-container"), submitBtn = document.getElementById("prompt-submit-btn"), chunksHeader = document.getElementById("chunks-header"), chunksTitle = document.getElementById("chunks-title"), settingsModal = document.getElementById("settings-modal"), onboardingModal = document.getElementById("onboarding-modal"), uploadModal = document.getElementById("upload-modal"), micBtn = document.getElementById("mic-btn");
 let selectedTag = null, isActiveView = false, activeController = null, activeRequestId = null, chunksCollapsed = true, chunkCount = 0, activeRecognition = null;
-const PROVIDER_DEFAULTS = { builtin: "balanced-qwen3-8b", ollama: "qwen3:8b", openai: "gpt-4o-mini", kimi: "kimi-k3.1-pro", deepseek: "deepseek-chat", gemini: "gemini-3.8-flash", anthropic: "claude-sonnet-5-5", xai: "grok-4", mistral: "mistral-small-latest" };
 const NON_CHAT_RE = /^(nomic-embed|mxbai-embed|bge-|all-minilm|text-embedding|mistral-embed|whisper|phonon|kokoro|piper|tts-)|embed/i;
 const SPARKLE_SVG = "<svg aria-hidden='true' class='w-4 h-4 shrink-0' viewBox='0 0 24 24' fill='currentColor'><path d='M12 2L14.6 9.4L22 12L14.6 14.6L12 22L9.4 14.6L2 12L9.4 9.4L12 2Z'/></svg>";
 const PROVIDER_LABELS = { builtin: "Built-in Private AI", ollama: "Ollama (Local)", openai: "OpenAI", gemini: "Gemini", anthropic: "Anthropic", kimi: "Kimi", deepseek: "DeepSeek", xai: "xAI", mistral: "Mistral" };
@@ -175,10 +174,16 @@ async function loadModels() {
   });
   const pool = activeModels.length ? activeModels : (lists.find(function (l) { return l.length; }) || []);
   const preferred = isLocalProvider(activeProv) ? safeStorageGet("preferred_local_model") : null;
-  const recommended = pool.find(function (m) { return m.toLowerCase().startsWith("qwen3:") || m.toLowerCase().startsWith("qwen2.5:"); });
-  const chosen = (prevModel && !NON_CHAT_RE.test(prevModel) && pool.includes(prevModel)) ? prevModel : ((preferred && pool.includes(preferred) ? preferred : null) || recommended || (PROVIDER_DEFAULTS[activeProv] && pool.includes(PROVIDER_DEFAULTS[activeProv]) ? PROVIDER_DEFAULTS[activeProv] : (pool[0] || "")));
-  const match = Array.from(modelEl.options).find(function (o) { return o.value === chosen && o.dataset.provider === activeProv; }) || Array.from(modelEl.options).find(function (o) { return o.value === chosen; });
-  if (match) { modelEl.selectedIndex = match.index; }
+  const chosen = (prevModel && !NON_CHAT_RE.test(prevModel) && pool.includes(prevModel)) ? prevModel : ((preferred && pool.includes(preferred) ? preferred : null) || pool[0] || "");
+  if (!modelEl.options.length) {
+    const emptyOpt = document.createElement("option");
+    emptyOpt.value = ""; emptyOpt.disabled = true; emptyOpt.selected = true;
+    emptyOpt.textContent = typeof t === "function" ? t("no_models_avail") : "No models discovered";
+    modelEl.appendChild(emptyOpt);
+  } else {
+    const match = Array.from(modelEl.options).find(function (o) { return o.value === chosen && o.dataset.provider === activeProv; }) || Array.from(modelEl.options).find(function (o) { return o.value === chosen; });
+    if (match) { modelEl.selectedIndex = match.index; }
+  }
   syncModelMirrors();
 }
 function setActiveTag(tag) { selectedTag = tag; renderLibraryTopics(); }

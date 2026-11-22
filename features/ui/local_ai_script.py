@@ -130,7 +130,10 @@ function renderLocalAiPanels() {
   if (typeof modelEl !== "undefined" && modelEl) {
     let changed = false;
     Array.from(modelEl.options).forEach(function (o) {
-      if (o.dataset.provider === "builtin") {
+      if (!o.value && o.disabled) {
+        const lbl = t("no_models_avail");
+        if (o.textContent !== lbl) { o.textContent = lbl; changed = true; }
+      } else if (o.dataset.provider === "builtin") {
         const lbl = formatBuiltinModelLabel(o.value);
         if (o.textContent !== lbl) { o.textContent = lbl; changed = true; }
       }

@@ -199,7 +199,7 @@ function bindImpactUX() {
     ieAi.addEventListener("click", async function () {
       const notes = [document.getElementById("ie-what").value, document.getElementById("ie-effect").value, document.getElementById("ie-notes").value].filter(Boolean).join("\n");
       const apiKey = getApiKey(), headers = Object.assign({ "Content-Type": "application/json" }, apiKey ? { "x-api-key": apiKey } : {});
-      const data = await impApi("/api/impact/draft", { method: "POST", headers: headers, body: JSON.stringify({ notes: notes || "Completed project milestones", hours: Number(document.getElementById("ie-hours").value || 0), use_ai: true, provider: providerEl ? providerEl.value : "ollama", model: (modelEl && modelEl.value) || "qwen3:8b", language: activeLanguage || "en" }) });
+      const data = await impApi("/api/impact/draft", { method: "POST", headers: headers, body: JSON.stringify({ notes: notes || "Completed project milestones", hours: Number(document.getElementById("ie-hours").value || 0), use_ai: true, provider: providerEl ? providerEl.value : "ollama", model: (modelEl && modelEl.value) || "", language: activeLanguage || "en" }) });
       if (data && data.draft) {
         document.getElementById("ie-what").value = data.draft.what_done || "";
         document.getElementById("ie-effect").value = data.draft.effect || "";

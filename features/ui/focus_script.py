@@ -242,7 +242,7 @@ function bindFocusUX() {
   if (planBtn) {
     planBtn.addEventListener("click", async function () {
       const apiKey = getApiKey(), headers = Object.assign({ "Content-Type": "application/json" }, apiKey ? { "x-api-key": apiKey } : {});
-      const data = await focApi("/api/focus/weekly-plan", { method: "POST", headers: headers, body: JSON.stringify({ use_ai: true, provider: providerEl ? providerEl.value : "ollama", model: (modelEl && modelEl.value) || "qwen3:8b", language: activeLanguage || "en" }) });
+      const data = await focApi("/api/focus/weekly-plan", { method: "POST", headers: headers, body: JSON.stringify({ use_ai: true, provider: providerEl ? providerEl.value : "ollama", model: (modelEl && modelEl.value) || "", language: activeLanguage || "en" }) });
       if (data && Array.isArray(data.blocks)) {
         focPlanBlocks = data.blocks;
         document.getElementById("foc-plan-list").innerHTML = focPlanBlocks.map(function (b) {

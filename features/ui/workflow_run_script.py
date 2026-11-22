@@ -131,7 +131,7 @@ async function runActiveWorkflowStream(inputText) {
   const ctrl = new AbortController(); wfRunAbort = ctrl;
   const apiKey = getApiKey(), headers = Object.assign({ "Content-Type": "application/json" }, apiKey ? { "x-api-key": apiKey } : {});
   try {
-    const res = await areaFetch("/api/workflows/" + encodeURIComponent(wf.id) + "/run/stream", { method: "POST", headers: headers, signal: ctrl.signal, body: JSON.stringify({ input_text: inputText || wf.name, provider: providerEl ? providerEl.value : "ollama", model: (modelEl && modelEl.value) || "qwen3:8b", trigger_source: "manual" }) });
+    const res = await areaFetch("/api/workflows/" + encodeURIComponent(wf.id) + "/run/stream", { method: "POST", headers: headers, signal: ctrl.signal, body: JSON.stringify({ input_text: inputText || wf.name, provider: providerEl ? providerEl.value : "ollama", model: (modelEl && modelEl.value) || "", trigger_source: "manual" }) });
     if (!res.ok) { const d = await safeJson(res); throw new Error(d.detail || "Workflow run failed"); }
     await readSseStream(res, function (evName, ev) {
       if (evName === "run_start") { wfActiveRunId = ev.run_id || ""; }

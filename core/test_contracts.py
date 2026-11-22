@@ -116,7 +116,7 @@ def test_tutor_response_rejects_missing_required_fields() -> None:
 def test_tutor_config_defaults_to_local_ollama() -> None:
     config = TutorConfig()
     assert config.provider == "ollama"
-    assert config.model == "qwen3:8b"
+    assert config.model == ""
     assert config.api_key is None
 
 

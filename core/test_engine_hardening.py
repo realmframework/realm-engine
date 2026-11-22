@@ -32,7 +32,7 @@ def test_ollama_slot_serializes_calls_and_unloads_on_switch_and_cloud(monkeypatc
             with lock:
                 active -= 1
 
-    t1 = threading.Thread(target=worker, args=("",))
+    t1 = threading.Thread(target=worker, args=("muse-mlx:latest",))
     t2 = threading.Thread(target=worker, args=("llama3.2:3b",))
     t1.start()
     time.sleep(0.01)
@@ -40,7 +40,7 @@ def test_ollama_slot_serializes_calls_and_unloads_on_switch_and_cloud(monkeypatc
     t1.join()
     t2.join()
     assert overlap == 1
-    assert model_routing.DEFAULT_LOCAL_MODEL in unloaded or "llama3.2:3b" in unloaded
+    assert "muse-mlx:latest" in unloaded or "llama3.2:3b" in unloaded
     with model_routing.ollama_slot("openai", "gpt-4o-mini"):
         pass
     assert len(unloaded) >= 2

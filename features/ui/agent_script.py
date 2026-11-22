@@ -159,8 +159,10 @@ async function syncAgentModelChoices(selectedProvider, selectedModel) {
   } catch (_e) {}
   if (op !== agentModelOp) { return; }
   if (selectedModel && !list.includes(selectedModel)) { list = [selectedModel].concat(list); }
-  const defMdl = (typeof PROVIDER_DEFAULTS !== "undefined" && PROVIDER_DEFAULTS[selectedProvider]) || "";
-  if (!list.length && defMdl) { list = [defMdl]; }
+  if (!list.length) {
+    mdlSel.innerHTML = "<option value='' disabled selected>" + escapeHtml(t("no_models_avail")) + "</option>";
+    mdlSel.value = ""; return;
+  }
   mdlSel.innerHTML = list.map(m => "<option value='" + escapeHtml(m) + "'>" + escapeHtml(m) + "</option>").join("");
   mdlSel.value = selectedModel && list.includes(selectedModel) ? selectedModel : (list[0] || "");
 }

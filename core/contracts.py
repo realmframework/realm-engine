@@ -41,7 +41,7 @@ class BudgetLimits(StrictModel):
     daily_budget_usd_limit: float = Field(default=1.0, ge=0, allow_inf_nan=False)
 class TutorConfig(BudgetLimits):
     provider: ProviderName = "ollama"
-    model: str = "qwen3:8b"
+    model: str = ""
     api_key: str | None = None
     temperature: float = Field(default=0.2, ge=0.0, le=1.0)
     reasoning_effort: ReasoningEffort | None = None

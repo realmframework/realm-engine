@@ -98,7 +98,7 @@ def active_history_for_session(
 def compute_context_usage(
     session: ChatSession | None,
     provider: str = "ollama",
-    model: str = "qwen3:8b",
+    model: str = "",
     last_rag_tokens: int = 0,
     persona_tokens: int = 0,
 ) -> dict[str, object]:

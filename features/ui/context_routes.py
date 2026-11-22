@@ -24,7 +24,7 @@ def build_router(config: Callable[[], contracts.WorkspaceConfig], stream_message
     router = APIRouter()
 
     @router.get("/api/chats/{chat_id}/context")
-    def get_context(chat_id: str, request: Request, provider: str = "ollama", model: str = "qwen3:8b", free_chat: bool = False, agent_id: str | None = None) -> dict[str, object]:
+    def get_context(chat_id: str, request: Request, provider: str = "ollama", model: str = "", free_chat: bool = False, agent_id: str | None = None) -> dict[str, object]:
         with workspace.STATE_LOCK:
             active = config()
             area, _ = synthesize_routes.resolve_chat_target(request, active, free_chat, allow_empty=True)
@@ -39,7 +39,7 @@ def build_router(config: Callable[[], contracts.WorkspaceConfig], stream_message
     @router.post("/api/chats/{chat_id}/clear-context")
     async def clear_context(chat_id: str, request: Request) -> dict[str, object]:
         body = await route_helpers.read_json_dict(request, required=False)
-        free_chat, provider, model = bool(body.get("free_chat")), str(body.get("provider") or "ollama"), str(body.get("model") or "qwen3:8b")
+        free_chat, provider, model = bool(body.get("free_chat")), str(body.get("provider") or "ollama"), str(body.get("model") or "")
 
         def _apply() -> dict[str, object]:
             with workspace.STATE_LOCK:
@@ -57,7 +57,7 @@ def build_router(config: Callable[[], contracts.WorkspaceConfig], stream_message
     @router.post("/api/chats/{chat_id}/compact")
     async def compact_context(chat_id: str, request: Request, x_api_key: str | None = Header(default=None, alias="x-api-key")) -> dict[str, object]:
         body = await route_helpers.read_json_dict(request, required=False)
-        free_chat, provider, model = bool(body.get("free_chat")), str(body.get("provider") or "ollama"), str(body.get("model") or "qwen3:8b")
+        free_chat, provider, model = bool(body.get("free_chat")), str(body.get("provider") or "ollama"), str(body.get("model") or "")
         api_key = x_api_key or str(body.get("api_key") or "")
 
         def _prep() -> tuple[Path, contracts.ChatSession, list[dict[str, str]], contracts.TutorConfig, contracts.WorkspaceConfig]:

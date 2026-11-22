@@ -103,5 +103,5 @@ class WorkflowPatchBody(StrictModel):
 class WorkflowRunBody(StrictModel):
     input_text: str = Field(default="", max_length=8000)
     provider: ProviderName = "ollama"
-    model: str = Field(default="qwen3:8b", min_length=1, max_length=120)
+    model: str = Field(default="", max_length=120)
     trigger_source: str = Field(default="manual", max_length=40)

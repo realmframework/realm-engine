@@ -179,7 +179,7 @@ function renderTurnTutorHtml(turn, tIdx) {
   const authorHex = typeof turnAuthorColor === "function" ? turnAuthorColor(turn) : "";
   const turnStyle = authorHex ? " style='--turn-seed:" + escapeHtml(authorHex) + "'" : "";
   if (turn.loadingTutor) {
-    const activeModel = modelEl.value.trim() || PROVIDER_DEFAULTS[providerEl.value] || "qwen3:8b";
+    const activeModel = modelEl.value.trim() || "AI";
     const stopPill = "<button type='button' data-stop-query class='ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0B1020] border border-[rgba(238,242,248,0.14)] hover:border-[#4BB8E8] text-xs text-[#A0B0C8] hover:text-[#EEF2F8] transition'>" + STOP_SVG + "<span>" + escapeHtml(t("stop_btn")) + "</span></button>";
     if (turn.streamingText) {
       const shownLen = typeof turn.displayedChars === "number" && turn.displayedChars > 0 ? Math.min(turn.displayedChars, turn.streamingText.length) : turn.streamingText.length;

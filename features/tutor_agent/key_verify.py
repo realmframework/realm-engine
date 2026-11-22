@@ -10,7 +10,7 @@ from features.tutor_agent.models_discovery import filter_chat_models
 from features.tutor_agent.providers import (
     ANTHROPIC_PROVIDER,
     ANTHROPIC_VERSION,
-    PROVIDER_DEFAULTS,
+    PROVIDER_ENDPOINTS,
 )
 
 VERIFY_TIMEOUT_SECONDS = 8.0
@@ -22,8 +22,8 @@ def _probe_url_and_headers(provider: str, key: str) -> tuple[str, dict[str, str]
         return f"{ollama_base_url()}/api/tags", {}
     if provider == "elevenlabs":
         return ELEVENLABS_USER_URL, {"xi-api-key": key}
-    if provider in PROVIDER_DEFAULTS:
-        base_url = PROVIDER_DEFAULTS[provider][0]  # type: ignore[index]
+    if provider in PROVIDER_ENDPOINTS:
+        base_url = PROVIDER_ENDPOINTS[provider][0]  # type: ignore[index]
         models_url = base_url.replace("/chat/completions", "/models").replace("/messages", "/models")
         if provider == ANTHROPIC_PROVIDER:
             return models_url, {"x-api-key": key, "anthropic-version": ANTHROPIC_VERSION}

@@ -70,7 +70,7 @@ def test_corruption_and_storage_alias_fail_closed(tmp_path: Path) -> None:
 def test_service_budget_denial_never_calls_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     calls = []
     monkeypatch.setattr(httpx, "post", lambda *a, **kw: calls.append(kw) or httpx.Response(200, json={"choices": [{"message": {"content": '{"answer":"ok","cited_titles":[],"knowledge_gap_detected":false,"recommended_topics":[]}'}}]}))
-    config = TutorConfig(provider="openai", daily_cloud_request_limit=1)
+    config = TutorConfig(provider="openai", model="gpt-4o-mini", daily_cloud_request_limit=1)
     assert ask_tutor("First", [], config).answer == "ok"
     response = ask_tutor("Second", [], config)
     assert "Cloud Budget Guardrail triggered" in response.answer and response.cited_titles == []
@@ -128,7 +128,7 @@ def test_provider_aware_estimate_and_reconciliation(monkeypatch: pytest.MonkeyPa
     assert snap["cloud_requests_today"] == 9 and float(str(snap["estimated_cost_usd"])) < 0.05
     budget.reset_budget(now=3000)
     monkeypatch.setattr(httpx, "post", lambda url, **_kw: httpx.Response(401, request=httpx.Request("POST", url)))
-    resp = ask_tutor("Hi?", [], TutorConfig(provider="kimi", api_key="bad"))
+    resp = ask_tutor("Hi?", [], TutorConfig(provider="kimi", model="kimi-k2.5", api_key="bad"))
     assert "rejected credentials" in resp.answer.lower()
     after_err = budget.budget_snapshot(50, 1.0, now=3001)
     assert after_err["cloud_requests_today"] == 0 and after_err["estimated_cost_usd"] == 0.0

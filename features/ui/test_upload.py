@@ -3,6 +3,7 @@
 import shutil
 from pathlib import Path
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -69,10 +70,13 @@ def test_progressive_loading_and_abort_controller_in_ui() -> None:
 
 def test_get_api_models_returns_models(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(ui_app, "WORKSPACE_CONFIG", WorkspaceConfig(strict_local_only=False))
-    response = client.get("/api/models?provider=openai")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["provider"] == "openai" and len(data["models"]) > 0
+    # Without an API key, never fabricate fake fallback models
+    empty_res = client.get("/api/models?provider=openai")
+    assert empty_res.status_code == 200 and empty_res.json() == {"provider": "openai", "models": [], "chat_models": []}
+    # With an API key, return only live models discovered from the provider endpoint
+    monkeypatch.setattr(httpx, "get", lambda *_a, **_kw: httpx.Response(200, json={"data": [{"id": "gpt-4o-mini"}, {"id": "text-embedding-3-small"}]}))
+    live_res = client.get("/api/models?provider=openai", headers={"x-api-key": "sk-test"})
+    assert live_res.status_code == 200 and live_res.json()["models"] == ["gpt-4o-mini"]
 
 
 def test_get_and_post_api_workspace_and_system_status(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

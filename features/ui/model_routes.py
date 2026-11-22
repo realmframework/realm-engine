@@ -19,10 +19,6 @@ def pull_url() -> str:
     return f"{ollama_base_url()}/api/pull"
 
 
-def recommended_model(ram_gb: int) -> str:
-    return "qwen3:8b" if ram_gb >= 16 else "qwen2.5:3b"
-
-
 def build_router(config: Callable[[], WorkspaceConfig], refresh: Callable[[], None]) -> APIRouter:
     router = APIRouter()
 
@@ -31,28 +27,26 @@ def build_router(config: Callable[[], WorkspaceConfig], refresh: Callable[[], No
         with workspace.STATE_LOCK:
             workspace.require_area(request, config())
         ram = physical_ram_gb()
-        selected = payload.get("model", "recommended")
-        selected = recommended_model(ram) if selected == "recommended" else selected
-        allowed = {"qwen2.5:3b", EMBEDDING_MODEL, recommended_model(ram)}
-        if selected not in allowed:
-            raise HTTPException(status_code=400, detail="Choose the recommended local model for this computer.")
+        requested = (payload.get("model") or "embedding").strip()
+        selected = EMBEDDING_MODEL if requested in {"recommended", "embedding", EMBEDDING_MODEL} else requested
+        if selected != EMBEDDING_MODEL:
+            raise HTTPException(status_code=400, detail="Only the local Ollama search helper (nomic-embed-text:v1.5) can be pulled here; pull chat models directly in Ollama.")
         if not PULL_LOCK.acquire(blocking=False):
             raise HTTPException(status_code=409, detail="A model download is already running. Please wait for it to finish.")
         downloaded: list[str] = []
         try:
             target_url = pull_url()
             with httpx.Client(trust_env=not is_loopback_url(target_url), follow_redirects=False, timeout=httpx.Timeout(1800, connect=2)) as client:
-                for name in dict.fromkeys([selected, EMBEDDING_MODEL]):
-                    response = client.post(target_url, json={"name": name, "model": name, "stream": False})
-                    response.raise_for_status()
-                    result = response.json()
-                    if not isinstance(result, dict) or result.get("status") != "success":
-                        raise ValueError("Download did not complete")
-                    downloaded.append(name)
+                response = client.post(target_url, json={"name": selected, "model": selected, "stream": False})
+                response.raise_for_status()
+                result = response.json()
+                if not isinstance(result, dict) or result.get("status") != "success":
+                    raise ValueError("Download did not complete")
+                downloaded.append(selected)
             refresh()
-            return {"installed_models": downloaded, "recommended_model": selected, "ram_gb": ram}
+            return {"installed_models": downloaded, "embedding_model": selected, "ram_gb": ram}
         except httpx.ConnectError as exc:
-            raise HTTPException(status_code=503, detail="Open Ollama first, then try Download Recommended Local AI again. You can keep using Search & Anonymize now.") from exc
+            raise HTTPException(status_code=503, detail="Open Ollama first, then try downloading the search helper again. You can keep using Search & Anonymize now.") from exc
         except httpx.TimeoutException as exc:
             raise HTTPException(status_code=504, detail="Download is taking longer than expected. Ollama may still be downloading; check installed models before retrying.") from exc
         except (httpx.HTTPError, ValueError) as exc:

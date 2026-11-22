@@ -30,7 +30,6 @@ from features.tutor_agent.providers import list_provider_models
 from features.tutor_agent.service import ask_tutor as run_tutor
 from features.tutor_agent.streaming import stream_messages_events, stream_tutor_events
 from features.ui import (
-    model_routes,
     public_config,
     public_rate_limit,
     selection,
@@ -138,7 +137,7 @@ def _build_local_app() -> FastAPI:
     def get_system_status() -> dict[str, object]:
         st, hw = workspace.probe_system_status(get_index()), hardware_advice()
         raw = st.get("ollama_models")
-        return {**st, **hw, "recommended_local_model": model_routes.recommended_model(int(str(hw["ram_gb"]))), **discover_models([str(m) for m in raw] if isinstance(raw, list) else [])}
+        return {**st, **hw, **discover_models([str(m) for m in raw] if isinstance(raw, list) else [])}
     @local.get("/api/models")
     def api_models(provider: contracts.ProviderName = "ollama", x_api_key: str | None = Header(default=None, alias="x-api-key")) -> dict[str, object]:
         require_local(WORKSPACE_CONFIG, provider)

@@ -5,7 +5,7 @@ let appliedRunMode = null;
 function showHardwareAdvice(status) {
   const ram = Number(status.ram_gb || 0), advice = status.ram_tier_advice || "RAM could not be detected. Search and anonymization are ready without AI setup.";
   document.querySelectorAll("[data-ram-detected]").forEach(el => { el.textContent = ram ? "Detected " + ram + " GB RAM on this computer" : "RAM could not be detected on this computer"; });
-  document.getElementById("local-model-recommendation").innerHTML = modeCopy(ram >= 16 ? "Recommended download for this computer: about 6 GB including the search helper." : "Recommended smaller download: about 2 GB including the search helper.", "Recommended: " + (status.recommended_local_model || (ram >= 16 ? "qwen3:8b" : "qwen2.5:3b")) + " + nomic-embed-text:v1.5");
+  document.getElementById("local-model-recommendation").innerHTML = status.has_nomic_embed ? modeCopy("Search helper is already installed in Ollama.", "Installed: nomic-embed-text:v1.5") : modeCopy("Not installed yet (~274 MB download via Ollama).", "Package: nomic-embed-text:v1.5 (~274 MB)");
   document.querySelectorAll("[data-ram-advice]").forEach(el => { el.innerHTML = modeCopy(!ram ? "We could not check this computer’s memory. Search and privacy tools are ready now." : ram < 16 ? "Start with the smaller recommended AI. It leaves more room for your other apps." : "This computer can try the recommended local AI. Smaller models usually respond faster.", advice); });
 }
 function syncRunMode() {
