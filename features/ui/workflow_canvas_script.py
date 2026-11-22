@@ -125,9 +125,11 @@ function renderWorkflowCanvas(wf) {
   stage.hidden = !isCanvas; stepsPanel.hidden = isCanvas;
   document.querySelectorAll("[data-wf-mode]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-wf-mode") === wfViewMode)); });
   if (isCanvas) {
-    const maxX = Math.max(900, ...(wf.nodes || []).map(function (n) { return Number(n.x || 0) + WF_NODE_W + 48; }));
-    const maxY = Math.max(420, ...(wf.nodes || []).map(function (n) { return Number(n.y || 0) + WF_NODE_H + 56; }));
-    stage.style.minWidth = maxX + "px"; stage.style.minHeight = maxY + "px";
+    const vp = document.getElementById("wf-canvas-viewport");
+    const maxX = Math.max(0, ...(wf.nodes || []).map(function (n) { return Number(n.x || 0) + WF_NODE_W + 36; }));
+    const maxY = Math.max(380, ...(wf.nodes || []).map(function (n) { return Number(n.y || 0) + WF_NODE_H + 48; }));
+    stage.style.minWidth = (vp && maxX > vp.clientWidth) ? (maxX + "px") : "";
+    stage.style.minHeight = maxY + "px";
     layer.innerHTML = (wf.nodes || []).map(function (n) {
       const st = wfNodeRunState[n.id] || "", stCls = st ? (" is-" + st) : "", selCls = n.id === wfSelectedNodeId ? " is-selected" : "";
       const stRow = st ? ("<div style='margin-top:0.15rem'><span class='wb-chip'>" + escapeHtml(t(WF_STAT_KEYS[st] || "wf_st_completed")) + "</span></div>") : "";
@@ -142,7 +144,11 @@ function renderWorkflowCanvas(wf) {
       const nid = card.getAttribute("data-wf-node"), node = (wf.nodes || []).find(function (x) { return x.id === nid; });
       const handle = card.querySelector("[data-wf-drag]");
       if (node && handle) { wfBindNodeDrag(card, handle, node, wf); }
-      card.addEventListener("click", function () { wfSelectedNodeId = nid || ""; renderWorkflowsView(); });
+      card.addEventListener("click", function () {
+        wfSelectedNodeId = nid || "";
+        if (typeof setWorkflowSideTab === "function") { setWorkflowSideTab("inspect"); }
+        renderWorkflowsView();
+      });
     });
   } else {
     stepsPanel.innerHTML = (wf.nodes || []).map(function (n, idx) {
@@ -157,32 +163,48 @@ function renderWorkflowCanvas(wf) {
         + (nextNames.length ? ("<span class='wb-chip'>→ " + escapeHtml(nextNames.join(", ")) + "</span>") : "") + "</article>";
     }).join("");
     stepsPanel.querySelectorAll("[data-wf-step]").forEach(function (card) {
-      card.addEventListener("click", function () { wfSelectedNodeId = card.getAttribute("data-wf-step") || ""; renderWorkflowsView(); });
+      card.addEventListener("click", function () {
+        wfSelectedNodeId = card.getAttribute("data-wf-step") || "";
+        if (typeof setWorkflowSideTab === "function") { setWorkflowSideTab("inspect"); }
+        renderWorkflowsView();
+      });
     });
   }
 }
 function renderWorkflowsView() {
-  const wfs = wfState.workflows || [], wf = activeWorkflow();
-  const sel = document.getElementById("wf-select"), empty = document.getElementById("wf-empty-banner"), grid = document.getElementById("wf-workspace-grid"), tb = document.getElementById("wf-toolbar"), pill = document.getElementById("wf-trigger-pill");
+  const wfs = wfState.workflows || [], wf = activeWorkflow(), hasWf = Boolean(wf);
+  const sel = document.getElementById("wf-select"), empty = document.getElementById("wf-empty-banner");
+  const grid = document.getElementById("wf-workspace-grid"), tb = document.getElementById("wf-toolbar");
+  const metaBar = document.getElementById("wf-meta-bar"), pill = document.getElementById("wf-trigger-pill");
+  const newBtn = document.getElementById("wf-new-btn"), runBtn = document.getElementById("wf-run-btn");
   if (sel) {
-    sel.innerHTML = wfs.length ? wfs.map(function (w) { return "<option value='" + escapeHtml(w.id) + "'" + (w.id === (wf && wf.id) ? " selected" : "") + ">" + escapeHtml(w.name) + "</option>"; }).join("") : "<option value=''>—</option>";
-    sel.disabled = !wfs.length;
+    sel.hidden = !hasWf;
+    sel.innerHTML = hasWf ? wfs.map(function (w) { return "<option value='" + escapeHtml(w.id) + "'" + (w.id === wf.id ? " selected" : "") + ">" + escapeHtml(w.name) + "</option>"; }).join("") : "";
+    sel.disabled = !hasWf;
   }
-  if (empty) { empty.hidden = wfs.length > 0; }
-  if (grid) { grid.hidden = !wf; }
-  if (tb) { tb.hidden = !wf; }
-  const runBtn = document.getElementById("wf-run-btn");
-  if (runBtn) { runBtn.disabled = !wf || Boolean(wfActiveRunId); }
-  if (!wf) { if (pill) { pill.textContent = "—"; } return; }
+  if (pill) { pill.hidden = !hasWf; }
+  if (newBtn) { newBtn.hidden = !hasWf; }
+  if (runBtn) { runBtn.hidden = !hasWf || Boolean(wfActiveRunId); runBtn.disabled = !hasWf || Boolean(wfActiveRunId); }
+  if (empty) { empty.hidden = hasWf; }
+  if (grid) { grid.hidden = !hasWf; }
+  if (tb) { tb.hidden = !hasWf; }
+  if (metaBar) { metaBar.hidden = !hasWf; }
+  if (!wf) { if (typeof updateTopbarContext === "function") { updateTopbarContext(); } return; }
   if (pill) { pill.textContent = t(WF_TRIG_KEYS[wf.trigger_kind] || "wf_trig_manual") + (wf.trigger_kind === "schedule" && wf.schedule_minutes ? (" · " + wf.schedule_minutes + "m") : ""); }
-  if (!wf.nodes.some(function (n) { return n.id === wfSelectedNodeId; })) { wfSelectedNodeId = wf.nodes[0] ? wf.nodes[0].id : ""; }
-  const nameIn = document.getElementById("wf-name-in"), trigSel = document.getElementById("wf-trig-sel"), schIn = document.getElementById("wf-sched-mins");
+  if (!wf.nodes.some(function (n) { return n.id === wfSelectedNodeId; })) {
+    const preferred = wf.nodes.find(function (n) { return n.kind !== "trigger"; }) || wf.nodes[0];
+    wfSelectedNodeId = preferred ? preferred.id : "";
+  }
+  const nameIn = document.getElementById("wf-name-in"), trigSel = document.getElementById("wf-trig-sel");
+  const schIn = document.getElementById("wf-sched-mins"), schWrap = document.getElementById("wf-sched-wrap");
   if (nameIn && !nameIn.matches(":focus")) { nameIn.value = wf.name || ""; }
   if (trigSel) { trigSel.value = wf.trigger_kind || "manual"; }
-  if (schIn && !schIn.matches(":focus")) { schIn.value = String(wf.schedule_minutes || 0); }
+  if (schWrap) { schWrap.hidden = wf.trigger_kind !== "schedule"; }
+  if (schIn && !schIn.matches(":focus")) { schIn.value = String(wf.schedule_minutes || 60); }
   renderWorkflowCanvas(wf);
   if (typeof renderWorkflowInspector === "function") { renderWorkflowInspector(wf); }
   if (typeof renderWorkflowRuns === "function") { renderWorkflowRuns(); }
+  if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
 }
 function bindWorkflowToolbarFallback() {
   const bar = document.getElementById("wf-toolbar");

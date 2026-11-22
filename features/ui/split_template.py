@@ -6,6 +6,8 @@ CENTER_TABBAR_HTML: str = (
     '<div id="center-tabbar" class="wb-zone-bar">'
     '<div id="center-tablist" role="tablist" aria-label="Open chats" data-i18n-aria-label="wb_open_chats_aria" class="wb-tab-strip"></div>'
     '<div class="wb-bar-actions">'
+    '<label for="center-agent-select" class="visually-hidden" data-i18n="sh_st_agent">Active Agent</label>'
+    '<select id="center-agent-select" aria-label="Active Agent" data-i18n-aria-label="sh_st_agent" class="wb-compact-select"></select>'
     '<button id="center-add-tab-btn" type="button" aria-label="New Chat tab" title="New Chat tab" data-i18n-aria-label="new_chat" data-i18n-title="new_chat" class="wb-icon-btn">+</button>'
     f'<button id="center-split-btn" type="button" aria-pressed="false" aria-label="Split chat right" title="Split chat right" data-i18n-aria-label="sh_toggle_right" data-i18n-title="sh_toggle_right" class="wb-icon-btn">{ICON_SPLIT_EDITOR}</button>'
     "</div>"

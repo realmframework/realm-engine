@@ -12,7 +12,7 @@ WORK_BOARD_STYLES_CSS: str = r"""<style id="realm-work-board-styles">
 .wb-stat-pill.is-warn { color: var(--status-danger); border-color: color-mix(in oklab, var(--status-danger) 42%, transparent); background: color-mix(in oklab, var(--status-danger) 10%, var(--surface-raised)); }
 .wb-stat-pill.is-accent { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 42%, transparent); }
 .wb-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
-.wb-select, .wb-input, .wb-textarea { background: var(--surface-raised); color: var(--text); border: 1px solid var(--border-control); border-radius: 0.65rem; padding: 0.48rem 0.75rem; font-size: calc(0.875rem * var(--ui-scale, 1)); outline: none; transition: border-color 0.15s ease; }
+.wb-select, .wb-input, .wb-textarea { background-color: var(--surface-raised); color: var(--text); border: 1px solid var(--border-control); border-radius: 0.65rem; padding: 0.48rem 0.75rem; font-size: calc(0.875rem * var(--ui-scale, 1)); outline: none; transition: border-color 0.15s ease; }
 .wb-select:focus, .wb-input:focus, .wb-textarea:focus { border-color: var(--accent); }
 .wb-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem 0.85rem; border-radius: 0.7rem; font-size: calc(0.875rem * var(--ui-scale, 1)); font-weight: 500; border: 1px solid var(--border); background: var(--surface-raised); color: var(--text); cursor: pointer; transition: border-color 0.15s ease, background-color 0.15s ease; white-space: nowrap; }
 .wb-btn:hover { border-color: var(--accent); background: var(--hover-tint); }
@@ -27,8 +27,8 @@ WORK_BOARD_STYLES_CSS: str = r"""<style id="realm-work-board-styles">
 .wb-tabs button:hover { color: var(--text); }
 .wb-tabs button[aria-selected="true"] { color: var(--accent); }
 .wb-tabs button[aria-selected="true"]::after { content: ""; position: absolute; inset: auto 0 0; border-block-end: 2px solid currentColor; }
-.wb-kanban-wrap { display: flex; gap: 1rem; overflow-x: auto; align-items: flex-start; padding: 0.25rem 0.25rem 1.25rem; scrollbar-width: thin; }
-.wb-col { flex: 1 0 15.25rem; max-width: 22rem; min-width: 14.5rem; background: color-mix(in oklab, var(--surface-raised) 88%, transparent); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.65rem; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.wb-kanban-wrap { display: flex; gap: 0.75rem; overflow-x: auto; align-items: flex-start; padding: 0.25rem 0.75rem 1.25rem 0.25rem; scrollbar-width: thin; }
+.wb-col { flex: 1 0 12.25rem; max-width: 21rem; min-width: 12rem; background: color-mix(in oklab, var(--surface-raised) 88%, transparent); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 0.8rem; display: flex; flex-direction: column; gap: 0.65rem; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
 .wb-col.is-drop-over { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 30%, transparent); }
 .wb-col-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .wb-col-title-wrap { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
@@ -56,7 +56,7 @@ WORK_BOARD_STYLES_CSS: str = r"""<style id="realm-work-board-styles">
 .wb-card-move { display: inline-flex; gap: 0.1rem; flex-shrink: 0; }
 .wb-quick-add { display: flex; gap: 0.35rem; align-items: center; margin-top: 0.25rem; }
 .wb-quick-add input { flex: 1; min-width: 0; padding: 0.42rem 0.65rem; font-size: calc(0.8125rem * var(--ui-scale, 1)); }
-.wb-add-col-card { flex: 0 0 15rem; border: 1px dashed var(--border); border-radius: 1rem; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.55rem; background: transparent; }
+.wb-add-col-card { flex: 0 0 11.75rem; border: 1px dashed var(--border); border-radius: 1rem; padding: 0.8rem; display: flex; flex-direction: column; gap: 0.55rem; background: transparent; }
 .wb-list-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.65rem; margin-bottom: 0.85rem; }
 .wb-filter-pills { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .wb-pill-btn { padding: 0.38rem 0.78rem; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: calc(0.8125rem * var(--ui-scale, 1)); cursor: pointer; }

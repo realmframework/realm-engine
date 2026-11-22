@@ -104,6 +104,7 @@ function setViewMode(active, hideDock) {
     stream.className = chatLayout ? "flex w-full flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 pt-8 pb-10 flex-col items-center gap-8 outline-none chat-scroll-mask" : ((active ? "flex " : "hidden ") + "w-full max-w-3xl flex-1 pt-8 pb-16 flex-col gap-8 outline-none");
     dock.className = chatLayout ? "chat-dock shrink-0 z-30 w-full max-w-3xl px-4 sm:px-6 pb-6 pt-2 flex flex-col items-center" : (active ? "hidden" : "w-full max-w-3xl mx-auto flex flex-col items-center justify-center relative z-30");
     document.getElementById("hero-heading").classList.toggle("hidden", active); document.getElementById("seed-chips").classList.toggle("hidden", active);
+    if (typeof syncCenterTabbarVisibility === "function") { syncCenterTabbarVisibility(!hideDock); }
   };
   if (isActiveView === active) { applyLayout(); if (typeof updateTopbarContext === "function") { updateTopbarContext(); } return Promise.resolve(); }
   isActiveView = active;

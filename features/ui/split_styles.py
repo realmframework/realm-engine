@@ -40,7 +40,7 @@ SPLIT_STYLES_CSS: str = r"""<style id="realm-split-styles">
 #center-split-pane { background: transparent; }
 #bottom-panel { background: color-mix(in oklab, var(--surface-raised) 84%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--border-subtle); }
 #inspector-sidebar { background: var(--surface-raised); border-inline-start: 1px solid var(--border-subtle); }
-#center-split-pane[hidden], #center-split-resizer[hidden], #bottom-panel[hidden], #bottom-panel-resizer[hidden], #inspector-sidebar[hidden], #right-sidebar-resizer[hidden], #right-panel-inspector[hidden], #right-panel-doc[hidden] { display: none !important; }
+#center-tabbar[hidden], #center-split-pane[hidden], #center-split-resizer[hidden], #bottom-panel[hidden], #bottom-panel-resizer[hidden], #inspector-sidebar[hidden], #right-sidebar-resizer[hidden], #right-panel-inspector[hidden], #right-panel-doc[hidden] { display: none !important; }
 .wb-embed-frame { display: block; width: 100%; height: 100%; flex: 1 1 auto; min-height: 0; border: 0; background: transparent; }
 body.is-resizing-panes iframe { pointer-events: none !important; }
 .wb-resizer { position: relative; background: transparent; display: flex; align-items: center; justify-content: center; touch-action: none; -webkit-user-select: none; user-select: none; outline: none; z-index: 15; }
@@ -54,8 +54,9 @@ body.is-resizing-panes iframe { pointer-events: none !important; }
 .right-sidebar-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0.9rem 1rem 2rem; display: flex; flex-direction: column; gap: 0.85rem; }
 .right-doc-toolbar { display: flex; align-items: center; gap: 0.45rem; flex-shrink: 0; }
 .right-doc-body { display: flex; flex-direction: column; gap: 0.8rem; }
-html.is-embed, html.is-embed body, html.is-embed #main-shell { background: transparent !important; background-color: transparent !important; }
-html.is-embed #activity-rail, html.is-embed #sidebar, html.is-embed #sidebar-backdrop, html.is-embed #app-topbar, html.is-embed #ambient-stage, html.is-embed #center-tabbar, html.is-embed #center-split-resizer, html.is-embed #center-split-pane, html.is-embed #bottom-panel-resizer, html.is-embed #bottom-panel, html.is-embed #right-sidebar-resizer, html.is-embed #inspector-sidebar { display: none !important; }
+html.is-embed:not(.is-split-chat), html.is-embed:not(.is-split-chat) body, html.is-embed:not(.is-split-chat) #main-shell { background: transparent !important; background-color: transparent !important; }
+html.is-embed:not(.is-split-chat) #ambient-stage { display: none !important; }
+html.is-embed #activity-rail, html.is-embed #sidebar, html.is-embed #sidebar-backdrop, html.is-embed #app-topbar, html.is-embed #center-tabbar, html.is-embed #center-split-resizer, html.is-embed #center-split-pane, html.is-embed #bottom-panel-resizer, html.is-embed #bottom-panel, html.is-embed #right-sidebar-resizer, html.is-embed #inspector-sidebar { display: none !important; }
 html.is-embed #main-shell { padding-left: 0 !important; height: 100vh; height: 100dvh; }
 html.is-embed #workbench-grid { height: 100vh !important; height: 100dvh !important; grid-template-columns: minmax(0, 1fr) !important; }
 html.is-embed #workbench-center-col { grid-template-rows: minmax(0, 1fr) !important; }

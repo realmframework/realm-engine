@@ -12,10 +12,14 @@ WORKFLOW_STUDIO_STYLES_CSS: str = r"""<style id="realm-workflow-studio-styles">
 @media (pointer: coarse) { .wf-tb-btn { min-inline-size: 2.6rem; min-block-size: 2.6rem; } }
 @media (prefers-reduced-motion: no-preference) { .wf-tb-btn, .wf-node-card { transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease; } }
 @media (forced-colors: active) { .wf-tb-btn[aria-pressed="true"] { background: Highlight; color: HighlightText; border-color: Highlight; } .wf-tb-sep { border-color: ButtonText; } }
-.wf-workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(19rem, 23.5rem); gap: 0.9rem; align-items: start; min-height: 31rem; }
+.wf-meta-bar { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; padding: 0.72rem 0.9rem; border-radius: 0.9rem; background: var(--surface-raised); border: 1px solid var(--border-subtle); }
+.wf-meta-bar > .wb-field { flex: 1 1 12rem; min-width: 0; }
+.wf-meta-bar > .wb-field:first-child { flex: 1.6 1 15rem; }
+#wf-sched-wrap { flex: 0 0 auto; }
+.wf-workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(19rem, 23.5rem); gap: 0.9rem; align-items: start; min-height: 27rem; }
 @media (max-width: 1080px) { .wf-workspace-grid { grid-template-columns: 1fr; } }
-.wf-canvas-viewport { position: relative; overflow: auto; min-height: 31rem; max-height: 68vh; border-radius: 1rem; border: 1px solid var(--border-subtle); background-color: var(--surface-soft); background-image: radial-gradient(color-mix(in oklab, var(--text-subtle) 28%, transparent) 1px, transparent 1px); background-size: 20px 20px; scrollbar-width: thin; }
-.wf-canvas-stage { position: relative; min-width: 920px; min-height: 440px; }
+.wf-canvas-viewport { position: relative; overflow: auto; min-height: 27rem; max-height: 68vh; border-radius: 1rem; border: 1px solid var(--border-subtle); background-color: var(--surface-soft); background-image: radial-gradient(color-mix(in oklab, var(--text-subtle) 28%, transparent) 1px, transparent 1px); background-size: 20px 20px; scrollbar-width: thin; }
+.wf-canvas-stage { position: relative; width: 100%; min-width: 0; min-height: 27rem; }
 .wf-svg-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
 .wf-edge-path { fill: none; stroke: color-mix(in oklab, var(--accent) 62%, var(--border)); stroke-width: 2.25; }
 .wf-edge-path.is-true { stroke: var(--status-ok); }
@@ -38,7 +42,7 @@ WORKFLOW_STUDIO_STYLES_CSS: str = r"""<style id="realm-workflow-studio-styles">
 .wf-step-card.is-selected { border-color: var(--accent); }
 .wf-step-card.is-completed { border-color: var(--status-ok); }
 .wf-step-card.is-running { border-color: var(--accent); }
-.wf-side-panel { background: var(--surface-raised); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 0.95rem 1.05rem; display: flex; flex-direction: column; gap: 0.75rem; max-height: 68vh; overflow-y: auto; }
+.wf-side-panel { background: var(--surface-raised); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 0.95rem 1.05rem; display: flex; flex-direction: column; gap: 0.75rem; }
 .wf-run-step { padding: 0.65rem 0.75rem; border-radius: 0.75rem; background: var(--surface-soft); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 0.28rem; font-size: calc(0.84rem * var(--ui-scale, 1)); }
 .wf-tpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 0.8rem; }
 .wf-tpl-card { background: var(--surface-soft); border: 1px solid var(--border-subtle); border-radius: 0.9rem; padding: 0.95rem 1rem; display: flex; flex-direction: column; gap: 0.5rem; }

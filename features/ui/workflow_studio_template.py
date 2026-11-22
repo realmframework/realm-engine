@@ -39,13 +39,18 @@ WORKFLOWS_VIEW_HTML: str = r"""<section id="workflows-view" class="wb-view hidde
       <button id="wf-delete-btn" type="button" data-i18n="delete_btn" class="wf-tb-btn">Delete</button>
     </div>
   </div>
+  <div id="wf-meta-bar" hidden class="wf-meta-bar">
+    <div class="wb-field"><label for="wf-name-in" data-i18n="wf_name_lbl">Workflow Name</label><input id="wf-name-in" type="text" maxlength="140" class="wb-input" /></div>
+    <div class="wb-field"><label for="wf-trig-sel" data-i18n="wf_trigger_lbl">Trigger</label><select id="wf-trig-sel" class="wb-select"><option value="manual" data-i18n="wf_trig_manual">Manual Run</option><option value="schedule" data-i18n="wf_trig_schedule">Local Schedule</option><option value="file_imported" data-i18n="wf_trig_file">On File Added</option><option value="task_done" data-i18n="wf_trig_task">On Task Done</option></select></div>
+    <div id="wf-sched-wrap" hidden class="wb-field"><label for="wf-sched-mins" data-i18n="wf_sched_lbl">Interval (min)</label><input id="wf-sched-mins" type="number" min="5" max="10080" step="5" value="60" class="wb-input" style="width:7.5rem" /></div>
+  </div>
   <p id="wf-live-status" role="status" aria-live="polite" class="visually-hidden"></p>
 
   <div id="wf-empty-banner" hidden class="wb-empty" style="display:flex;flex-direction:column;align-items:center;gap:0.75rem">
     <p data-i18n="wf_empty_msg" style="margin:0;max-width:34rem">Automate multi-step solo workflows right on your machine: chain your Agents, Vault Search, Slides, Kanban Tasks, and Impact Notes with zero cloud lock-in.</p>
     <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center">
       <button id="wf-empty-tpl-btn" type="button" data-i18n="wf_browse_templates" class="wb-btn wb-btn-primary">Browse 4 Starter Templates</button>
-      <button id="wf-empty-new-btn" type="button" data-i18n="wf_new_btn" class="wb-btn">+ New Pipeline</button>
+      <button id="wf-empty-new-btn" type="button" data-i18n="wf_new_btn" class="wb-btn">+ New Workflow</button>
     </div>
   </div>
 
@@ -64,13 +69,6 @@ WORKFLOWS_VIEW_HTML: str = r"""<section id="workflows-view" class="wb-view hidde
         <button type="button" role="tab" id="wf-tab-runs" data-wf-side="runs" aria-selected="false" data-i18n="wf_tab_runs">Live Run &amp; History</button>
       </div>
       <div id="wf-panel-inspect" role="tabpanel" aria-labelledby="wf-tab-inspect" style="display:flex;flex-direction:column;gap:0.7rem">
-        <div id="wf-meta-box" style="display:flex;flex-direction:column;gap:0.55rem;padding-bottom:0.7rem;border-bottom:1px solid var(--border-subtle)">
-          <div class="wb-field"><label for="wf-name-in" data-i18n="wf_name_lbl">Pipeline Name</label><input id="wf-name-in" type="text" maxlength="140" class="wb-input" /></div>
-          <div class="wb-form-grid">
-            <div class="wb-field"><label for="wf-trig-sel" data-i18n="wf_trigger_lbl">Trigger</label><select id="wf-trig-sel" class="wb-select"><option value="manual" data-i18n="wf_trig_manual">Manual Run</option><option value="schedule" data-i18n="wf_trig_schedule">Local Schedule</option><option value="file_imported" data-i18n="wf_trig_file">On File Added</option><option value="task_done" data-i18n="wf_trig_task">On Task Done</option></select></div>
-            <div class="wb-field"><label for="wf-sched-mins" data-i18n="wf_sched_lbl">Interval (min)</label><input id="wf-sched-mins" type="number" min="0" max="10080" step="5" value="0" class="wb-input" /></div>
-          </div>
-        </div>
         <div id="wf-node-inspector"></div>
       </div>
       <div id="wf-panel-runs" role="tabpanel" aria-labelledby="wf-tab-runs" hidden style="display:flex;flex-direction:column;gap:0.65rem">

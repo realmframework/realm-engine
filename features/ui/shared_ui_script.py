@@ -123,6 +123,7 @@ function activateWorkspaceView(viewId, opts) {
   });
   if (typeof setAmbientDimmed === "function") { setAmbientDimmed(opt.dimAmbient !== false); }
   if (opt.railSection && typeof setActiveRailSection === "function") { setActiveRailSection(opt.railSection, false); }
+  if (typeof syncCenterTabbarVisibility === "function") { syncCenterTabbarVisibility(viewId === "workspace-shell"); }
   if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
 }
 
@@ -162,7 +163,13 @@ function bindEmbedMessageBridge() {
     const msg = e.data;
     if (IS_EMBED && msg.source === "realm-parent") {
       if (msg.type === "realm:sync-theme") {
-        if (msg.mode && typeof applyThemeTokens === "function") { applyThemeTokens(msg.mode, msg.accent, msg.glow, false); }
+        if (typeof msg.syncAgentPalette === "boolean" && typeof syncAgentPalette !== "undefined") { syncAgentPalette = msg.syncAgentPalette; }
+        if (msg.mode && typeof workspaceConfig === "object" && workspaceConfig) { workspaceConfig.theme_mode = msg.mode; }
+        if (msg.mode && typeof applyThemeTokens === "function") {
+          const ownAg = EMBED_ROLE === "split-chat" && typeof syncAgentPalette !== "undefined" && syncAgentPalette && typeof activeAgentObj === "function" ? activeAgentObj() : null;
+          const ownPal = ownAg && typeof paletteColorsFor === "function" ? paletteColorsFor(ownAg.palette) : null;
+          applyThemeTokens(msg.mode, ownPal ? ownPal.accent : msg.accent, ownPal ? ownPal.glow : msg.glow, false);
+        }
         if (msg.lang && typeof applyLanguage === "function") { applyLanguage(msg.lang, false); }
         if (msg.comfort && typeof applyReadingComfort === "function") { applyReadingComfort(msg.comfort); }
       } else if (msg.type === "realm:sync-area") {
@@ -175,11 +182,13 @@ function bindEmbedMessageBridge() {
         window._activeEmbedView = msg.view || "work";
         openEmbeddedView(window._activeEmbedView, msg.tab || "");
       } else if (msg.type === "realm:load-chat") {
+        if (msg.agentId) { window._embedRequestedAgentId = msg.agentId; }
         if (msg.chatId) { if (typeof openSavedChat === "function") { await openSavedChat(msg.chatId); } }
         else if (typeof resetHome === "function") { resetHome(); }
         if (msg.agentId && typeof selectAgentUI === "function") { await selectAgentUI(msg.agentId); }
         if (msg.draft && queryEl) { queryEl.value = msg.draft; if (typeof autoResizeQuery === "function") { autoResizeQuery(); } queryEl.focus(); }
       } else if (msg.type === "realm:set-agent") {
+        if (msg.agentId) { window._embedRequestedAgentId = msg.agentId; }
         if (msg.agentId && typeof selectAgentUI === "function") { await selectAgentUI(msg.agentId); }
       }
     } else if (!IS_EMBED && msg.source === "realm-embed") {
@@ -204,8 +213,10 @@ async function bootstrapEmbeddedPane() {
   if (EMBED_VIEW && EMBED_VIEW !== "chat") {
     openEmbeddedView(EMBED_VIEW, EMBED_SUBTAB);
   } else {
+    if (typeof loadAgentTeam === "function" && (!agentTeam || !agentTeam.length)) { await loadAgentTeam(); }
     if (EMBED_CHAT_ID && typeof openSavedChat === "function") { await openSavedChat(EMBED_CHAT_ID); }
-    if (EMBED_AGENT_ID && typeof selectAgentUI === "function") { await selectAgentUI(EMBED_AGENT_ID); }
+    const targetAg = window._embedRequestedAgentId || EMBED_AGENT_ID;
+    if (targetAg && typeof selectAgentUI === "function") { await selectAgentUI(targetAg); }
   }
   notifyParentFrame({ type: "realm:embed-ready", view: EMBED_VIEW });
 }

@@ -51,6 +51,7 @@ function syncActiveAgentBadge() {
     const chk = document.getElementById(id); if (chk) { chk.checked = Boolean(syncAgentPalette); }
   }
   if (typeof renderDrawerDynamicLists === "function") { renderDrawerDynamicLists(); }
+  if (typeof syncSplitSelectors === "function") { syncSplitSelectors(); }
   if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
 }
 function resolveSessionAgentId(session) {
@@ -78,25 +79,25 @@ function adoptChatAgent(session) {
     showToast(t("toast_resumed_agent", { name: chosen.name, role: chosen.role }));
   }
 }
+function isSplitChatEmbed() { return typeof IS_EMBED !== "undefined" && IS_EMBED && typeof EMBED_ROLE !== "undefined" && EMBED_ROLE === "split-chat"; }
 function restoreDefaultAgent() {
-  if (activeAgentId === defaultAgentId) { return; }
-  activeAgentId = defaultAgentId;
-  syncActiveAgentBadge(); renderAgentRoster();
-  applyPaletteForAgent(activeAgentObj(), false);
+  if (isSplitChatEmbed() || activeAgentId === defaultAgentId) { return; }
+  activeAgentId = defaultAgentId; syncActiveAgentBadge(); renderAgentRoster(); applyPaletteForAgent(activeAgentObj(), false);
 }
 async function loadAgentTeam() {
   try {
-    const res = await fetch("/api/agents");
-    if (!res.ok) { return; }
+    const res = await fetch("/api/agents"); if (!res.ok) { return; }
     const d = await safeJson(res);
-    agentTeam = Array.isArray(d.agents) ? d.agents : [];
-    defaultAgentId = d.active_agent || "saga";
-    if (!currentChatId || !agentTeam.some(a => a.id === activeAgentId)) { activeAgentId = defaultAgentId; }
+    agentTeam = Array.isArray(d.agents) ? d.agents : []; defaultAgentId = d.active_agent || "saga";
+    const isSplit = isSplitChatEmbed();
+    if (isSplit) {
+      const wanted = window._embedRequestedAgentId || (typeof EMBED_AGENT_ID !== "undefined" && EMBED_AGENT_ID) || activeAgentId || defaultAgentId;
+      activeAgentId = agentTeam.some(a => a.id === wanted) ? wanted : defaultAgentId;
+    } else if (!currentChatId || !agentTeam.some(a => a.id === activeAgentId)) { activeAgentId = defaultAgentId; }
     syncAgentPalette = d.sync_agent_palette !== false;
-    const restoreBtn = document.getElementById("restore-agents-btn");
-    if (restoreBtn) { restoreBtn.hidden = !d.has_missing_defaults; }
-    syncActiveAgentBadge();
-    renderAgentRoster();
+    const restoreBtn = document.getElementById("restore-agents-btn"); if (restoreBtn) { restoreBtn.hidden = !d.has_missing_defaults; }
+    syncActiveAgentBadge(); renderAgentRoster();
+    if (isSplit) { applyPaletteForAgent(activeAgentObj(), false); }
   } catch (_e) {}
 }
 function setAgentStudioTab(tab) {
@@ -240,6 +241,7 @@ async function openAgentStudio(tab) {
 async function selectAgentUI(agentId) {
   const inOpenChat = isInsideChat(), embedded = typeof IS_EMBED !== "undefined" && IS_EMBED;
   try {
+    if (!agentTeam.length) { await loadAgentTeam(); }
     if (!inOpenChat && !embedded) {
       const res = await fetch("/api/agents/select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent_id: agentId }) });
       const d = await safeJson(res);
@@ -252,8 +254,8 @@ async function selectAgentUI(agentId) {
     activeAgentId = agentId;
     syncActiveAgentBadge(); renderAgentRoster();
     const chosen = activeAgentObj();
-    if (!embedded) { applyPaletteForAgent(chosen, !inOpenChat); }
-    else if (typeof notifyParentFrame === "function") { notifyParentFrame({ type: "realm:chat-state", agentId: agentId }); }
+    applyPaletteForAgent(chosen, !embedded && !inOpenChat);
+    if (embedded && typeof notifyParentFrame === "function") { notifyParentFrame({ type: "realm:chat-state", agentId: agentId }); }
     const modal = document.getElementById("agent-studio-modal"); if (modal && modal.open) { modal.close(); }
     if (chosen && !embedded) { showToast(t(inOpenChat ? "toast_next_agent" : "toast_default_agent", { name: chosen.name, role: chosen.role })); }
     if (typeof refreshContextUsage === "function" && currentChatId) { refreshContextUsage(); }
@@ -329,14 +331,17 @@ function bindAgentControls() {
   if (provSel) { provSel.addEventListener("change", () => syncAgentModelChoices(provSel.value, "")); }
   for (const id of ["agent-sync-palette-toggle", "onboarding-sync-agent-palette"]) {
     const chk = document.getElementById(id);
-    if (chk) {
-      chk.addEventListener("change", async function () {
-        syncAgentPalette = Boolean(chk.checked); syncActiveAgentBadge();
-        if (syncAgentPalette) { applyPaletteForAgent(activeAgentObj(), !isInsideChat()); }
-        if (typeof currentTurns !== "undefined" && currentTurns.length && typeof renderChatStream === "function") { renderChatStream(); }
-        await fetch("/api/agents/select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sync_agent_palette: syncAgentPalette }) }).catch(() => {});
-      });
-    }
+    if (!chk) { continue; }
+    chk.addEventListener("change", async function () {
+      syncAgentPalette = Boolean(chk.checked); syncActiveAgentBadge();
+      if (syncAgentPalette) { applyPaletteForAgent(activeAgentObj(), !isInsideChat()); }
+      else if (typeof broadcastToEmbedFrames === "function") {
+        const md = (workspaceConfig && workspaceConfig.theme_mode) || safeStorageGet("color-scheme") || "system";
+        broadcastToEmbedFrames({ type: "realm:sync-theme", mode: md, accent: (workspaceConfig && workspaceConfig.theme_accent) || "#4BB8E8", glow: (workspaceConfig && workspaceConfig.theme_glow) || "#6366F1", syncAgentPalette: false });
+      }
+      if (typeof currentTurns !== "undefined" && currentTurns.length && typeof renderChatStream === "function") { renderChatStream(); }
+      await fetch("/api/agents/select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sync_agent_palette: syncAgentPalette }) }).catch(() => {});
+    });
   }
   loadAgentTeam();
 }

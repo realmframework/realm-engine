@@ -23,9 +23,9 @@ function updateTopbarContext(customTitle) {
         label = aw ? (t("wf_title") + " · " + aw.name) : t("wf_title");
       } else if (document.getElementById("graph-view") && !document.getElementById("graph-view").classList.contains("hidden")) {
         label = t("graph_view");
-      } else if (document.getElementById("reader-heading")) {
+      } else if (document.getElementById("reader-heading") && resultsEl && !resultsEl.classList.contains("hidden") && isActiveView) {
         label = document.getElementById("reader-heading").textContent.trim() || t("library");
-      } else if (document.getElementById("library-view")) {
+      } else if (document.getElementById("library-view") && resultsEl && !resultsEl.classList.contains("hidden") && isActiveView) {
         label = t("library");
       } else if (typeof currentChatId !== "undefined" && currentChatId && Array.isArray(savedChats)) {
         const cur = savedChats.find(function (c) { return c.chat_id === currentChatId; });
@@ -101,6 +101,7 @@ function setActiveRailSection(section, navigate) {
       if (typeof closeImpactView === "function") { closeImpactView(); }
       if (typeof closeWorkflowsView === "function") { closeWorkflowsView(); }
       if (typeof stopGraphSimulation === "function") { stopGraphSimulation(); }
+      if (document.getElementById("library-view") || document.getElementById("reader-heading")) { resultsEl.innerHTML = ""; }
       if (typeof setViewMode === "function") { setViewMode(Boolean(currentTurns && currentTurns.length)); }
     } else if (safe === "library" && typeof openLibraryCatalog === "function") {
       setActiveTag(null); openLibraryCatalog(null);
@@ -131,12 +132,14 @@ function handleShellAction(act) {
   else if (act === "deep-focus" && typeof openDeepFocusModal === "function") { openDeepFocusModal("", ""); }
   else if (act === "log-impact" && typeof openImpactEntryModal === "function") { openImpactEntryModal(null); }
   else if (act === "open-kanban" && typeof openWorkBoardView === "function") { setActiveRailSection("work", false); openWorkBoardView("kanban"); }
-  else if (act === "wf-new") { const b = document.getElementById("wf-new-btn"); if (b) { b.click(); } }
+  else if (act === "wf-new") {
+    if (typeof createBlankWorkflowAndOpen === "function") { createBlankWorkflowAndOpen(); }
+    else { const b = document.getElementById("wf-new-btn"); if (b) { b.click(); } }
+  }
 }
 
 function bindSpatialShellUX() {
-  const railTog = document.getElementById("rail-drawer-toggle"), topLeftBtn = document.getElementById("layout-left-btn");
-  if (railTog) { railTog.addEventListener("click", function () { toggleContextDrawer(); }); }
+  const topLeftBtn = document.getElementById("layout-left-btn");
   if (topLeftBtn) { topLeftBtn.addEventListener("click", function () { toggleContextDrawer(); }); }
   document.querySelectorAll("[data-rail-section]").forEach(function (btn) {
     btn.addEventListener("click", function () {

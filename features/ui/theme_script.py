@@ -77,13 +77,16 @@ function applyThemeTokens(mode, accent, glow, persistLocal) {
   document.documentElement.style.setProperty("--accent-glow", safeGlow);
   applyTextOnAccentFallback(safeMode, safeAccent);
   if (persistLocal !== false) {
+    if (typeof workspaceConfig === "object" && workspaceConfig) { workspaceConfig.theme_mode = safeMode; }
     if (safeMode === "system") { safeStorageRemove("color-scheme"); } else { safeStorageSet("color-scheme", safeMode); }
     safeStorageSet("realm_theme_accent", safeAccent);
     safeStorageSet("realm_theme_glow", safeGlow);
   }
   syncThemeControlsUI(safeMode, safeAccent, safeGlow);
   if (typeof refreshAmbientPalette === "function") { refreshAmbientPalette(); }
-  if (typeof broadcastToEmbedFrames === "function") { broadcastToEmbedFrames({ type: "realm:sync-theme", mode: safeMode, accent: safeAccent, glow: safeGlow }); }
+  if (typeof broadcastToEmbedFrames === "function") {
+    broadcastToEmbedFrames({ type: "realm:sync-theme", mode: safeMode, accent: safeAccent, glow: safeGlow, syncAgentPalette: typeof syncAgentPalette !== "undefined" ? syncAgentPalette : true });
+  }
 }
 function syncThemeControlsUI(mode, accent, glow) {
   const sysNow = systemDarkQuery.matches ? t("theme_dark") : t("theme_light");
@@ -161,23 +164,32 @@ async function resetCustomLogo() {
   } catch (_e) {}
 }
 function syncThemeFromWorkspace(cfg) {
+  const isEmbed = typeof IS_EMBED !== "undefined" && IS_EMBED;
+  const isSplitChat = isEmbed && typeof EMBED_ROLE !== "undefined" && EMBED_ROLE === "split-chat";
   const mode = (cfg && cfg.theme_mode) || safeStorageGet("color-scheme") || "system";
-  const accent = (cfg && cfg.theme_accent) || safeStorageGet("realm_theme_accent") || "#4BB8E8";
-  const glow = (cfg && cfg.theme_glow) || safeStorageGet("realm_theme_glow") || "#6366F1";
-  applyThemeTokens(mode, accent, glow, true);
+  let accent = (cfg && cfg.theme_accent) || safeStorageGet("realm_theme_accent") || "#4BB8E8";
+  let glow = (cfg && cfg.theme_glow) || safeStorageGet("realm_theme_glow") || "#6366F1";
+  if (typeof syncAgentPalette !== "undefined" && cfg && typeof cfg.sync_agent_palette === "boolean") {
+    syncAgentPalette = cfg.sync_agent_palette;
+  }
+  if (isSplitChat && typeof syncAgentPalette !== "undefined" && syncAgentPalette && typeof activeAgentObj === "function") {
+    const ownAg = activeAgentObj();
+    if (ownAg && typeof paletteColorsFor === "function") { const p = paletteColorsFor(ownAg.palette); accent = p.accent; glow = p.glow; }
+  }
+  applyThemeTokens(mode, accent, glow, !isEmbed);
   if (typeof setAmbientEffects === "function" && cfg && typeof cfg.ambient_effects === "boolean") {
-    setAmbientEffects(cfg.ambient_effects, true);
+    setAmbientEffects(cfg.ambient_effects, !isEmbed);
   }
   if (typeof applyLanguage === "function" && cfg && cfg.language) {
-    applyLanguage(cfg.language, true);
+    applyLanguage(cfg.language, !isEmbed);
   }
   syncAgentNameUI((cfg && cfg.agent_name) || "Saga");
   if (typeof defaultAgentId !== "undefined" && cfg && cfg.active_agent) {
     defaultAgentId = cfg.active_agent;
-    if (!currentChatId) { activeAgentId = defaultAgentId; }
+    if (!currentChatId && !isSplitChat) { activeAgentId = defaultAgentId; }
     if (typeof syncAgentPalette !== "undefined") { syncAgentPalette = cfg.sync_agent_palette !== false; }
     if (typeof syncActiveAgentBadge === "function") { syncActiveAgentBadge(); }
-    if (currentChatId && typeof applyPaletteForAgent === "function" && typeof activeAgentObj === "function") { applyPaletteForAgent(activeAgentObj(), false); }
+    if ((currentChatId || isSplitChat) && typeof applyPaletteForAgent === "function" && typeof activeAgentObj === "function") { applyPaletteForAgent(activeAgentObj(), false); }
   }
   if (typeof syncWebSearchUI === "function") { syncWebSearchUI(cfg || {}); }
 }

@@ -32,9 +32,11 @@ def test_m5_html_contains_workflow_studio_canvas_toolbar_and_modals(tmp_path: Pa
     client = _client(tmp_path, monkeypatch)
     html = client.get("/").text
     for needle in (
-        'id="sidebar-workflows-btn"',
+        'id="rail-workflows-btn"',
         'id="workflows-view"',
         'id="wf-toolbar"',
+        'id="wf-meta-bar"',
+        'id="wf-sched-wrap"',
         'role="toolbar"',
         'focusgroup="toolbar wrap"',
         'id="wf-canvas-stage"',
@@ -44,6 +46,7 @@ def test_m5_html_contains_workflow_studio_canvas_toolbar_and_modals(tmp_path: Pa
         'id="wf-run-modal"',
         "wfBindNodeDrag",
         "runActiveWorkflowStream",
+        "createBlankWorkflowAndOpen",
     ):
         assert needle in html
 

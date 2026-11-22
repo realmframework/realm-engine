@@ -35,7 +35,7 @@ function applyWorkbenchGrid() {
   const bpRes = document.getElementById("bottom-panel-resizer"), bpPane = document.getElementById("bottom-panel");
   const rsRes = document.getElementById("right-sidebar-resizer"), rsPane = document.getElementById("inspector-sidebar");
   const narrow = window.matchMedia && window.matchMedia("(max-width: 959px)").matches;
-  const splitOn = wbLayout.splitOpen && !narrow;
+  const splitOn = wbLayout.splitOpen && (typeof wbCenterIsChat === "undefined" || wbCenterIsChat) && !narrow;
   const bottomOn = wbLayout.bottomOpen && !narrow;
   const rightOn = wbLayout.rightOpen;
 
@@ -97,36 +97,42 @@ function ensureEmbedFrame(frameId, url, onReadyMsg) {
   fr.src = url;
 }
 
+function syncSplitPaneAccent() {
+  const pane = document.getElementById("center-split-pane"); if (!pane) { return; }
+  const syncOn = typeof syncAgentPalette === "undefined" || syncAgentPalette;
+  const ag = syncOn && typeof agentTeam !== "undefined" && Array.isArray(agentTeam)
+    ? agentTeam.find(function (a) { return a.id === wbLayout.splitAgentId; })
+    : null;
+  const pal = ag && typeof paletteColorsFor === "function" ? paletteColorsFor(ag.palette) : null;
+  if (pal && pal.accent) {
+    pane.style.setProperty("--accent-seed", pal.accent);
+    pane.style.setProperty("--accent", pal.accent);
+  } else {
+    pane.style.removeProperty("--accent-seed");
+    pane.style.removeProperty("--accent");
+  }
+}
+
 function syncSplitSelectors() {
+  const centerSel = document.getElementById("center-agent-select");
+  if (centerSel && typeof populateAgentSelect === "function") {
+    populateAgentSelect(centerSel, typeof activeAgentId !== "undefined" ? activeAgentId : "saga");
+  }
   const agSel = document.getElementById("split-agent-select");
-  if (agSel) {
-    const list = typeof agentTeam !== "undefined" && Array.isArray(agentTeam) && agentTeam.length ? agentTeam : [{ id: "saga", name: "Saga" }, { id: "lisbeth", name: "Lisbeth" }, { id: "plague", name: "Plague" }];
-    if (!list.some(function (a) { return a.id === wbLayout.splitAgentId; })) {
+  if (agSel && typeof populateAgentSelect === "function") {
+    const list = typeof agentTeam !== "undefined" && Array.isArray(agentTeam) && agentTeam.length ? agentTeam : [];
+    if (list.length && !list.some(function (a) { return a.id === wbLayout.splitAgentId; })) {
       wbLayout.splitAgentId = (list.find(function (a) { return a.id !== (typeof activeAgentId !== "undefined" ? activeAgentId : "saga"); }) || list[0]).id;
     }
-    agSel.innerHTML = list.map(function (a) {
-      return "<option value='" + escapeHtml(a.id) + "'" + (a.id === wbLayout.splitAgentId ? " selected" : "") + ">" + escapeHtml(a.name) + "</option>";
-    }).join("");
+    wbLayout.splitAgentId = populateAgentSelect(agSel, wbLayout.splitAgentId);
   }
+  syncSplitPaneAccent();
   syncRightDocSelector();
 }
 
 function renderSplitChatTabs() {
-  const list = document.getElementById("split-chat-tablist"); if (!list) { return; }
-  if (!wbLayout.splitTabs.length) { wbLayout.splitTabs = [{ id: "sp_0", chatId: "", title: "" }]; }
-  if (!wbLayout.splitTabs.some(function (tb) { return tb.id === wbLayout.activeSplitTabId; })) { wbLayout.activeSplitTabId = wbLayout.splitTabs[0].id; }
-  list.innerHTML = wbLayout.splitTabs.map(function (tb) {
-    const sel = tb.id === wbLayout.activeSplitTabId;
-    const closeX = wbLayout.splitTabs.length > 1 ? "<span class='wb-tab-x' data-sp-close='" + escapeHtml(tb.id) + "' role='button' aria-label='Close tab'>✕</span>" : "";
-    return "<button type='button' role='tab' aria-selected='" + String(sel) + "' data-sp-tab='" + escapeHtml(tb.id) + "' class='wb-zone-tab'><span>" + escapeHtml(tb.title || t("wb_tile_chat")) + "</span>" + closeX + "</button>";
-  }).join("");
-  list.querySelectorAll("[data-sp-tab]").forEach(function (btn) {
-    btn.addEventListener("click", function (e) {
-      const x = e.target.closest("[data-sp-close]");
-      if (x) { e.stopPropagation(); closeSplitChatTab(x.getAttribute("data-sp-close")); return; }
-      activateSplitChatTab(btn.getAttribute("data-sp-tab"));
-    });
-  });
+  if (!wbLayout.splitTabs.length) { wbLayout.splitTabs = [{ id: "sp_" + (++wbTabSeq), chatId: "", title: "" }]; }
+  wbLayout.activeSplitTabId = renderChatTabStrip("split-chat-tablist", wbLayout.splitTabs, wbLayout.activeSplitTabId, "sp", activateSplitChatTab, closeSplitChatTab);
 }
 
 function activateSplitChatTab(tabId) {
@@ -139,7 +145,7 @@ function activateSplitChatTab(tabId) {
 
 function closeSplitChatTab(tabId) {
   wbLayout.splitTabs = wbLayout.splitTabs.filter(function (tb) { return tb.id !== tabId; });
-  if (!wbLayout.splitTabs.length) { wbLayout.splitTabs.push({ id: "sp_" + Date.now().toString(36), chatId: "", title: "" }); }
+  if (!wbLayout.splitTabs.length) { wbLayout.splitTabs.push({ id: "sp_" + (++wbTabSeq), chatId: "", title: "" }); }
   if (wbLayout.activeSplitTabId === tabId) { activateSplitChatTab(wbLayout.splitTabs[wbLayout.splitTabs.length - 1].id); }
   else { renderSplitChatTabs(); }
 }
@@ -153,9 +159,9 @@ function openSplitChat(opts) {
     if (!tb) {
       const cur = wbLayout.splitTabs.find(function (item) { return item.id === wbLayout.activeSplitTabId; });
       const found = Array.isArray(savedChats) ? savedChats.find(function (c) { return c.chat_id === o.chatId; }) : null;
-      const title = (found && found.title) || o.title || t("wb_tile_chat");
+      const title = (found && found.title) || o.title || "";
       if (cur && !cur.chatId) { cur.chatId = o.chatId; cur.title = title; tb = cur; }
-      else { tb = { id: "sp_" + Date.now().toString(36), chatId: o.chatId, title: title }; wbLayout.splitTabs.push(tb); }
+      else { tb = { id: "sp_" + (++wbTabSeq), chatId: o.chatId, title: title }; wbLayout.splitTabs.push(tb); }
     }
     wbLayout.activeSplitTabId = tb.id;
   }
@@ -241,7 +247,7 @@ function toggleBottomToolVisibility(tool) {
 
 function resetSplitOnAreaChange() {
   wbLayout.rightDocId = "";
-  wbLayout.splitTabs = [{ id: "sp_" + Date.now().toString(36), chatId: "", title: "" }];
+  wbLayout.splitTabs = [{ id: "sp_" + (++wbTabSeq), chatId: "", title: "" }];
   wbLayout.activeSplitTabId = wbLayout.splitTabs[0].id;
   renderSplitChatTabs();
   if (wbLayout.rightOpen && wbLayout.rightTab === "doc") { renderRightDocumentPane(); }
@@ -277,7 +283,7 @@ function bindSplitUX() {
   if (spClose) { spClose.addEventListener("click", closeSplitChat); }
   if (spAdd) {
     spAdd.addEventListener("click", function () {
-      const id = "sp_" + Date.now().toString(36);
+      const id = "sp_" + (++wbTabSeq);
       wbLayout.splitTabs.push({ id: id, chatId: "", title: "" });
       activateSplitChatTab(id);
     });
@@ -286,6 +292,7 @@ function bindSplitUX() {
   if (agSel) {
     agSel.addEventListener("change", function () {
       wbLayout.splitAgentId = agSel.value;
+      syncSplitPaneAccent();
       const fr = document.getElementById("center-split-frame");
       if (fr && fr.contentWindow && fr.dataset.loaded === "1") {
         fr.contentWindow.postMessage({ source: "realm-parent", type: "realm:set-agent", agentId: wbLayout.splitAgentId }, window.location.origin);

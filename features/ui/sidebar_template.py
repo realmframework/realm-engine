@@ -25,8 +25,6 @@ from features.ui.icons import (
 
 ACTIVITY_RAIL_HTML: str = (
     '<nav aria-label="Primary" id="activity-rail">'
-    f'<button id="rail-drawer-toggle" type="button" class="rail-btn" aria-expanded="true" aria-controls="sidebar" aria-label="Toggle sidebar panel" title="Toggle sidebar panel" data-i18n-aria-label="sh_toggle_drawer" data-i18n-title="sh_toggle_drawer">{ICON_SIDEBAR_LEFT}</button>'
-    '<span class="rail-divider" aria-hidden="true"></span>'
     f'<button id="rail-home-btn" type="button" data-rail-section="chat" aria-current="page" class="rail-btn" aria-label="Chat &amp; Home" title="Chat &amp; Home" data-i18n-aria-label="sh_rail_chat" data-i18n-title="sh_rail_chat">{ICON_HOME}</button>'
     f'<button id="rail-library-btn" type="button" data-rail-section="library" class="rail-btn" aria-label="Library &amp; Space" title="Library &amp; Space" data-i18n-aria-label="sh_rail_library" data-i18n-title="sh_rail_library">{ICON_LIBRARY}</button>'
     f'<button id="rail-work-btn" type="button" data-rail-section="work" class="rail-btn" aria-label="Work OS: Board, Focus &amp; Impact" title="Work OS: Board, Focus &amp; Impact" data-i18n-aria-label="sh_rail_work" data-i18n-title="sh_rail_work">{ICON_WORK}<span id="rail-work-dot" hidden class="rail-badge-dot" aria-hidden="true"></span></button>'
@@ -35,7 +33,7 @@ ACTIVITY_RAIL_HTML: str = (
     f'<button id="rail-more-btn" type="button" popovertarget="rail-more-menu" aria-expanded="false" class="rail-btn" aria-label="More tools" title="More tools" data-i18n-aria-label="sh_rail_more" data-i18n-title="sh_rail_more">{ICON_MORE}</button>'
     '<div id="rail-more-menu" popover="auto" class="rail-popover" aria-label="More tools">'
     '<button type="button" data-shell-act="graph" class="shell-pop-item"><span data-i18n="graph_view">Graph View</span><span class="drawer-badge">2D</span></button>'
-    '<button type="button" data-shell-act="study" class="shell-pop-item"><span data-i18n="study_title">Study Cards</span></button>'
+    '<button type="button" data-shell-act="study" class="shell-pop-item"><span data-i18n="study_btn">Study Cards</span></button>'
     '<button type="button" data-shell-act="gaps" class="shell-pop-item"><span data-i18n="gap_title">Knowledge Gap Scan</span></button>'
     '<button type="button" data-shell-act="briefing" class="shell-pop-item"><span data-i18n="br_title">Executive Briefing</span></button>'
     '<button type="button" data-shell-act="link-folder" class="shell-pop-item"><span data-i18n="open_vault">Link Local Folder…</span></button>'
@@ -88,9 +86,9 @@ SIDEBAR_HTML: str = (
     '<span data-i18n="sh_rail_library" class="drawer-heading">Library &amp; Space</span>'
     f'<button id="sidebar-browse-btn" type="button" class="drawer-item"><span data-i18n-span="library" class="drawer-item-lead">{ICON_LIBRARY}<span>Library</span></span><span id="sidebar-guide-count" class="drawer-badge">0</span></button>'
     f'<button id="sidebar-graph-btn" type="button" class="drawer-item"><span data-i18n-span="graph_view" class="drawer-item-lead">{ICON_GRAPH}<span>Graph View</span></span><span class="drawer-badge">2D</span></button>'
-    f'<button type="button" data-shell-act="new-note" class="drawer-item"><span data-i18n-span="lib_new_note" class="drawer-item-lead">{ICON_PLUS}<span>+ New Note</span></span><span class="drawer-badge">.md</span></button>'
+    f'<button type="button" data-shell-act="new-note" class="drawer-item"><span data-i18n-span="sh_new_note" class="drawer-item-lead">{ICON_PLUS}<span>New Note</span></span><span class="drawer-badge">.md</span></button>'
     f'<button type="button" data-shell-act="upload" class="drawer-item"><span data-i18n-span="up_title" class="drawer-item-lead">{ICON_UPLOAD}<span>Add Documents</span></span></button>'
-    f'<button type="button" data-shell-act="study" class="drawer-item"><span data-i18n-span="study_title" class="drawer-item-lead">{ICON_STUDY}<span>Study Cards</span></span></button>'
+    f'<button type="button" data-shell-act="study" class="drawer-item"><span data-i18n-span="study_btn" class="drawer-item-lead">{ICON_STUDY}<span>Study Cards</span></span></button>'
     "</div>"
     '<div id="drawer-panel-work" hidden class="drawer-panel">'
     '<span data-i18n="work_section_lbl" class="drawer-heading">Work OS</span>'
@@ -106,9 +104,8 @@ SIDEBAR_HTML: str = (
     f'<button id="sidebar-impact-btn" type="button" class="drawer-item"><span data-i18n-span="impact_nav" class="drawer-item-lead">{ICON_IMPACT}<span>Time &amp; Impact</span></span><span id="sidebar-impact-badge" class="drawer-badge">0h</span></button>'
     "</div>"
     '<div id="drawer-panel-workflows" hidden class="drawer-panel">'
-    f'<button id="sidebar-workflows-btn" type="button" class="drawer-item" style="margin-bottom:0.2rem"><span data-i18n-span="workflows_nav" class="drawer-item-lead">{ICON_WORKFLOWS}<span>Workflows</span></span><span id="sidebar-workflows-badge" class="drawer-badge">0</span></button>'
     '<button type="button" data-shell-act="wf-new" class="drawer-primary-btn" data-i18n="wf_new_btn">+ New Workflow</button>'
-    '<span data-i18n="sh_saved_pipelines" class="drawer-heading">Workflows</span>'
+    '<div class="flex items-center justify-between pr-2"><span data-i18n="sh_saved_pipelines" class="drawer-heading">Workflows</span><span id="sidebar-workflows-badge" class="drawer-badge">0</span></div>'
     '<div id="drawer-workflows-list" class="flex flex-col gap-0.5 flex-1 min-h-0 overflow-y-auto"></div>'
     "</div>"
     '<div id="drawer-panel-studio" hidden class="drawer-panel">'
@@ -134,7 +131,7 @@ APP_TOPBAR_HTML: str = (
     "</div>"
     '<div id="top-right-tools" class="topbar-right">'
     f'<button id="inspector-toggle-btn" type="button" hidden aria-expanded="false" aria-controls="inspector-sidebar" aria-label="Open Engine Inspector" data-i18n-aria-label="aria_open_inspector" title="Engine Inspector (⌘I)" class="topbar-pill-btn">{ICON_TOKENS}<span id="inspector-token-label" data-i18n="insp_tokens_short">Tokens</span></button>'
-    f'<button id="layout-left-btn" type="button" aria-pressed="true" aria-label="Toggle left sidebar" title="Toggle left sidebar" data-i18n-aria-label="sh_toggle_drawer" data-i18n-title="sh_toggle_drawer" class="topbar-icon-btn">{ICON_SIDEBAR_LEFT}</button>'
+    f'<button id="layout-left-btn" type="button" aria-pressed="true" aria-expanded="true" aria-controls="sidebar" aria-label="Toggle left sidebar" title="Toggle left sidebar" data-i18n-aria-label="sh_toggle_drawer" data-i18n-title="sh_toggle_drawer" class="topbar-icon-btn">{ICON_SIDEBAR_LEFT}</button>'
     f'<button id="layout-bottom-btn" type="button" aria-pressed="false" aria-label="Toggle bottom panel" title="Toggle bottom panel" data-i18n-aria-label="sh_toggle_bottom" data-i18n-title="sh_toggle_bottom" class="topbar-icon-btn">{ICON_BOTTOM_PANEL}</button>'
     f'<button id="layout-right-btn" type="button" aria-pressed="false" aria-label="Toggle right sidebar" title="Toggle right sidebar" data-i18n-aria-label="sh_toggle_right_sb" data-i18n-title="sh_toggle_right_sb" class="topbar-icon-btn">{ICON_RIGHT_SIDEBAR}</button>'
     f'<button id="topbar-more-btn" type="button" popovertarget="topbar-more-menu" aria-expanded="false" aria-label="Workspace actions" title="Workspace actions" data-i18n-aria-label="sh_actions_aria" data-i18n-title="sh_actions_aria" class="topbar-icon-btn">{ICON_MORE}</button>'
