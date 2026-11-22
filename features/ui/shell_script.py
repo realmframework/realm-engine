@@ -59,36 +59,45 @@ function renderDrawerDynamicLists() {
 }
 
 function setActiveRailSection(section, navigate) {
-  const safe = ["chat", "library", "work", "workflows", "studio"].includes(section) ? section : "chat";
+  const safe = ["chat", "files", "library", "graph", "work", "workflows", "studio"].includes(section) ? section : "chat";
+  const isDirect = safe === "library" || safe === "graph";
   activeRailSection = safe;
   document.querySelectorAll("[data-rail-section]").forEach(function (btn) {
     const active = btn.getAttribute("data-rail-section") === safe;
     if (active) { btn.setAttribute("aria-current", "page"); } else { btn.removeAttribute("aria-current"); }
   });
-  ["chat", "library", "work", "workflows", "studio"].forEach(function (name) {
+  const drawerTarget = isDirect ? "files" : safe;
+  ["chat", "files", "work", "workflows", "studio"].forEach(function (name) {
     const p = document.getElementById("drawer-panel-" + name);
-    if (p) { p.hidden = name !== safe; }
+    if (p) { p.hidden = name !== drawerTarget; }
   });
+  if (drawerTarget === "files" && typeof renderWorkspaceFilesTree === "function") { renderWorkspaceFilesTree(); }
   if (navigate) {
-    if (desktopDrawerCollapsed && !(typeof sidebarNarrowMq !== "undefined" && sidebarNarrowMq.matches)) { toggleContextDrawer(true); }
-    if (safe === "chat") {
-      if (typeof closeWorkBoardView === "function") { closeWorkBoardView(); }
-      if (typeof closeFocusView === "function") { closeFocusView(); }
-      if (typeof closeImpactView === "function") { closeImpactView(); }
-      if (typeof closeWorkflowsView === "function") { closeWorkflowsView(); }
-      if (typeof stopGraphSimulation === "function") { stopGraphSimulation(); }
-      if (document.getElementById("library-view") || document.getElementById("reader-heading")) { resultsEl.innerHTML = ""; }
-      const curTab = typeof centerChatTabs !== "undefined" ? centerChatTabs.find(function (tb) { return tb.id === activeCenterTabId; }) : null;
-      if (curTab && curTab.kind === "file" && typeof activateCenterChatTab === "function") { activateCenterChatTab(curTab.id); }
-      else if (typeof setViewMode === "function") { setViewMode(Boolean(currentTurns && currentTurns.length)); }
-    } else if (safe === "library" && typeof openLibraryCatalog === "function") {
-      setActiveTag(null); openLibraryCatalog(null);
-    } else if (safe === "work" && typeof openWorkBoardView === "function") {
-      if (!(typeof wbViewOpen !== "undefined" && wbViewOpen) && !(typeof focViewOpen !== "undefined" && focViewOpen) && !(typeof impViewOpen !== "undefined" && impViewOpen)) {
-        openWorkBoardView("kanban");
+    const narrow = typeof sidebarNarrowMq !== "undefined" && sidebarNarrowMq.matches;
+    if (isDirect) {
+      if (!narrow && !desktopDrawerCollapsed) { toggleContextDrawer(false); }
+      if (narrow && typeof closeMobileDrawerIfOpen === "function") { closeMobileDrawerIfOpen(false); }
+      if (safe === "library" && typeof openLibraryCatalog === "function") { setActiveTag(null); openLibraryCatalog(null); }
+      else if (safe === "graph" && typeof openGraphView === "function") { setActiveTag(null); openGraphView(); }
+    } else {
+      if (desktopDrawerCollapsed && !narrow) { toggleContextDrawer(true); }
+      if (safe === "chat") {
+        if (typeof closeWorkBoardView === "function") { closeWorkBoardView(); }
+        if (typeof closeFocusView === "function") { closeFocusView(); }
+        if (typeof closeImpactView === "function") { closeImpactView(); }
+        if (typeof closeWorkflowsView === "function") { closeWorkflowsView(); }
+        if (typeof stopGraphSimulation === "function") { stopGraphSimulation(); }
+        if (document.getElementById("library-view") || document.getElementById("reader-heading")) { resultsEl.innerHTML = ""; }
+        const curTab = typeof centerChatTabs !== "undefined" ? centerChatTabs.find(function (tb) { return tb.id === activeCenterTabId; }) : null;
+        if (curTab && curTab.kind === "file" && typeof activateCenterChatTab === "function") { activateCenterChatTab(curTab.id); }
+        else if (typeof setViewMode === "function") { setViewMode(Boolean(currentTurns && currentTurns.length)); }
+      } else if (safe === "work" && typeof openWorkBoardView === "function") {
+        if (!(typeof wbViewOpen !== "undefined" && wbViewOpen) && !(typeof focViewOpen !== "undefined" && focViewOpen) && !(typeof impViewOpen !== "undefined" && impViewOpen)) {
+          openWorkBoardView("kanban");
+        }
+      } else if (safe === "workflows" && typeof openWorkflowsView === "function") {
+        openWorkflowsView();
       }
-    } else if (safe === "workflows" && typeof openWorkflowsView === "function") {
-      openWorkflowsView();
     }
   }
   renderDrawerDynamicLists();
@@ -97,7 +106,7 @@ function setActiveRailSection(section, navigate) {
 
 function handleShellAction(act) {
   closeShellPopovers();
-  if (act === "graph" && typeof openGraphView === "function") { setActiveRailSection("library", false); openGraphView(); }
+  if (act === "graph" && typeof openGraphView === "function") { setActiveRailSection("graph", false); openGraphView(); }
   else if (act === "study" && typeof openStudyDeck === "function") { openStudyDeck({}); }
   else if (act === "gaps" && typeof openGapAnalysisModal === "function") { openGapAnalysisModal(); }
   else if (act === "briefing" && typeof openBriefingModal === "function") { openBriefingModal({}); }
@@ -123,8 +132,9 @@ function bindSpatialShellUX() {
     btn.addEventListener("click", function () {
       const sec = btn.getAttribute("data-rail-section") || "chat";
       const inMobileStrip = Boolean(btn.closest("#mobile-rail-strip"));
-      if (!inMobileStrip && sec === activeRailSection && sec !== "chat" && sec !== "work" && !desktopDrawerCollapsed) { toggleContextDrawer(false); return; }
-      setActiveRailSection(sec, !inMobileStrip);
+      const isDirect = sec === "library" || sec === "graph";
+      if (!inMobileStrip && !isDirect && sec === activeRailSection && sec !== "chat" && sec !== "work" && !desktopDrawerCollapsed) { toggleContextDrawer(false); return; }
+      setActiveRailSection(sec, !inMobileStrip || isDirect);
     });
   });
   document.querySelectorAll("[data-shell-act]").forEach(function (btn) {

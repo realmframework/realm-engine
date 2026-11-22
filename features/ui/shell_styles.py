@@ -66,7 +66,7 @@ body.drawer-collapsed #sidebar { transform: translateX(calc(-100% - var(--rail-w
   #main-shell { padding-left: 0 !important; }
   #sidebar-open-btn { position: static !important; margin-inline-end: 0.2rem; }
   .mobile-only-ctrl { display: inline-flex !important; }
-  .mobile-rail-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.2rem; padding: 0.25rem; margin-bottom: 0.55rem; border-radius: 0.7rem; background: var(--background); border: 1px solid var(--border-subtle); }
+  .mobile-rail-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.12rem; padding: 0.2rem; margin-bottom: 0.55rem; border-radius: 0.7rem; background: var(--background); border: 1px solid var(--border-subtle); }
   .mobile-rail-strip .rail-btn { width: 100%; height: 34px; }
   .mobile-rail-strip .rail-btn[aria-current="page"]::before { display: none; }
   .mobile-drawer-footer { display: flex; flex-direction: column; gap: 0.15rem; padding-top: 0.45rem; margin-top: 0.45rem; border-top: 1px solid var(--border-subtle); }

@@ -126,7 +126,7 @@ function activateWorkspaceView(viewId, opts) {
   if (opt.railSection && typeof setActiveRailSection === "function") { setActiveRailSection(opt.railSection, false); }
   if (typeof syncCenterTabbarVisibility === "function") { syncCenterTabbarVisibility(viewId === "workspace-shell"); }
   if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
-  if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
+  if (typeof renderWorkspaceFilesTree === "function") { renderWorkspaceFilesTree(); }
   if (typeof syncCopilotContextUI === "function") { syncCopilotContextUI(); }
 }
 

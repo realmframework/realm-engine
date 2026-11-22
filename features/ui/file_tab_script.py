@@ -91,8 +91,8 @@ function ftRenderNodeHtml(node, depth, activeDocId) {
   return html;
 }
 
-function renderRightFilesTree() {
-  const tree = document.getElementById("right-files-tree"), wsLbl = document.getElementById("right-files-ws-title");
+function renderWorkspaceFilesTree() {
+  const tree = document.getElementById("workspace-files-tree"), wsLbl = document.getElementById("files-tree-ws-title");
   if (!tree) { return; }
   const dirs = typeof selectedAreas === "function" ? selectedAreas() : [];
   const hasWs = dirs.length > 0 && typeof knowledgeAreas !== "undefined" && knowledgeAreas.length > 0;
@@ -127,7 +127,7 @@ function renderRightFilesTree() {
     btn.addEventListener("click", function () {
       const k = btn.getAttribute("data-ft-folder") || "";
       if (ftExpanded.has(k)) { ftExpanded.delete(k); } else { ftExpanded.add(k); }
-      renderRightFilesTree();
+      renderWorkspaceFilesTree();
     });
   });
   tree.querySelectorAll("[data-ft-doc]").forEach(function (btn) {
@@ -286,7 +286,7 @@ function renderCenterFileTab(tab) {
   const sBtn = document.getElementById("cf-save-btn"), cBtn = document.getElementById("cf-copilot-btn");
   if (sBtn) { sBtn.addEventListener("click", function () { saveCenterFileTab(tab); }); }
   if (cBtn) { cBtn.addEventListener("click", function () { if (typeof openCopilotForCurrentContext === "function") { openCopilotForCurrentContext(); } }); }
-  renderRightFilesTree();
+  renderWorkspaceFilesTree();
   if (typeof syncCopilotContextUI === "function") { syncCopilotContextUI(); }
 }
 
@@ -294,8 +294,8 @@ function bindFileTabUX() {
   if (typeof IS_EMBED !== "undefined" && IS_EMBED) { return; }
   const nBtn = document.getElementById("tree-new-note-btn"), rBtn = document.getElementById("tree-refresh-btn"), cBtn = document.getElementById("tree-collapse-btn");
   if (nBtn) { nBtn.addEventListener("click", function () { if (typeof openNewNoteModal === "function") { openNewNoteModal(); } }); }
-  if (rBtn) { rBtn.addEventListener("click", async function () { if (typeof loadGuidesCatalog === "function") { await loadGuidesCatalog(null); } renderRightFilesTree(); }); }
-  if (cBtn) { cBtn.addEventListener("click", function () { ftExpanded.clear(); renderRightFilesTree(); }); }
-  renderRightFilesTree();
+  if (rBtn) { rBtn.addEventListener("click", async function () { if (typeof loadGuidesCatalog === "function") { await loadGuidesCatalog(null); } renderWorkspaceFilesTree(); }); }
+  if (cBtn) { cBtn.addEventListener("click", function () { ftExpanded.clear(); renderWorkspaceFilesTree(); }); }
+  renderWorkspaceFilesTree();
 }
 """

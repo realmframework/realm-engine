@@ -2,13 +2,9 @@
 
 from features.ui.icons import (
     ICON_CHEVRON_UP,
-    ICON_COLLAPSE_ALL,
     ICON_COPILOT,
-    ICON_FOLDER_TREE,
     ICON_INSPECTOR_LUPE,
     ICON_MORE,
-    ICON_PLUS,
-    ICON_REFRESH,
     ICON_SIDEBAR_LEFT,
     ICON_SPLIT_EDITOR,
 )
@@ -82,27 +78,15 @@ BOTTOM_PANEL_HTML: str = (
 
 RIGHT_SIDEBAR_HTML: str = (
     '<div id="right-sidebar-resizer" hidden role="separator" tabindex="0" aria-orientation="vertical" aria-valuemin="260" aria-valuemax="560" aria-valuenow="348" aria-label="Resize right sidebar" data-i18n-aria-label="rs_resize_aria" class="wb-resizer wb-resizer-v"></div>'
-    '<aside id="inspector-sidebar" hidden aria-label="Right sidebar: Files, Copilot and Engine Inspector">'
+    '<aside id="inspector-sidebar" hidden aria-label="Right sidebar: Copilot and Engine Inspector">'
     '<header class="wb-zone-bar">'
     '<div id="right-sidebar-tablist" role="tablist" aria-label="Right sidebar views" class="wb-tab-strip">'
-    f'<button id="right-tab-files" type="button" role="tab" data-right-tab="files" aria-selected="true" class="wb-zone-tab">{ICON_FOLDER_TREE}<span data-i18n="rs_tab_files">Files</span></button>'
-    f'<button id="right-tab-copilot" type="button" role="tab" data-right-tab="copilot" aria-selected="false" tabindex="-1" class="wb-zone-tab">{ICON_COPILOT}<span data-i18n="rs_tab_copilot">Copilot</span></button>'
+    f'<button id="right-tab-copilot" type="button" role="tab" data-right-tab="copilot" aria-selected="true" class="wb-zone-tab">{ICON_COPILOT}<span data-i18n="rs_tab_copilot">Copilot</span></button>'
     f'<button id="right-tab-inspector" type="button" role="tab" data-right-tab="inspector" aria-selected="false" tabindex="-1" class="wb-zone-tab">{ICON_INSPECTOR_LUPE}<span data-i18n="rs_tab_inspector">Inspector</span></button>'
     "</div>"
     '<button id="close-inspector-btn" type="button" aria-label="Close right sidebar" data-i18n-aria-label="aria_close_inspector" class="wb-icon-btn inspector-mobile-close">✕</button>'
     "</header>"
-    '<div id="right-panel-files" role="tabpanel" aria-labelledby="right-tab-files" class="right-files-pane">'
-    '<div class="ft-head">'
-    '<span id="right-files-ws-title" class="ft-ws-title">Workspace</span>'
-    '<div class="ft-head-actions">'
-    f'<button id="tree-new-note-btn" type="button" aria-label="New Note" title="New Note" data-i18n-aria-label="sh_new_note" data-i18n-title="sh_new_note" class="wb-icon-btn ft-act-btn">{ICON_PLUS}</button>'
-    f'<button id="tree-refresh-btn" type="button" aria-label="Refresh files" title="Refresh files" data-i18n-aria-label="ft_refresh" data-i18n-title="ft_refresh" class="wb-icon-btn ft-act-btn">{ICON_REFRESH}</button>'
-    f'<button id="tree-collapse-btn" type="button" aria-label="Collapse all folders" title="Collapse all folders" data-i18n-aria-label="ft_collapse_all" data-i18n-title="ft_collapse_all" class="wb-icon-btn ft-act-btn">{ICON_COLLAPSE_ALL}</button>'
-    "</div>"
-    "</div>"
-    '<nav id="right-files-tree" aria-label="Workspace files" class="ft-tree"></nav>'
-    "</div>"
-    '<div id="right-panel-copilot" role="tabpanel" aria-labelledby="right-tab-copilot" hidden class="right-copilot-pane">'
+    '<div id="right-panel-copilot" role="tabpanel" aria-labelledby="right-tab-copilot" class="right-copilot-pane">'
     '<div class="cp-head">'
     '<span id="cp-ctx-badge" class="cp-ctx-badge">Workspace</span>'
     '<div class="cp-head-actions">'

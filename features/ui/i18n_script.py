@@ -262,7 +262,7 @@ function applyLanguage(lang, persistLocal) {
   if (typeof renderLocalAiPanels === "function") { renderLocalAiPanels(); }
   if (typeof broadcastToEmbedFrames === "function") { broadcastToEmbedFrames({ type: "realm:sync-theme", lang: safe }); }
   if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
-  if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
+  if (typeof renderWorkspaceFilesTree === "function") { renderWorkspaceFilesTree(); }
   if (typeof syncCopilotContextUI === "function") { syncCopilotContextUI(true); }
   if (typeof centerChatTabs !== "undefined" && typeof renderCenterFileTab === "function") {
     const curFile = centerChatTabs.find(function (tb) { return tb.id === activeCenterTabId && tb.kind === "file"; });

@@ -74,7 +74,7 @@ function applyWorkspacePayload(ws) {
   for (const bId of ["download-backup-btn", "restore-backup-btn"]) { const b = document.getElementById(bId); if (b) { b.disabled = !kDir; } }
   syncFolderHelper(kDir, "cfg-folder-helper"); syncFolderHelper(kDir, "onboarding-folder-helper");
   workspaceDocCount = Number(ws.doc_count || 0); workspacePrompts = Array.isArray(ws.starter_prompts) ? ws.starter_prompts : [];
-  document.getElementById("sidebar-guide-count").textContent = String(workspaceDocCount); document.getElementById("home-guide-count").textContent = String(workspaceDocCount);
+  const hgc = document.getElementById("home-guide-count"); if (hgc) { hgc.textContent = String(workspaceDocCount); }
   renderLibraryTopics(); if (workspacePrompts.length) { ideaOffset = 0; renderSeedIdeas(); }
   if (typeof loadWorkBoardSummary === "function") { loadWorkBoardSummary(false); }
 }
@@ -190,12 +190,13 @@ async function loadGuidesCatalog(tagFilter) {
     if (!res.ok || version !== areaVersion) { return []; }
     const guides = await safeJson(res);
     if (version !== areaVersion) { return []; }
-    if (!tagFilter && Array.isArray(guides)) { allGuides = guides; renderScopeChoices(); if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); } }
+    if (!tagFilter && Array.isArray(guides)) { allGuides = guides; renderScopeChoices(); if (typeof renderWorkspaceFilesTree === "function") { renderWorkspaceFilesTree(); } }
     return Array.isArray(guides) ? guides : [];
   } catch (_e) { return []; }
 }
 async function openLibraryCatalog(tagFilter) {
   const version = areaVersion;
+  if (typeof setActiveRailSection === "function") { setActiveRailSection("library", false); }
   abortActiveRequest(); stopGraphSimulation(); currentChatId = null; currentTurns = []; if (typeof syncInspectorSidebar === "function") { inspectorOpen = false; syncInspectorSidebar(); } document.getElementById("chat-stream").replaceChildren(); renderRecentChats();
   await setViewMode(true, true);
   if (version !== areaVersion) { return; }

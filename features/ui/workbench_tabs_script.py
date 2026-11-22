@@ -76,23 +76,20 @@ function syncCenterTabbarVisibility(isChatView) {
 }
 
 function setRightSidebarTab(tab) {
-  const safe = tab === "inspector" || tab === "copilot" ? tab : "files";
+  const safe = tab === "inspector" ? "inspector" : "copilot";
   if (typeof wbLayout !== "undefined") { wbLayout.rightTab = safe; }
   document.querySelectorAll("[data-right-tab]").forEach(function (btn) {
     const sel = btn.getAttribute("data-right-tab") === safe;
     btn.setAttribute("aria-selected", String(sel));
     btn.tabIndex = sel ? 0 : -1;
   });
-  const pf = document.getElementById("right-panel-files"), pc = document.getElementById("right-panel-copilot"), pi = document.getElementById("right-panel-inspector");
-  if (pf) { pf.hidden = safe !== "files"; }
+  const pc = document.getElementById("right-panel-copilot"), pi = document.getElementById("right-panel-inspector");
   if (pc) { pc.hidden = safe !== "copilot"; }
   if (pi) { pi.hidden = safe !== "inspector"; }
   if (typeof inspectorOpen !== "undefined" && typeof wbLayout !== "undefined") {
     inspectorOpen = Boolean(wbLayout.rightOpen && safe === "inspector");
   }
-  if (safe === "files") {
-    if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
-  } else if (safe === "copilot") {
+  if (safe === "copilot") {
     if (typeof syncCopilotContextUI === "function") { syncCopilotContextUI(); }
   } else {
     if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
@@ -102,10 +99,10 @@ function setRightSidebarTab(tab) {
 
 function setRightSidebarOpen(open, tab) {
   wbLayout.rightOpen = Boolean(open);
-  if (tab === "files" || tab === "copilot" || tab === "inspector") { wbLayout.rightTab = tab; }
-  if (typeof inspectorOpen !== "undefined") { inspectorOpen = wbLayout.rightOpen && (wbLayout.rightTab || "files") === "inspector"; }
+  if (tab === "copilot" || tab === "inspector") { wbLayout.rightTab = tab; }
+  if (typeof inspectorOpen !== "undefined") { inspectorOpen = wbLayout.rightOpen && (wbLayout.rightTab || "copilot") === "inspector"; }
   applyWorkbenchGrid();
-  if (wbLayout.rightOpen) { setRightSidebarTab(wbLayout.rightTab || "files"); }
+  if (wbLayout.rightOpen) { setRightSidebarTab(wbLayout.rightTab || "copilot"); }
   else if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
 }
 
@@ -134,7 +131,7 @@ function syncCenterChatTab(chatId, title) {
       activeCenterTabId = existing.id;
       if (title) { existing.title = title; }
       renderCenterChatTabs();
-      if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
+      if (typeof renderWorkspaceFilesTree === "function") { renderWorkspaceFilesTree(); }
       return;
     }
     const cur = centerChatTabs.find(function (tb) { return tb.id === activeCenterTabId; });
@@ -161,7 +158,7 @@ function syncCenterChatTab(chatId, title) {
   }
   syncCenterTabbarVisibility(true);
   renderCenterChatTabs();
-  if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
+  if (typeof renderWorkspaceFilesTree === "function") { renderWorkspaceFilesTree(); }
   if (typeof syncCopilotContextUI === "function") { syncCopilotContextUI(); }
 }
 
@@ -184,7 +181,7 @@ function activateCenterChatTab(tabId) {
     if (gv) { gv.classList.add("hidden"); }
     if (fv) { fv.hidden = false; }
     if (typeof setAmbientDimmed === "function") { setAmbientDimmed(true); }
-    if (typeof setActiveRailSection === "function") { setActiveRailSection("chat", false); }
+    if (typeof setActiveRailSection === "function") { setActiveRailSection("files", false); }
     syncCenterTabbarVisibility(true);
     if (typeof renderCenterFileTab === "function") { renderCenterFileTab(tb); }
     renderCenterChatTabs();
@@ -208,7 +205,7 @@ function activateCenterChatTab(tabId) {
   }
   syncCenterTabbarVisibility(true);
   renderCenterChatTabs();
-  if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
+  if (typeof renderWorkspaceFilesTree === "function") { renderWorkspaceFilesTree(); }
   if (typeof syncCopilotContextUI === "function") { syncCopilotContextUI(); }
 }
 
@@ -219,7 +216,7 @@ function closeCenterChatTab(tabId) {
     centerChatTabs = [{ id: "ct_" + (++wbTabSeq), kind: "chat", chatId: "", title: "", agentId: "", draft: "" }];
   }
   if (wasActive) { activateCenterChatTab(centerChatTabs[centerChatTabs.length - 1].id); }
-  else { renderCenterChatTabs(); if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); } }
+  else { renderCenterChatTabs(); if (typeof renderWorkspaceFilesTree === "function") { renderWorkspaceFilesTree(); } }
 }
 
 function resetCenterChatTabsOnAreaChange() {
@@ -228,7 +225,7 @@ function resetCenterChatTabsOnAreaChange() {
   const fv = document.getElementById("center-file-view");
   if (fv) { fv.hidden = true; }
   renderCenterChatTabs();
-  if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
+  if (typeof renderWorkspaceFilesTree === "function") { renderWorkspaceFilesTree(); }
 }
 
 function bindWorkbenchTabsUX() {
@@ -246,7 +243,7 @@ function bindWorkbenchTabsUX() {
       if (typeof resetHome === "function") { resetHome(); }
       syncCenterTabbarVisibility(true);
       renderCenterChatTabs();
-      if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
+      if (typeof renderWorkspaceFilesTree === "function") { renderWorkspaceFilesTree(); }
     });
   }
   const cAgSel = document.getElementById("center-agent-select");

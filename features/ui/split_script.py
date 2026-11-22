@@ -6,7 +6,7 @@ const wbLayout = {
   splitOpen: false, splitRatio: 50,
   bottomOpen: false, bottomMax: false, bottomTool: "work", editorHeightPct: 58,
   bottomVisible: { work: true, focus: true, impact: true, workflows: true, library: true },
-  rightOpen: false, rightTab: "files", rightWidthPx: 348,
+  rightOpen: false, rightTab: "copilot", rightWidthPx: 348,
   splitAgentId: "lisbeth",
   splitTabs: [{ id: "sp_0", chatId: "", title: "" }],
   activeSplitTabId: "sp_0",
@@ -249,7 +249,8 @@ function resetSplitOnAreaChange() {
   wbLayout.splitTabs = [{ id: "sp_" + (++wbTabSeq), chatId: "", title: "" }];
   wbLayout.activeSplitTabId = wbLayout.splitTabs[0].id;
   renderSplitChatTabs();
-  if (wbLayout.rightOpen && wbLayout.rightTab === "files" && typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
+  if (typeof renderWorkspaceFilesTree === "function") { renderWorkspaceFilesTree(); }
+  if (wbLayout.rightOpen && wbLayout.rightTab === "copilot" && typeof syncCopilotContextUI === "function") { syncCopilotContextUI(); }
   if (typeof broadcastToEmbedFrames === "function") { broadcastToEmbedFrames({ type: "realm:sync-area" }); }
 }
 

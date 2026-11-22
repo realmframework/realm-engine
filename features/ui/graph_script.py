@@ -33,7 +33,7 @@ async function openGraphView(scope) {
   document.getElementById("stream-divider").classList.add("hidden");
   const container = document.getElementById("graph-view");
   container.classList.remove("hidden"); document.getElementById("workspace-shell").classList.add("hidden");
-  if (typeof updateTopbarContext === "function") { updateTopbarContext(t("graph_view")); }
+  if (typeof setActiveRailSection === "function") { setActiveRailSection("graph", false); } if (typeof updateTopbarContext === "function") { updateTopbarContext(t("graph_view")); }
   if (typeof setAmbientGraphPause === "function") { setAmbientGraphPause(true); }
   if (!knowledgeAreas.length || !selectedAreas().length) {
     renderNoWorkspaceState(container, false);

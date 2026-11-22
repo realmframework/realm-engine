@@ -103,9 +103,7 @@ function renderKnowledgeAreas() {
   const nav = document.getElementById("knowledge-areas"), scroll = nav.scrollTop; nav.innerHTML = areaButtons(); bindAreaButtons(nav); nav.scrollTop = scroll;
   const seeds = document.getElementById("seed-chips");
   if (seeds && !isActiveView) { seeds.classList.toggle("hidden", isFree); }
-  const gc = document.getElementById("sidebar-guide-count");
-  if (gc) { gc.textContent = isFree ? "0" : String(Array.isArray(allGuides) ? allGuides.length : 0); }
-  if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
+  if (typeof renderWorkspaceFilesTree === "function") { renderWorkspaceFilesTree(); }
 }
 function adoptWorkspace(data) {
   if (JSON.stringify(selectedAreas()) !== JSON.stringify((data.config || {}).active_dirs || [])) { invalidateAudit(); }

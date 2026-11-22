@@ -1,9 +1,11 @@
-"""Two-Tier Spatial Shell: 52px Activity Rail, Context Drawer & Unified Top-Right Layout Controls."""
+"""Two-Tier Spatial Shell: 52px Activity Rail, Context Drawer (with Left Files Tree) & Top-Right Layout Controls."""
 
 from features.ui.icons import (
     ICON_AGENTS,
     ICON_BOTTOM_PANEL,
+    ICON_COLLAPSE_ALL,
     ICON_FOCUS,
+    ICON_FOLDER_TREE,
     ICON_FORMATS,
     ICON_GRAPH,
     ICON_HELP,
@@ -11,12 +13,11 @@ from features.ui.icons import (
     ICON_IMPACT,
     ICON_LIBRARY,
     ICON_PLUS,
+    ICON_REFRESH,
     ICON_RIGHT_SIDEBAR,
     ICON_SEARCH,
     ICON_SETTINGS,
     ICON_SIDEBAR_LEFT,
-    ICON_STUDY,
-    ICON_UPLOAD,
     ICON_WORK,
     ICON_WORKFLOWS,
 )
@@ -26,7 +27,9 @@ ACTIVITY_RAIL_HTML: str = (
     f'<button id="rail-drawer-toggle" type="button" aria-expanded="true" aria-controls="sidebar" class="rail-btn" aria-label="Toggle left sidebar" title="Toggle left sidebar" data-i18n-aria-label="sh_toggle_drawer" data-i18n-title="sh_toggle_drawer">{ICON_SIDEBAR_LEFT}</button>'
     '<span class="rail-divider" aria-hidden="true"></span>'
     f'<button id="rail-home-btn" type="button" data-rail-section="chat" aria-current="page" class="rail-btn" aria-label="Chat &amp; Home" title="Chat &amp; Home" data-i18n-aria-label="sh_rail_chat" data-i18n-title="sh_rail_chat">{ICON_HOME}</button>'
-    f'<button id="rail-library-btn" type="button" data-rail-section="library" class="rail-btn" aria-label="Library &amp; Space" title="Library &amp; Space" data-i18n-aria-label="sh_rail_library" data-i18n-title="sh_rail_library">{ICON_LIBRARY}</button>'
+    f'<button id="rail-files-btn" type="button" data-rail-section="files" class="rail-btn" aria-label="Files" title="Files" data-i18n-aria-label="sh_rail_files" data-i18n-title="sh_rail_files">{ICON_FOLDER_TREE}</button>'
+    f'<button id="rail-library-btn" type="button" data-rail-section="library" class="rail-btn" aria-label="Library" title="Library" data-i18n-aria-label="sh_rail_library" data-i18n-title="sh_rail_library">{ICON_LIBRARY}</button>'
+    f'<button id="rail-graph-btn" type="button" data-rail-section="graph" class="rail-btn" aria-label="Graph View" title="Graph View" data-i18n-aria-label="sh_rail_graph" data-i18n-title="sh_rail_graph">{ICON_GRAPH}</button>'
     f'<button id="rail-work-btn" type="button" data-rail-section="work" class="rail-btn" aria-label="Work OS: Board, Focus &amp; Impact" title="Work OS: Board, Focus &amp; Impact" data-i18n-aria-label="sh_rail_work" data-i18n-title="sh_rail_work">{ICON_WORK}<span id="rail-work-dot" hidden class="rail-badge-dot" aria-hidden="true"></span></button>'
     f'<button id="rail-workflows-btn" type="button" data-rail-section="workflows" class="rail-btn" aria-label="Workflows &amp; Schedules" title="Workflows &amp; Schedules" data-i18n-aria-label="sh_rail_workflows" data-i18n-title="sh_rail_workflows">{ICON_WORKFLOWS}</button>'
     f'<button id="rail-studio-btn" type="button" data-rail-section="studio" class="rail-btn" aria-label="Agents &amp; Answer Formats" title="Agents &amp; Answer Formats" data-i18n-aria-label="sh_rail_studio" data-i18n-title="sh_rail_studio">{ICON_AGENTS}</button>'
@@ -70,7 +73,9 @@ SIDEBAR_HTML: str = (
     '<div id="sidebar-body">'
     '<div id="mobile-rail-strip" class="mobile-rail-strip" role="group" aria-label="Sections">'
     f'<button type="button" data-rail-section="chat" class="rail-btn" aria-label="Chat &amp; Home" data-i18n-aria-label="sh_rail_chat">{ICON_HOME}</button>'
-    f'<button type="button" data-rail-section="library" class="rail-btn" aria-label="Library &amp; Space" data-i18n-aria-label="sh_rail_library">{ICON_LIBRARY}</button>'
+    f'<button type="button" data-rail-section="files" class="rail-btn" aria-label="Files" data-i18n-aria-label="sh_rail_files">{ICON_FOLDER_TREE}</button>'
+    f'<button type="button" data-rail-section="library" class="rail-btn" aria-label="Library" data-i18n-aria-label="sh_rail_library">{ICON_LIBRARY}</button>'
+    f'<button type="button" data-rail-section="graph" class="rail-btn" aria-label="Graph View" data-i18n-aria-label="sh_rail_graph">{ICON_GRAPH}</button>'
     f'<button type="button" data-rail-section="work" class="rail-btn" aria-label="Work OS" data-i18n-aria-label="sh_rail_work">{ICON_WORK}</button>'
     f'<button type="button" data-rail-section="workflows" class="rail-btn" aria-label="Workflows" data-i18n-aria-label="sh_rail_workflows">{ICON_WORKFLOWS}</button>'
     f'<button type="button" data-rail-section="studio" class="rail-btn" aria-label="Agents &amp; Formats" data-i18n-aria-label="sh_rail_studio">{ICON_AGENTS}</button>'
@@ -79,13 +84,16 @@ SIDEBAR_HTML: str = (
     '<span data-i18n="recent_chats" class="drawer-heading">Recent Chats</span>'
     '<div id="recent-chats-list" class="flex flex-col gap-0.5 flex-1 min-h-0 overflow-y-auto"><div data-i18n="no_recent_chats" class="px-2.5 py-1.5 text-xs text-[#738196]">No recent chats</div></div>'
     "</div>"
-    '<div id="drawer-panel-library" hidden class="drawer-panel">'
-    '<span data-i18n="sh_rail_library" class="drawer-heading">Library &amp; Space</span>'
-    f'<button id="sidebar-browse-btn" type="button" class="drawer-item"><span data-i18n-span="library" class="drawer-item-lead">{ICON_LIBRARY}<span>Library</span></span><span id="sidebar-guide-count" class="drawer-badge">0</span></button>'
-    f'<button id="sidebar-graph-btn" type="button" class="drawer-item"><span data-i18n-span="graph_view" class="drawer-item-lead">{ICON_GRAPH}<span>Graph View</span></span><span class="drawer-badge">2D</span></button>'
-    f'<button type="button" data-shell-act="new-note" class="drawer-item"><span data-i18n-span="sh_new_note" class="drawer-item-lead">{ICON_PLUS}<span>New Note</span></span><span class="drawer-badge">.md</span></button>'
-    f'<button type="button" data-shell-act="upload" class="drawer-item"><span data-i18n-span="up_title" class="drawer-item-lead">{ICON_UPLOAD}<span>Add Documents</span></span></button>'
-    f'<button type="button" data-shell-act="study" class="drawer-item"><span data-i18n-span="study_btn" class="drawer-item-lead">{ICON_STUDY}<span>Study Cards</span></span></button>'
+    '<div id="drawer-panel-files" hidden class="drawer-panel left-files-pane">'
+    '<div class="ft-head">'
+    '<span id="files-tree-ws-title" class="ft-ws-title">Files</span>'
+    '<div class="ft-head-actions">'
+    f'<button id="tree-new-note-btn" type="button" aria-label="New Note" title="New Note" data-i18n-aria-label="sh_new_note" data-i18n-title="sh_new_note" class="wb-icon-btn ft-act-btn">{ICON_PLUS}</button>'
+    f'<button id="tree-refresh-btn" type="button" aria-label="Refresh files" title="Refresh files" data-i18n-aria-label="ft_refresh" data-i18n-title="ft_refresh" class="wb-icon-btn ft-act-btn">{ICON_REFRESH}</button>'
+    f'<button id="tree-collapse-btn" type="button" aria-label="Collapse all folders" title="Collapse all folders" data-i18n-aria-label="ft_collapse_all" data-i18n-title="ft_collapse_all" class="wb-icon-btn ft-act-btn">{ICON_COLLAPSE_ALL}</button>'
+    "</div>"
+    "</div>"
+    '<nav id="workspace-files-tree" aria-label="Workspace files" class="ft-tree"></nav>'
     "</div>"
     '<div id="drawer-panel-work" hidden class="drawer-panel">'
     '<span data-i18n="work_section_lbl" class="drawer-heading">Work OS</span>'

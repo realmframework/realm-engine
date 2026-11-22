@@ -5,7 +5,9 @@ const I18N_SHELL = {
   en: {
     sh_toggle_drawer: "Toggle left sidebar",
     sh_rail_chat: "Chat & Home",
-    sh_rail_library: "Library & Space",
+    sh_rail_files: "Files",
+    sh_rail_library: "Library",
+    sh_rail_graph: "Graph View",
     sh_rail_work: "Work OS: Board, Focus & Impact",
     sh_rail_workflows: "Workflows & Schedules",
     sh_rail_studio: "Agents & Formats",
@@ -86,7 +88,9 @@ const I18N_SHELL = {
   de: {
     sh_toggle_drawer: "Linke Seitenleiste umschalten",
     sh_rail_chat: "Chat & Start",
-    sh_rail_library: "Bibliothek & Dateien",
+    sh_rail_files: "Dateien",
+    sh_rail_library: "Bibliothek",
+    sh_rail_graph: "Wissensgraph",
     sh_rail_work: "Arbeit: Board, Fokus & Wirkung",
     sh_rail_workflows: "Workflows & Zeitpläne",
     sh_rail_studio: "Agenten & Formate",
@@ -167,7 +171,9 @@ const I18N_SHELL = {
   es: {
     sh_toggle_drawer: "Alternar barra lateral izquierda",
     sh_rail_chat: "Chat e Inicio",
-    sh_rail_library: "Biblioteca y Espacio",
+    sh_rail_files: "Archivos",
+    sh_rail_library: "Biblioteca",
+    sh_rail_graph: "Vista de grafo",
     sh_rail_work: "Trabajo: Tablero, Enfoque e Impacto",
     sh_rail_workflows: "Flujos y Horarios",
     sh_rail_studio: "Agentes y Formatos",
