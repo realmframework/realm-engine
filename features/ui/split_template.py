@@ -2,7 +2,12 @@
 
 from features.ui.icons import (
     ICON_CHEVRON_UP,
+    ICON_COLLAPSE_ALL,
+    ICON_FOLDER_TREE,
+    ICON_INSPECTOR_LUPE,
     ICON_MORE,
+    ICON_PLUS,
+    ICON_REFRESH,
     ICON_SIDEBAR_LEFT,
     ICON_SPLIT_EDITOR,
 )
@@ -75,14 +80,32 @@ BOTTOM_PANEL_HTML: str = (
 )
 
 RIGHT_SIDEBAR_HTML: str = (
-    '<div id="right-sidebar-resizer" hidden role="separator" tabindex="0" aria-orientation="vertical" aria-valuemin="260" aria-valuemax="560" aria-valuenow="348" aria-label="Resize Engine Inspector" data-i18n-aria-label="rs_resize_aria" class="wb-resizer wb-resizer-v"></div>'
-    '<aside id="inspector-sidebar" hidden aria-label="Engine Inspector">'
+    '<div id="right-sidebar-resizer" hidden role="separator" tabindex="0" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="560" aria-valuenow="320" aria-label="Resize right sidebar" data-i18n-aria-label="rs_resize_aria" class="wb-resizer wb-resizer-v"></div>'
+    '<aside id="inspector-sidebar" hidden aria-label="Right sidebar: Workspace Files and Engine Inspector">'
     '<header class="wb-zone-bar">'
-    '<span data-i18n="insp_title" class="wb-zone-title">Engine Inspector</span>'
-    '<button id="close-inspector-btn" type="button" aria-label="Close Engine Inspector" data-i18n-aria-label="aria_close_inspector" class="wb-icon-btn inspector-mobile-close">✕</button>'
+    '<div id="right-sidebar-tablist" role="tablist" aria-label="Right sidebar views" class="wb-tab-strip">'
+    f'<button id="right-tab-files" type="button" role="tab" data-right-tab="files" aria-selected="true" class="wb-zone-tab">{ICON_FOLDER_TREE}<span data-i18n="rs_tab_files">Files</span></button>'
+    f'<button id="right-tab-inspector" type="button" role="tab" data-right-tab="inspector" aria-selected="false" class="wb-zone-tab">{ICON_INSPECTOR_LUPE}<span data-i18n="rs_tab_inspector">Inspector</span></button>'
+    "</div>"
+    '<button id="close-inspector-btn" type="button" aria-label="Close right sidebar" data-i18n-aria-label="aria_close_inspector" class="wb-icon-btn inspector-mobile-close">✕</button>'
     "</header>"
-    '<div id="right-panel-inspector" class="right-sidebar-scroll">'
+    '<div id="right-panel-files" role="tabpanel" aria-labelledby="right-tab-files" class="right-files-pane">'
+    '<div class="ft-head">'
+    '<span id="right-files-ws-title" class="ft-ws-title">Workspace</span>'
+    '<div class="ft-head-actions">'
+    f'<button id="tree-new-note-btn" type="button" aria-label="New Note" title="New Note" data-i18n-aria-label="sh_new_note" data-i18n-title="sh_new_note" class="wb-icon-btn ft-act-btn">{ICON_PLUS}</button>'
+    f'<button id="tree-refresh-btn" type="button" aria-label="Refresh files" title="Refresh files" data-i18n-aria-label="ft_refresh" data-i18n-title="ft_refresh" class="wb-icon-btn ft-act-btn">{ICON_REFRESH}</button>'
+    f'<button id="tree-collapse-btn" type="button" aria-label="Collapse all folders" title="Collapse all folders" data-i18n-aria-label="ft_collapse_all" data-i18n-title="ft_collapse_all" class="wb-icon-btn ft-act-btn">{ICON_COLLAPSE_ALL}</button>'
+    "</div>"
+    "</div>"
+    '<nav id="right-files-tree" aria-label="Workspace files" class="ft-tree"></nav>'
+    "</div>"
+    '<div id="right-panel-inspector" role="tabpanel" aria-labelledby="right-tab-inspector" hidden class="right-sidebar-scroll">'
     '<div id="inspector-sidebar-body" class="flex flex-col gap-4 text-sm shrink-0 pb-10"></div>'
     "</div>"
     "</aside>"
+)
+
+CENTER_FILE_VIEW_HTML: str = (
+    '<section id="center-file-view" hidden class="center-file-view" aria-label="File view"></section>'
 )

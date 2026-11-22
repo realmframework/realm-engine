@@ -19,12 +19,14 @@ from features.ui.script import CLIENT_SCRIPT
 from features.ui.shell_styles import SHELL_STYLES_CSS
 from features.ui.sidebar_template import (
     ACTIVITY_RAIL_HTML,
-    GLOBAL_LAYOUT_CONTROLS_HTML,
+    CENTER_LAYOUT_CONTROLS_HTML,
+    RIGHT_LAYOUT_TOGGLE_HTML,
     SIDEBAR_HTML,
 )
 from features.ui.split_styles import SPLIT_STYLES_CSS
 from features.ui.split_template import (
     BOTTOM_PANEL_HTML,
+    CENTER_FILE_VIEW_HTML,
     CENTER_SPLIT_PANE_HTML,
     CENTER_TABBAR_HTML,
     RIGHT_SIDEBAR_HTML,
@@ -193,14 +195,17 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
 <div id="main-shell" class="relative pl-[300px] min-h-screen bg-[#04060F] flex flex-col transition-all duration-200">
   <div id="ambient-stage" aria-hidden="true" class="ambient-stage"><canvas id="ambient-aurora-canvas" class="supernova-beam"></canvas><canvas id="ambient-dots-canvas"></canvas></div>
 """
-    + GLOBAL_LAYOUT_CONTROLS_HTML
+    + RIGHT_LAYOUT_TOGGLE_HTML
     + '\n<div id="workbench-grid"><div id="workbench-center-col">\n'
-    + '<div id="center-editor-row"><div id="center-primary-col">\n'
+    + CENTER_LAYOUT_CONTROLS_HTML
+    + '\n<div id="center-editor-row"><div id="center-primary-col">\n'
     + CENTER_TABBAR_HTML
     + '\n'
     + """  <main id="main-content" tabindex="-1" class="relative z-10 w-full flex-1 flex flex-col pt-0 outline-none">
     <div id="graph-view" class="graph-viewport hidden w-full relative overflow-hidden bg-[#04060F]"></div>
 """
+    + CENTER_FILE_VIEW_HTML
+    + "\n"
     + WORK_BOARD_HTML
     + "\n"
     + FOCUS_VIEW_HTML

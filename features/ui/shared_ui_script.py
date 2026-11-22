@@ -112,9 +112,10 @@ function activateWorkspaceView(viewId, opts) {
   if (typeof closeFocusView === "function" && viewId !== "focus-view") { closeFocusView(); }
   if (typeof closeImpactView === "function" && viewId !== "impact-view") { closeImpactView(); }
   if (typeof closeWorkflowsView === "function" && viewId !== "workflows-view") { closeWorkflowsView(); }
-  const shell = document.getElementById("workspace-shell"), gv = document.getElementById("graph-view");
+  const shell = document.getElementById("workspace-shell"), gv = document.getElementById("graph-view"), fv = document.getElementById("center-file-view");
   if (shell) { shell.classList.toggle("hidden", viewId !== "workspace-shell"); }
   if (gv) { gv.classList.toggle("hidden", viewId !== "graph-view"); }
+  if (fv) { fv.hidden = true; }
   const target = document.getElementById(viewId);
   if (target) { target.classList.remove("hidden"); }
   ["sidebar-work-btn", "sidebar-focus-btn", "sidebar-impact-btn"].forEach(function (bid) {

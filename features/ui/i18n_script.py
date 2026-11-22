@@ -261,6 +261,11 @@ function applyLanguage(lang, persistLocal) {
   if (typeof renderLocalAiPanels === "function") { renderLocalAiPanels(); }
   if (typeof broadcastToEmbedFrames === "function") { broadcastToEmbedFrames({ type: "realm:sync-theme", lang: safe }); }
   if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
+  if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
+  if (typeof centerChatTabs !== "undefined" && typeof renderCenterFileTab === "function") {
+    const curFile = centerChatTabs.find(function (tb) { return tb.id === activeCenterTabId && tb.kind === "file"; });
+    if (curFile) { renderCenterFileTab(curFile); }
+  }
   if (typeof renderChatStream === "function" && currentTurns && currentTurns.length) { renderChatStream(); }
   if (typeof refreshBudget === "function" && typeof settingsModal !== "undefined" && settingsModal && settingsModal.open) { refreshBudget(); }
   if (typeof setUploadDestinationMode === "function" && typeof uploadDestinationMode !== "undefined") { setUploadDestinationMode(uploadDestinationMode); }

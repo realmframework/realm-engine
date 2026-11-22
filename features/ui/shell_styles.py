@@ -41,7 +41,9 @@ body.drawer-collapsed #sidebar { transform: translateX(calc(-100% - var(--rail-w
 .drawer-badge { font-size: calc(0.72rem * var(--ui-scale, 1)); font-family: ui-monospace, monospace; color: var(--text-subtle); flex-shrink: 0; }
 .mobile-only-ctrl { display: none !important; }
 .mobile-rail-strip, .mobile-drawer-footer { display: none; }
-#wb-global-controls { position: absolute; top: 0; right: 0; height: var(--topbar-h); z-index: 40; display: flex; align-items: center; gap: 0.25rem; padding: 0 0.65rem 0 0; }
+#wb-right-toggle-wrap { position: absolute; top: 0; right: 0; height: var(--topbar-h); z-index: 42; display: flex; align-items: center; padding: 0 0.65rem 0 0; }
+#wb-center-controls { position: absolute; top: 0; right: calc(0.65rem + 36px); height: var(--topbar-h); z-index: 41; display: flex; align-items: center; gap: 0.25rem; }
+#workbench-grid.has-right #wb-center-controls { right: 0.65rem; }
 #topbar-timer-pill { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.18rem 0.58rem; border-radius: 999px; border: 1px solid color-mix(in oklab, var(--accent) 45%, transparent); background: color-mix(in oklab, var(--accent) 12%, transparent); color: var(--accent); font-family: ui-monospace, monospace; font-size: calc(0.76rem * var(--ui-scale, 1)); font-weight: 600; cursor: pointer; }
 #topbar-timer-pill[hidden] { display: none !important; }
 .topbar-icon-btn { height: 2rem; width: 2rem; border-radius: 0.52rem; border: 1px solid transparent; background: transparent; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease; }

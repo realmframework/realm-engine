@@ -3,7 +3,7 @@
 WORKBENCH_TABS_SCRIPT: str = r"""
 let wbTabSeq = 0;
 let wbCenterIsChat = true;
-let centerChatTabs = [{ id: "ct_0", chatId: "", title: "", agentId: "", draft: "" }];
+let centerChatTabs = [{ id: "ct_0", kind: "chat", chatId: "", title: "", agentId: "", draft: "" }];
 let activeCenterTabId = "ct_0";
 
 function defaultChatTabLabel() {
@@ -29,11 +29,15 @@ function renderChatTabStrip(listId, tabs, activeId, attrPrefix, onActivate, onCl
   const fallbackLabel = defaultChatTabLabel();
   list.innerHTML = tabs.map(function (tb) {
     const sel = tb.id === selId;
+    const isFile = tb.kind === "file";
     const label = tb.title || fallbackLabel;
+    const iconHtml = isFile && typeof FT_FILE_SVG !== "undefined" ? FT_FILE_SVG : "";
+    const dirtyHtml = isFile && tb.dirty ? "<span class='wb-tab-dirty' aria-label='Unsaved'>•</span>" : "";
+    const closeAria = isFile ? "Close file tab" : "Close chat tab";
     const closeX = tabs.length > 1
-      ? "<span class='wb-tab-x' data-" + attrPrefix + "-close='" + escapeHtml(tb.id) + "' role='button' aria-label='Close chat tab'>✕</span>"
+      ? "<span class='wb-tab-x' data-" + attrPrefix + "-close='" + escapeHtml(tb.id) + "' role='button' aria-label='" + closeAria + "'>✕</span>"
       : "";
-    return "<button type='button' role='tab' aria-selected='" + String(sel) + "' tabindex='" + (sel ? "0" : "-1") + "' data-" + attrPrefix + "-tab='" + escapeHtml(tb.id) + "' class='wb-zone-tab'><span>" + escapeHtml(label) + "</span>" + closeX + "</button>";
+    return "<button type='button' role='tab' aria-selected='" + String(sel) + "' tabindex='" + (sel ? "0" : "-1") + "' data-" + attrPrefix + "-tab='" + escapeHtml(tb.id) + "' class='wb-zone-tab'>" + iconHtml + "<span>" + escapeHtml(label) + "</span>" + dirtyHtml + closeX + "</button>";
   }).join("");
   list.querySelectorAll("[data-" + attrPrefix + "-tab]").forEach(function (btn) {
     btn.addEventListener("click", function (e) {
@@ -51,39 +55,67 @@ function renderChatTabStrip(listId, tabs, activeId, attrPrefix, onActivate, onCl
 }
 
 function syncGlobalControlsWidth() {
-  const ctrls = document.getElementById("wb-global-controls"), shell = document.getElementById("main-shell");
+  const ctrls = document.getElementById("wb-center-controls"), shell = document.getElementById("main-shell");
   if (!ctrls || !shell) { return; }
   const w = ctrls.offsetWidth;
-  if (w > 0) { shell.style.setProperty("--global-ctrl-w", (w + 4) + "px"); }
+  if (w > 0) { shell.style.setProperty("--center-ctrl-w", w + "px"); }
 }
 
 function syncCenterTabbarVisibility(isChatView) {
   if (typeof IS_EMBED !== "undefined" && IS_EMBED) { return; }
   wbCenterIsChat = Boolean(isChatView);
   const grp = document.getElementById("center-chat-tabs-group"), acts = document.getElementById("center-chat-actions");
+  const curTab = centerChatTabs.find(function (tb) { return tb.id === activeCenterTabId; });
+  const isFileTab = Boolean(curTab && curTab.kind === "file");
+  const agSel = document.getElementById("center-agent-select");
   if (grp) { grp.hidden = !wbCenterIsChat; }
   if (acts) { acts.hidden = !wbCenterIsChat; }
+  if (agSel) { agSel.hidden = !wbCenterIsChat || isFileTab; }
   if (typeof applyWorkbenchGrid === "function") { applyWorkbenchGrid(); }
   syncGlobalControlsWidth();
 }
 
-function setRightSidebarOpen(open) {
+function setRightSidebarTab(tab) {
+  const safe = tab === "inspector" ? "inspector" : "files";
+  if (typeof wbLayout !== "undefined") { wbLayout.rightTab = safe; }
+  document.querySelectorAll("[data-right-tab]").forEach(function (btn) {
+    const sel = btn.getAttribute("data-right-tab") === safe;
+    btn.setAttribute("aria-selected", String(sel));
+    btn.tabIndex = sel ? 0 : -1;
+  });
+  const pf = document.getElementById("right-panel-files"), pi = document.getElementById("right-panel-inspector");
+  if (pf) { pf.hidden = safe !== "files"; }
+  if (pi) { pi.hidden = safe !== "inspector"; }
+  if (typeof inspectorOpen !== "undefined" && typeof wbLayout !== "undefined") {
+    inspectorOpen = Boolean(wbLayout.rightOpen && safe === "inspector");
+  }
+  if (safe === "files") {
+    if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
+  } else {
+    if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
+    if (typeof refreshContextUsage === "function") { refreshContextUsage(); }
+  }
+}
+
+function setRightSidebarOpen(open, tab) {
   wbLayout.rightOpen = Boolean(open);
-  if (typeof inspectorOpen !== "undefined") { inspectorOpen = wbLayout.rightOpen; }
+  if (tab === "files" || tab === "inspector") { wbLayout.rightTab = tab; }
+  if (typeof inspectorOpen !== "undefined") { inspectorOpen = wbLayout.rightOpen && (wbLayout.rightTab || "files") === "inspector"; }
   applyWorkbenchGrid();
-  if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
+  if (wbLayout.rightOpen) { setRightSidebarTab(wbLayout.rightTab || "files"); }
+  else if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
 }
 
 function snapshotActiveCenterTab() {
   const cur = centerChatTabs.find(function (tb) { return tb.id === activeCenterTabId; });
-  if (!cur) { return; }
+  if (!cur || cur.kind === "file") { return; }
   if (typeof queryEl !== "undefined" && queryEl) { cur.draft = queryEl.value || ""; }
   if (typeof activeAgentId !== "undefined" && activeAgentId) { cur.agentId = activeAgentId; }
 }
 
 function renderCenterChatTabs() {
   if (typeof IS_EMBED !== "undefined" && IS_EMBED) { return; }
-  if (!centerChatTabs.length) { centerChatTabs = [{ id: "ct_" + (++wbTabSeq), chatId: "", title: "", agentId: "", draft: "" }]; }
+  if (!centerChatTabs.length) { centerChatTabs = [{ id: "ct_" + (++wbTabSeq), kind: "chat", chatId: "", title: "", agentId: "", draft: "" }]; }
   activeCenterTabId = renderChatTabStrip("center-tablist", centerChatTabs, activeCenterTabId, "ct", activateCenterChatTab, closeCenterChatTab);
 }
 
@@ -94,36 +126,39 @@ function syncCenterChatTab(chatId, title) {
   }
   const cid = chatId || "";
   if (cid) {
-    const existing = centerChatTabs.find(function (tb) { return tb.chatId === cid; });
+    const existing = centerChatTabs.find(function (tb) { return tb.kind !== "file" && tb.chatId === cid; });
     if (existing) {
       activeCenterTabId = existing.id;
       if (title) { existing.title = title; }
       renderCenterChatTabs();
+      if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
       return;
     }
     const cur = centerChatTabs.find(function (tb) { return tb.id === activeCenterTabId; });
-    if (cur && !cur.chatId) {
+    if (cur && cur.kind !== "file" && !cur.chatId) {
       cur.chatId = cid; cur.title = title || ""; cur.draft = "";
     } else {
       const id = "ct_" + (++wbTabSeq);
-      centerChatTabs.push({ id: id, chatId: cid, title: title || "", agentId: typeof activeAgentId !== "undefined" ? activeAgentId : "", draft: "" });
+      centerChatTabs.push({ id: id, kind: "chat", chatId: cid, title: title || "", agentId: typeof activeAgentId !== "undefined" ? activeAgentId : "", draft: "" });
       activeCenterTabId = id;
     }
   } else {
     const cur = centerChatTabs.find(function (tb) { return tb.id === activeCenterTabId; });
-    if (cur && !cur.chatId) {
+    if (cur && cur.kind !== "file" && !cur.chatId) {
       renderCenterChatTabs();
       return;
     }
-    const blank = centerChatTabs.find(function (tb) { return !tb.chatId; });
+    const blank = centerChatTabs.find(function (tb) { return tb.kind !== "file" && !tb.chatId; });
     if (blank) { activeCenterTabId = blank.id; }
     else {
       const id = "ct_" + (++wbTabSeq);
-      centerChatTabs.push({ id: id, chatId: "", title: "", agentId: typeof defaultAgentId !== "undefined" ? defaultAgentId : "", draft: "" });
+      centerChatTabs.push({ id: id, kind: "chat", chatId: "", title: "", agentId: typeof defaultAgentId !== "undefined" ? defaultAgentId : "", draft: "" });
       activeCenterTabId = id;
     }
   }
+  syncCenterTabbarVisibility(true);
   renderCenterChatTabs();
+  if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
 }
 
 function activateCenterChatTab(tabId) {
@@ -131,6 +166,28 @@ function activateCenterChatTab(tabId) {
   if (!tb) { return; }
   if (tabId !== activeCenterTabId) { snapshotActiveCenterTab(); }
   activeCenterTabId = tb.id;
+  const fv = document.getElementById("center-file-view");
+  if (tb.kind === "file") {
+    if (typeof abortActiveRequest === "function") { abortActiveRequest(); }
+    if (typeof stopActiveAudio === "function") { stopActiveAudio(); }
+    if (typeof stopGraphSimulation === "function") { stopGraphSimulation(); }
+    if (typeof closeWorkBoardView === "function") { closeWorkBoardView(); }
+    if (typeof closeFocusView === "function") { closeFocusView(); }
+    if (typeof closeImpactView === "function") { closeImpactView(); }
+    if (typeof closeWorkflowsView === "function") { closeWorkflowsView(); }
+    const shell = document.getElementById("workspace-shell"), gv = document.getElementById("graph-view");
+    if (shell) { shell.classList.add("hidden"); }
+    if (gv) { gv.classList.add("hidden"); }
+    if (fv) { fv.hidden = false; }
+    if (typeof setAmbientDimmed === "function") { setAmbientDimmed(true); }
+    if (typeof setActiveRailSection === "function") { setActiveRailSection("chat", false); }
+    syncCenterTabbarVisibility(true);
+    if (typeof renderCenterFileTab === "function") { renderCenterFileTab(tb); }
+    renderCenterChatTabs();
+    if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
+    return;
+  }
+  if (fv) { fv.hidden = true; }
   if (typeof setActiveRailSection === "function") { setActiveRailSection("chat", false); }
   if (tb.chatId) {
     if (tb.chatId !== currentChatId && typeof openSavedChat === "function") { openSavedChat(tb.chatId); }
@@ -145,23 +202,28 @@ function activateCenterChatTab(tabId) {
       selectAgentUI(tb.agentId);
     }
   }
+  syncCenterTabbarVisibility(true);
   renderCenterChatTabs();
+  if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
 }
 
 function closeCenterChatTab(tabId) {
   const wasActive = activeCenterTabId === tabId;
   centerChatTabs = centerChatTabs.filter(function (tb) { return tb.id !== tabId; });
   if (!centerChatTabs.length) {
-    centerChatTabs = [{ id: "ct_" + (++wbTabSeq), chatId: "", title: "", agentId: "", draft: "" }];
+    centerChatTabs = [{ id: "ct_" + (++wbTabSeq), kind: "chat", chatId: "", title: "", agentId: "", draft: "" }];
   }
   if (wasActive) { activateCenterChatTab(centerChatTabs[centerChatTabs.length - 1].id); }
-  else { renderCenterChatTabs(); }
+  else { renderCenterChatTabs(); if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); } }
 }
 
 function resetCenterChatTabsOnAreaChange() {
-  centerChatTabs = [{ id: "ct_" + (++wbTabSeq), chatId: "", title: "", agentId: "", draft: "" }];
+  centerChatTabs = [{ id: "ct_" + (++wbTabSeq), kind: "chat", chatId: "", title: "", agentId: "", draft: "" }];
   activeCenterTabId = centerChatTabs[0].id;
+  const fv = document.getElementById("center-file-view");
+  if (fv) { fv.hidden = true; }
   renderCenterChatTabs();
+  if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
 }
 
 function bindWorkbenchTabsUX() {
@@ -171,11 +233,15 @@ function bindWorkbenchTabsUX() {
     addBtn.addEventListener("click", function () {
       snapshotActiveCenterTab();
       const id = "ct_" + (++wbTabSeq);
-      centerChatTabs.push({ id: id, chatId: "", title: "", agentId: typeof defaultAgentId !== "undefined" ? defaultAgentId : "", draft: "" });
+      centerChatTabs.push({ id: id, kind: "chat", chatId: "", title: "", agentId: typeof defaultAgentId !== "undefined" ? defaultAgentId : "", draft: "" });
       activeCenterTabId = id;
+      const fv = document.getElementById("center-file-view");
+      if (fv) { fv.hidden = true; }
       if (typeof setActiveRailSection === "function") { setActiveRailSection("chat", false); }
       if (typeof resetHome === "function") { resetHome(); }
+      syncCenterTabbarVisibility(true);
       renderCenterChatTabs();
+      if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
     });
   }
   const cAgSel = document.getElementById("center-agent-select");

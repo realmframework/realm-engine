@@ -105,6 +105,7 @@ function renderKnowledgeAreas() {
   if (seeds && !isActiveView) { seeds.classList.toggle("hidden", isFree); }
   const gc = document.getElementById("sidebar-guide-count");
   if (gc) { gc.textContent = isFree ? "0" : String(Array.isArray(allGuides) ? allGuides.length : 0); }
+  if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); }
 }
 function adoptWorkspace(data) {
   if (JSON.stringify(selectedAreas()) !== JSON.stringify((data.config || {}).active_dirs || [])) { invalidateAudit(); }

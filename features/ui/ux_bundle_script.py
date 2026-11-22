@@ -5,6 +5,7 @@ from features.ui.comfort_script import COMFORT_SCRIPT
 from features.ui.command_script import COMMAND_SCRIPT
 from features.ui.eco_sync_script import ECO_SYNC_SCRIPT
 from features.ui.editor_script import EDITOR_SCRIPT
+from features.ui.file_tab_script import FILE_TAB_SCRIPT
 from features.ui.focus_script import FOCUS_SCRIPT
 from features.ui.guide_script import GUIDE_SCRIPT
 from features.ui.impact_script import IMPACT_SCRIPT
@@ -39,6 +40,7 @@ UX_BUNDLE_SCRIPT: str = (
     + WORKFLOW_RUN_SCRIPT
     + SHELL_SCRIPT
     + WORKBENCH_TABS_SCRIPT
+    + FILE_TAB_SCRIPT
     + LOCAL_AI_SCRIPT
     + r"""
 function bindAllUXBundles() {
@@ -60,6 +62,7 @@ function bindAllUXBundles() {
     typeof bindWorkflowStudioUX === "function" && bindWorkflowStudioUX,
     typeof bindSpatialShellUX === "function" && bindSpatialShellUX,
     typeof bindWorkbenchTabsUX === "function" && bindWorkbenchTabsUX,
+    typeof bindFileTabUX === "function" && bindFileTabUX,
     typeof bindLocalAiUX === "function" && bindLocalAiUX,
   ]) {
     if (fn) { try { fn(); } catch (err) { console.error("UX bundle init failed:", err); } }

@@ -78,7 +78,9 @@ function setActiveRailSection(section, navigate) {
       if (typeof closeWorkflowsView === "function") { closeWorkflowsView(); }
       if (typeof stopGraphSimulation === "function") { stopGraphSimulation(); }
       if (document.getElementById("library-view") || document.getElementById("reader-heading")) { resultsEl.innerHTML = ""; }
-      if (typeof setViewMode === "function") { setViewMode(Boolean(currentTurns && currentTurns.length)); }
+      const curTab = typeof centerChatTabs !== "undefined" ? centerChatTabs.find(function (tb) { return tb.id === activeCenterTabId; }) : null;
+      if (curTab && curTab.kind === "file" && typeof activateCenterChatTab === "function") { activateCenterChatTab(curTab.id); }
+      else if (typeof setViewMode === "function") { setViewMode(Boolean(currentTurns && currentTurns.length)); }
     } else if (safe === "library" && typeof openLibraryCatalog === "function") {
       setActiveTag(null); openLibraryCatalog(null);
     } else if (safe === "work" && typeof openWorkBoardView === "function") {

@@ -9,9 +9,9 @@ from features.ui.icons import (
     ICON_HELP,
     ICON_HOME,
     ICON_IMPACT,
-    ICON_INSPECTOR_LUPE,
     ICON_LIBRARY,
     ICON_PLUS,
+    ICON_RIGHT_SIDEBAR,
     ICON_SEARCH,
     ICON_SETTINGS,
     ICON_SIDEBAR_LEFT,
@@ -112,10 +112,15 @@ SIDEBAR_HTML: str = (
     "</aside>"
 )
 
-GLOBAL_LAYOUT_CONTROLS_HTML: str = (
-    '<div id="wb-global-controls" aria-label="Workspace panels">'
+CENTER_LAYOUT_CONTROLS_HTML: str = (
+    '<div id="wb-center-controls" aria-label="Bottom panel controls">'
     '<button id="topbar-timer-pill" type="button" hidden title="Open Time &amp; Impact">00:00</button>'
     f'<button id="layout-bottom-btn" type="button" aria-pressed="false" aria-label="Toggle bottom panel" title="Toggle bottom panel" data-i18n-aria-label="sh_toggle_bottom" data-i18n-title="sh_toggle_bottom" class="topbar-icon-btn">{ICON_BOTTOM_PANEL}</button>'
-    f'<button id="layout-right-btn" type="button" aria-pressed="false" aria-expanded="false" aria-controls="inspector-sidebar" aria-label="Engine Inspector (⌘I)" title="Engine Inspector (⌘I)" data-i18n-aria-label="sh_toggle_right_sb" data-i18n-title="sh_toggle_right_sb" class="topbar-icon-btn">{ICON_INSPECTOR_LUPE}</button>'
+    "</div>"
+)
+
+RIGHT_LAYOUT_TOGGLE_HTML: str = (
+    '<div id="wb-right-toggle-wrap" aria-label="Right sidebar control">'
+    f'<button id="layout-right-btn" type="button" aria-pressed="false" aria-expanded="false" aria-controls="inspector-sidebar" aria-label="Toggle right sidebar" title="Toggle right sidebar" data-i18n-aria-label="sh_toggle_right_sb" data-i18n-title="sh_toggle_right_sb" class="topbar-icon-btn">{ICON_RIGHT_SIDEBAR}</button>'
     "</div>"
 )

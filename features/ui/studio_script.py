@@ -248,7 +248,7 @@ function exportTurnPdf(tIdx) {
 function exportFullChatPdf() { if (currentChatId) { exportPdfRequest({ chat_id: currentChatId, free_chat: freeChatMode }, chatSlug((currentTurns[0] && currentTurns[0].query) || "conversation")); } }
 function setInspectorOpen(open, restoreFocus) {
   inspectorOpen = Boolean(open);
-  if (typeof setRightSidebarOpen === "function") { setRightSidebarOpen(inspectorOpen); }
+  if (typeof setRightSidebarOpen === "function") { setRightSidebarOpen(inspectorOpen, inspectorOpen ? "inspector" : undefined); }
   else { syncInspectorSidebar(); }
   if (inspectorOpen) { refreshContextUsage(); const cb = document.getElementById("close-inspector-btn"); if (cb && cb.offsetParent !== null) { cb.focus({ preventScroll: true }); } }
   else if (restoreFocus) { const tb = document.getElementById("layout-right-btn"); if (tb) { tb.focus({ preventScroll: true }); } }
@@ -258,10 +258,11 @@ function syncInspectorSidebar() {
   const graphVisible = document.getElementById("graph-view") && !document.getElementById("graph-view").classList.contains("hidden");
   const hasChat = Boolean(currentChatId && (currentTurns.length || activeAttachedNotes.length) && isActiveView && !graphVisible);
   const rightOpen = typeof wbLayout !== "undefined" ? Boolean(wbLayout.rightOpen) : inspectorOpen;
+  const inspShown = typeof wbLayout !== "undefined" ? Boolean(wbLayout.rightOpen && wbLayout.rightTab === "inspector") : inspectorOpen;
   if (rightBtn) { rightBtn.setAttribute("aria-expanded", String(rightOpen)); }
   if (!aside || !body) { return; }
   if (typeof wbLayout === "undefined") { aside.hidden = !Boolean(hasChat && inspectorOpen); }
-  if (!rightOpen) { return; }
+  if (!inspShown) { return; }
   if (!hasChat) {
     body.innerHTML = "<div class='wb-empty'>" + escapeHtml(t("insp_empty_hint")) + "</div>";
     return;
@@ -318,8 +319,16 @@ function bindStudioControls() {
   if (vBtn) { vBtn.addEventListener("click", () => setUploadDestinationMode("vault")); } if (cBtn) { cBtn.addEventListener("click", () => setUploadDestinationMode("chat")); }
   if (closeInsp) { closeInsp.addEventListener("click", () => setInspectorOpen(false, true)); }
   document.addEventListener("keydown", function (e) {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "i" && currentChatId && currentTurns.length && !document.querySelector("dialog[open]")) { e.preventDefault(); setInspectorOpen(!inspectorOpen, true); }
-    else if (e.key === "Escape" && inspectorOpen && !document.querySelector("dialog[open]")) { setInspectorOpen(false, true); }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "i" && !document.querySelector("dialog[open]")) {
+      const tag = (document.activeElement && document.activeElement.tagName) || "";
+      if (tag === "TEXTAREA" || tag === "INPUT") { return; }
+      e.preventDefault();
+      const openOnInsp = typeof wbLayout !== "undefined" ? (wbLayout.rightOpen && wbLayout.rightTab === "inspector") : inspectorOpen;
+      setInspectorOpen(!openOnInsp, true);
+    } else if (e.key === "Escape" && inspectorOpen && !document.querySelector("dialog[open]")) {
+      const tag = (document.activeElement && document.activeElement.tagName) || "";
+      if (tag !== "TEXTAREA" && tag !== "INPUT") { setInspectorOpen(false, true); }
+    }
   });
   loadOutputFormats();
 }

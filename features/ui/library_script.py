@@ -190,7 +190,7 @@ async function loadGuidesCatalog(tagFilter) {
     if (!res.ok || version !== areaVersion) { return []; }
     const guides = await safeJson(res);
     if (version !== areaVersion) { return []; }
-    if (!tagFilter && Array.isArray(guides)) { allGuides = guides; renderScopeChoices(); }
+    if (!tagFilter && Array.isArray(guides)) { allGuides = guides; renderScopeChoices(); if (typeof renderRightFilesTree === "function") { renderRightFilesTree(); } }
     return Array.isArray(guides) ? guides : [];
   } catch (_e) { return []; }
 }

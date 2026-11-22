@@ -95,8 +95,8 @@ function setViewMode(active, hideDock) {
   if (typeof closeImpactView === "function") { closeImpactView(); }
   if (typeof closeWorkflowsView === "function") { closeWorkflowsView(); }
   if (typeof setAmbientDimmed === "function") { setAmbientDimmed(Boolean(active)); }
-  const shell = document.getElementById("workspace-shell"), dock = document.getElementById("search-dock"), stream = document.getElementById("active-stream"), gv = document.getElementById("graph-view");
-  shell.classList.remove("hidden"); if (gv) { gv.classList.add("hidden"); }
+  const shell = document.getElementById("workspace-shell"), dock = document.getElementById("search-dock"), stream = document.getElementById("active-stream"), gv = document.getElementById("graph-view"), fv = document.getElementById("center-file-view");
+  shell.classList.remove("hidden"); if (gv) { gv.classList.add("hidden"); } if (fv) { fv.hidden = true; }
   queryEl.placeholder = active ? t("ask_followup") : defaultPlaceholder;
   const chatLayout = Boolean(active && !hideDock);
   const applyLayout = function () {
