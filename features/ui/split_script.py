@@ -1,328 +1,342 @@
-"""Pane-scoped Split Screen controller: Vertical Dual Chat, Horizontal/Vertical Board <-> Chat, and Guide Split."""
+"""True-DRY VS Code 4-Zone Workbench controller: Split Chat, Bottom Work Tools & Docked Right Sidebar."""
 
 SPLIT_SCRIPT: str = r"""
-const splitState = {
-  open: false, orientation: "vertical", bMode: "chat", ratio: 50,
-  chatId: null, turns: [], agentId: "lisbeth", guideId: "",
-  controller: null, reqId: null, streamScheduled: false
+const BP_TOOLS = ["work", "focus", "impact", "workflows", "library"];
+const wbLayout = {
+  splitOpen: false, splitRatio: 50,
+  bottomOpen: false, bottomMax: false, bottomTool: "work", editorHeightPct: 58,
+  bottomVisible: { work: true, focus: true, impact: true, workflows: true, library: true },
+  rightOpen: false, rightTab: "inspector", rightWidthPx: 348, rightDocId: "",
+  splitAgentId: "lisbeth",
+  splitTabs: [{ id: "sp_0", chatId: "", title: "" }],
+  activeSplitTabId: "sp_0",
 };
-function syncSplitSelectors() {
-  const agSel = document.getElementById("split-agent-select"), thSel = document.getElementById("split-thread-select"), gSel = document.getElementById("split-guide-select");
-  if (agSel) {
-    const list = typeof agentTeam !== "undefined" && Array.isArray(agentTeam) && agentTeam.length ? agentTeam : [{ id: "saga", name: "Saga" }, { id: "lisbeth", name: "Lisbeth" }, { id: "plague", name: "Plague" }];
-    if (!list.some(function (a) { return a.id === splitState.agentId; })) {
-      splitState.agentId = (list.find(function (a) { return a.id !== (typeof activeAgentId !== "undefined" ? activeAgentId : "saga"); }) || list[0]).id;
+
+function loadBottomToolPrefs() {
+  try {
+    const raw = safeStorageGet("realm_bp_visible");
+    if (!raw) { return; }
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      let anyOn = false;
+      BP_TOOLS.forEach(function (k) { wbLayout.bottomVisible[k] = parsed[k] !== false; if (wbLayout.bottomVisible[k]) { anyOn = true; } });
+      if (!anyOn) { wbLayout.bottomVisible.work = true; }
     }
-    agSel.innerHTML = list.map(function (a) {
-      return "<option value='" + escapeHtml(a.id) + "'" + (a.id === splitState.agentId ? " selected" : "") + ">" + escapeHtml(a.name) + "</option>";
-    }).join("");
-  }
-  if (thSel) {
-    const opts = ["<option value=''>" + escapeHtml(t("sp_new_thread_opt")) + "</option>"];
-    (Array.isArray(savedChats) ? savedChats : []).slice(0, 25).forEach(function (c) {
-      opts.push("<option value='" + escapeHtml(c.chat_id) + "'" + (c.chat_id === splitState.chatId ? " selected" : "") + ">" + escapeHtml(c.title || c.chat_id) + "</option>");
-    });
-    thSel.innerHTML = opts.join("");
-    thSel.value = splitState.chatId || "";
-  }
-  if (gSel) {
-    const guides = typeof cachedGuides !== "undefined" && Array.isArray(cachedGuides) ? cachedGuides : [];
-    const opts = guides.length ? guides.map(function (g) {
-      return "<option value='" + escapeHtml(g.doc_id) + "'" + (g.doc_id === splitState.guideId ? " selected" : "") + ">" + escapeHtml(g.title || g.doc_id) + "</option>";
-    }) : ["<option value=''>" + escapeHtml(t("sp_no_guides")) + "</option>"];
-    gSel.innerHTML = opts.join("");
-    if (guides.length && !splitState.guideId) { splitState.guideId = guides[0].doc_id; gSel.value = splitState.guideId; }
-  }
+  } catch (_e) {}
 }
-function applySplitLayout() {
-  const main = document.getElementById("main-content"), resizer = document.getElementById("split-resizer"), paneB = document.getElementById("split-pane-b");
-  const toggleBtn = document.getElementById("split-toggle-btn"), closeItem = document.getElementById("split-menu-close-btn");
-  if (!main || !resizer || !paneB) { return; }
+
+function saveBottomToolPrefs() { safeStorageSet("realm_bp_visible", JSON.stringify(wbLayout.bottomVisible)); }
+
+function applyWorkbenchGrid() {
+  const grid = document.getElementById("workbench-grid");
+  const centerCol = document.getElementById("workbench-center-col");
+  const editorRow = document.getElementById("center-editor-row");
+  const spRes = document.getElementById("center-split-resizer"), spPane = document.getElementById("center-split-pane");
+  const bpRes = document.getElementById("bottom-panel-resizer"), bpPane = document.getElementById("bottom-panel");
+  const rsRes = document.getElementById("right-sidebar-resizer"), rsPane = document.getElementById("inspector-sidebar");
   const narrow = window.matchMedia && window.matchMedia("(max-width: 959px)").matches;
-  const active = splitState.open && !narrow;
-  main.classList.toggle("is-split-active", active);
-  main.classList.toggle("is-split-vertical", active && splitState.orientation === "vertical");
-  main.classList.toggle("is-split-horizontal", active && splitState.orientation === "horizontal");
-  main.style.setProperty("--split-a", splitState.ratio + "%");
-  resizer.hidden = !active; paneB.hidden = !active;
-  resizer.setAttribute("aria-orientation", splitState.orientation === "vertical" ? "vertical" : "horizontal");
-  resizer.setAttribute("aria-valuenow", String(Math.round(splitState.ratio)));
-  if (toggleBtn) { toggleBtn.classList.toggle("is-active", active); }
-  if (closeItem) { closeItem.hidden = !splitState.open; }
-  const chatBody = document.getElementById("split-chat-body"), guideBody = document.getElementById("split-guide-body");
-  const mChat = document.getElementById("split-mode-chat-btn"), mGuide = document.getElementById("split-mode-guide-btn");
-  const agSel = document.getElementById("split-agent-select"), thSel = document.getElementById("split-thread-select"), newBtn = document.getElementById("split-new-chat-btn");
-  const isChat = splitState.bMode === "chat";
-  if (mChat) { mChat.setAttribute("aria-pressed", String(isChat)); }
-  if (mGuide) { mGuide.setAttribute("aria-pressed", String(!isChat)); }
-  if (agSel) { agSel.hidden = !isChat; }
-  if (thSel) { thSel.hidden = !isChat; }
-  if (newBtn) { newBtn.hidden = !isChat; }
-  if (typeof syncSideWorkbenchBody === "function") { syncSideWorkbenchBody(); }
-  else {
-    if (chatBody) { chatBody.hidden = !isChat; }
-    if (guideBody) { guideBody.hidden = isChat; }
+  const splitOn = wbLayout.splitOpen && !narrow;
+  const bottomOn = wbLayout.bottomOpen && !narrow;
+  const rightOn = wbLayout.rightOpen;
+
+  if (editorRow) {
+    editorRow.classList.toggle("has-split", splitOn);
+    editorRow.style.setProperty("--split-a", wbLayout.splitRatio + "%");
+  }
+  if (spRes) { spRes.hidden = !splitOn; spRes.setAttribute("aria-valuenow", String(Math.round(wbLayout.splitRatio))); }
+  if (spPane) { spPane.hidden = !splitOn; }
+
+  if (centerCol) {
+    centerCol.classList.toggle("has-bottom", bottomOn);
+    centerCol.classList.toggle("is-bottom-max", bottomOn && wbLayout.bottomMax);
+    centerCol.style.setProperty("--editor-h", wbLayout.editorHeightPct + "%");
+  }
+  if (bpRes) { bpRes.hidden = !bottomOn || wbLayout.bottomMax; bpRes.setAttribute("aria-valuenow", String(Math.round(wbLayout.editorHeightPct))); }
+  if (bpPane) { bpPane.hidden = !bottomOn; }
+
+  if (grid) {
+    grid.classList.toggle("has-right", rightOn && !narrow);
+    grid.style.setProperty("--right-w", wbLayout.rightWidthPx + "px");
+  }
+  if (rsRes) { rsRes.hidden = !rightOn || narrow; rsRes.setAttribute("aria-valuenow", String(Math.round(wbLayout.rightWidthPx))); }
+  if (rsPane) { rsPane.hidden = !rightOn; }
+
+  const splitBtn = document.getElementById("center-split-btn");
+  const bpBtn = document.getElementById("layout-bottom-btn");
+  const rsBtn = document.getElementById("layout-right-btn");
+  const maxBtn = document.getElementById("bottom-panel-max-btn");
+  if (splitBtn) { splitBtn.setAttribute("aria-pressed", String(splitOn)); }
+  if (bpBtn) { bpBtn.setAttribute("aria-pressed", String(bottomOn)); }
+  if (rsBtn) { rsBtn.setAttribute("aria-pressed", String(rightOn)); }
+  if (maxBtn) {
+    maxBtn.setAttribute("aria-pressed", String(wbLayout.bottomMax));
+    const lbl = t(wbLayout.bottomMax ? "bp_restore_aria" : "bp_max_aria");
+    maxBtn.setAttribute("aria-label", lbl); maxBtn.title = lbl;
+    maxBtn.innerHTML = wbLayout.bottomMax
+      ? '<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>'
+      : '<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>';
   }
 }
-function abortSplitRequest() {
-  if (splitState.reqId) { cancelBackendRequest(splitState.reqId); splitState.reqId = null; }
-  if (splitState.controller) { splitState.controller.abort(); splitState.controller = null; }
-  syncSplitSubmitBtn(false);
-}
-function syncSplitSubmitBtn(loading) {
-  const btn = document.getElementById("split-submit-btn"); if (!btn) { return; }
-  if (loading) {
-    btn.type = "button"; btn.innerHTML = STOP_SVG;
-    btn.setAttribute("aria-label", t("stop_generating")); btn.title = t("stop_generating");
-    btn.className = "w-8 h-8 rounded-full bg-[#04060F] border border-[#4BB8E8] text-[#4BB8E8] flex items-center justify-center shrink-0 transition";
-  } else {
-    btn.type = "submit"; btn.textContent = "↑";
-    btn.setAttribute("aria-label", t("submit_query")); btn.title = t("submit_query");
-    btn.className = "w-8 h-8 rounded-full bg-[#4BB8E8] text-[#04060F] flex items-center justify-center text-sm font-semibold shrink-0 transition";
-  }
-}
-function renderSplitChatStream() {
-  const stream = document.getElementById("split-chat-stream"); if (!stream) { return; }
-  if (!splitState.turns.length) {
-    const agName = typeof agentNameById === "function" ? agentNameById(splitState.agentId) : splitState.agentId;
-    stream.innerHTML = "<div class='split-empty-chat'><p style='margin:0 0 0.4rem;font-weight:600;color:var(--text)'>" + escapeHtml(t("sp_ready_title", { agent: agName })) + "</p><p style='margin:0'>" + escapeHtml(t("sp_ready_sub")) + "</p></div>";
+
+function ensureEmbedFrame(frameId, url, onReadyMsg) {
+  const fr = document.getElementById(frameId); if (!fr) { return; }
+  if (fr.dataset.loaded === "1" && fr.contentWindow) {
+    if (onReadyMsg) { try { fr.contentWindow.postMessage(Object.assign({ source: "realm-parent" }, onReadyMsg), window.location.origin); } catch (_e) {} }
     return;
   }
-  stream.innerHTML = splitState.turns.map(function (turn, idx) {
-    const authorName = typeof turnAuthorName === "function" ? turnAuthorName(turn) : (turn.agent_name || "Saga");
-    const authorHex = typeof turnAuthorColor === "function" ? turnAuthorColor(turn) : "";
-    const turnStyle = authorHex ? " style='--turn-seed:" + escapeHtml(authorHex) + "'" : "";
-    let bodyHtml = "";
-    if (turn.loadingTutor) {
-      const txt = String(turn.streamingText || "");
-      bodyHtml = txt
-        ? "<div id='split-turn-" + idx + "-body' class='md-body is-streaming text-sm leading-relaxed flex flex-col gap-2.5'>" + formatMarkdown(txt, true, 3) + "</div>"
-        : "<div class='text-xs text-[#A0B0C8]'>" + escapeHtml(t("chat_preparing")) + "</div>";
-    } else if (turn.tutor) {
-      bodyHtml = "<div class='md-body text-sm leading-relaxed flex flex-col gap-2.5'>" + formatMarkdown(turn.tutor.answer || "", true, 3) + "</div>"
-        + "<div class='split-turn-actions'>"
-        + "<button type='button' data-split-copy='" + idx + "' class='wb-btn wb-btn-sm'>" + escapeHtml(t("copy_btn")) + "</button>"
-        + "<button type='button' data-split-extract='" + idx + "' class='wb-btn wb-btn-sm'>" + escapeHtml(t("wb_extract_to_board")) + "</button>"
-        + "</div>";
+  fr.dataset.pendingMsg = onReadyMsg ? JSON.stringify(onReadyMsg) : "";
+  if (fr.dataset.loading === "1") { return; }
+  fr.dataset.loading = "1";
+  fr.onload = function () {
+    fr.dataset.loaded = "1"; fr.dataset.loading = "0";
+    if (fr.dataset.pendingMsg && fr.contentWindow) {
+      try { fr.contentWindow.postMessage(Object.assign({ source: "realm-parent" }, JSON.parse(fr.dataset.pendingMsg)), window.location.origin); } catch (_e) {}
+      fr.dataset.pendingMsg = "";
     }
-    return "<article class='split-turn turn-themed'" + turnStyle + ">"
-      + "<div class='split-user-bubble'>" + escapeHtml(turn.query) + "</div>"
-      + "<div class='turn-author-heading flex items-center gap-1.5 text-sm font-semibold'>" + SPARKLE_SVG + "<span>" + escapeHtml(authorName) + "</span></div>"
-      + bodyHtml + "</article>";
-  }).join("");
-  stream.querySelectorAll("[data-split-copy]").forEach(function (btn) {
-    btn.addEventListener("click", async function () {
-      const trn = splitState.turns[Number(btn.getAttribute("data-split-copy") || 0)];
-      if (trn && trn.tutor && navigator.clipboard) { await navigator.clipboard.writeText(trn.tutor.answer || ""); showToast(t("copied_btn")); }
-    });
-  });
-  stream.querySelectorAll("[data-split-extract]").forEach(function (btn) {
-    btn.addEventListener("click", async function () {
-      const idx = Number(btn.getAttribute("data-split-extract") || 0), trn = splitState.turns[idx];
-      if (trn && trn.tutor && typeof extractTasksToBoard === "function") {
-        await extractTasksToBoard({ chat_id: splitState.chatId || "", turn_index: idx, text: trn.tutor.answer || "" });
-      }
-    });
-  });
-  stream.scrollTop = stream.scrollHeight;
-}
-function scheduleSplitStreamRender() {
-  if (splitState.streamScheduled) { return; }
-  splitState.streamScheduled = true;
-  requestAnimationFrame(function () {
-    splitState.streamScheduled = false;
-    const idx = splitState.turns.length - 1, last = idx >= 0 ? splitState.turns[idx] : null;
-    if (!last || !last.loadingTutor) { return; }
-    const el = document.getElementById("split-turn-" + idx + "-body");
-    if (!el) { renderSplitChatStream(); return; }
-    el.innerHTML = formatMarkdown(String(last.streamingText || ""), true, 3);
-    const sc = document.getElementById("split-chat-stream");
-    if (sc && sc.scrollHeight - sc.scrollTop - sc.clientHeight < 120) { sc.scrollTop = sc.scrollHeight; }
-  });
-}
-async function runSplitChatSubmit(overridePrompt) {
-  const qEl = document.getElementById("split-query");
-  const q = String(overridePrompt !== undefined ? overridePrompt : (qEl ? qEl.value : "")).trim();
-  if (!q || areaSwitching) { return; }
-  abortSplitRequest();
-  const version = areaVersion;
-  if (!splitState.chatId) { splitState.chatId = newChatId(); }
-  if (qEl && overridePrompt === undefined) { qEl.value = ""; }
-  const effAgentId = (typeof resolveMentionedAgent === "function" && resolveMentionedAgent(q)) || splitState.agentId || "saga";
-  const effAgentName = typeof agentNameById === "function" ? agentNameById(effAgentId) : effAgentId;
-  const controller = new AbortController(), reqId = "sreq-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
-  splitState.controller = controller; splitState.reqId = reqId;
-  const pending = { query: q, ask_tutor: true, loadingTutor: true, agent_id: effAgentId, agent_name: effAgentName, tutor: null, results: [], streamingText: "" };
-  splitState.turns.push(pending);
-  syncSplitSubmitBtn(true); renderSplitChatStream();
-  try {
-    const apiKey = getApiKey(), headers = Object.assign({ "Content-Type": "application/json", "x-request-id": reqId }, apiKey ? { "x-api-key": apiKey } : {});
-    const body = {
-      subfolder: activeScope.subfolder, doc_id: activeScope.doc_id, query: q, tag: null, ask_tutor: true,
-      use_web_search: false, free_chat: Boolean(typeof freeChatMode !== "undefined" && freeChatMode),
-      agent_id: effAgentId, provider: providerEl.value, model: modelEl.value.trim() || null, api_key: apiKey || null,
-      top_k: ragConfig.top_k, retrieval_mode: ragConfig.retrieval_mode, rrf_k: ragConfig.rrf_k, temperature: ragConfig.temperature,
-    };
-    const res = await areaFetch("/api/chats/" + encodeURIComponent(splitState.chatId) + "/turn/stream", { method: "POST", headers: headers, signal: controller.signal, body: JSON.stringify(body) });
-    if (res.status === 499 || controller.signal.aborted || version !== areaVersion) { return; }
-    if (!res.ok) { const err = await safeJson(res); throw new Error((err && err.detail) || "Split chat failed."); }
-    const reader = res.body.getReader(), decoder = new TextDecoder();
-    let buf = "", doneSession = null;
-    const onEv = function (raw) {
-      if (controller.signal.aborted || version !== areaVersion) { return; }
-      let ev = "message", lines = [];
-      for (const ln of raw.split(/\r?\n/)) { if (ln.startsWith("event:")) { ev = ln.slice(6).trim(); } else if (ln.startsWith("data:")) { lines.push(ln.slice(5).trim()); } }
-      if (!lines.length) { return; }
-      let p = null; try { p = JSON.parse(lines.join("\n")); } catch (_e) { return; }
-      if (ev === "token") { pending.streamingText += String(p.delta || ""); scheduleSplitStreamRender(); }
-      else if (ev === "done") { doneSession = p; }
-      else if (ev === "error") { throw new Error((p && p.detail) || "Split chat error"); }
-    };
-    while (true) {
-      const step = await reader.read(); if (step.done) { break; }
-      if (controller.signal.aborted || version !== areaVersion) { try { await reader.cancel(); } catch (_e) {} return; }
-      buf += decoder.decode(step.value, { stream: true });
-      let idx;
-      while ((idx = buf.indexOf("\n\n")) !== -1) { const ch = buf.slice(0, idx); buf = buf.slice(idx + 2); if (ch.trim()) { onEv(ch); } }
-    }
-    buf += decoder.decode(); if (buf.trim()) { onEv(buf); }
-    if (controller.signal.aborted || version !== areaVersion) { return; }
-    if (doneSession && Array.isArray(doneSession.turns)) { splitState.turns = doneSession.turns; }
-    else { pending.loadingTutor = false; pending.tutor = { answer: pending.streamingText.trim() || "Stopped.", cited_titles: [], knowledge_gap_detected: false }; }
-    renderSplitChatStream(); await loadRecentChats(); syncSplitSelectors(); refreshBudget();
-  } catch (err) {
-    if ((err && err.name === "AbortError") || controller.signal.aborted || version !== areaVersion) { return; }
-    pending.loadingTutor = false; pending.tutor = { answer: (err && err.message) || "Request failed.", cited_titles: [], knowledge_gap_detected: false };
-    renderSplitChatStream();
-  } finally {
-    if (splitState.controller === controller) { splitState.controller = null; splitState.reqId = null; syncSplitSubmitBtn(false); }
-  }
-}
-async function openSplitThread(chatId) {
-  abortSplitRequest();
-  if (!chatId) { splitState.chatId = null; splitState.turns = []; renderSplitChatStream(); syncSplitSelectors(); return; }
-  const version = areaVersion, free = Boolean(typeof freeChatMode !== "undefined" && freeChatMode);
-  const res = await areaFetch("/api/chats/" + encodeURIComponent(chatId) + (free ? "?free_chat=true" : ""));
-  if (!res.ok || version !== areaVersion) { return; }
-  const session = await safeJson(res);
-  splitState.chatId = session.chat_id || chatId; splitState.turns = session.turns || [];
-  if (session.last_agent_id) { splitState.agentId = session.last_agent_id; }
-  syncSplitSelectors(); renderSplitChatStream();
-}
-function renderSplitGuide() {
-  const box = document.getElementById("split-guide-scroll"); if (!box) { return; }
-  const guides = typeof cachedGuides !== "undefined" && Array.isArray(cachedGuides) ? cachedGuides : [];
-  const g = guides.find(function (item) { return item.doc_id === splitState.guideId; }) || guides[0];
-  if (!g) { box.innerHTML = "<div class='wb-empty'>" + escapeHtml(t("sp_no_guides")) + "</div>"; return; }
-  splitState.guideId = g.doc_id;
-  box.innerHTML = "<h2 style='margin:0;font-size:calc(1.2rem * var(--ui-scale,1));font-weight:600'>" + escapeHtml(g.title) + "</h2>"
-    + (g.sections || []).map(function (s) {
-      return "<section style='padding:0.9rem 1rem;border-radius:0.85rem;background:var(--surface-raised);border:1px solid var(--border-subtle)'><h3 style='margin:0 0 0.5rem;font-size:calc(1rem * var(--ui-scale,1));font-weight:600'>" + escapeHtml(s.section_title) + "</h3><div class='md-body text-sm leading-relaxed flex flex-col gap-2'>" + formatMarkdown(s.content || "", false, 3) + "</div></section>";
-    }).join("");
-}
-async function openSplitView(preset) {
-  const menu = document.getElementById("split-mode-menu");
-  if (menu && typeof menu.hidePopover === "function") { try { menu.hidePopover(); } catch (_e) {} }
-  if (preset === "close") { closeSplitView(); return; }
-  splitState.open = true;
-  let targetTab = "chat";
-  if (preset === "launcher") {
-    splitState.orientation = "vertical";
-    targetTab = "launcher";
-  } else if (preset === "board-h" || preset === "board-v") {
-    splitState.orientation = preset === "board-h" ? "horizontal" : "vertical";
-    splitState.bMode = "chat"; targetTab = "chat";
-    if (!wbViewOpen && typeof openWorkBoardView === "function") { await openWorkBoardView(); }
-  } else if (preset === "guide-v") {
-    splitState.orientation = "vertical"; splitState.bMode = "guide"; targetTab = "guide";
-    if (wbViewOpen && typeof closeWorkBoardView === "function") { closeWorkBoardView(); document.getElementById("workspace-shell").classList.remove("hidden"); }
-    if (typeof loadGuidesCatalog === "function") { await loadGuidesCatalog(null); }
-  } else {
-    splitState.orientation = "vertical"; splitState.bMode = "chat"; targetTab = "chat";
-    if (wbViewOpen && typeof closeWorkBoardView === "function") { closeWorkBoardView(); document.getElementById("workspace-shell").classList.remove("hidden"); }
-  }
-  syncSplitSelectors();
-  if (typeof openSideWorkbenchTab === "function") { openSideWorkbenchTab(targetTab, { reuse: targetTab !== "launcher" }); }
-  applySplitLayout();
-  if (targetTab === "guide") { renderSplitGuide(); } else if (targetTab === "chat") { renderSplitChatStream(); }
-}
-function closeSplitView() {
-  abortSplitRequest(); splitState.open = false; applySplitLayout();
-}
-function resetSplitOnAreaChange() {
-  abortSplitRequest(); splitState.chatId = null; splitState.turns = []; splitState.guideId = "";
-  if (splitState.open) { syncSplitSelectors(); renderSplitChatStream(); renderSplitGuide(); }
-}
-async function sendTaskToSplitChat(task) {
-  if (!task) { return; }
-  if (!splitState.open || splitState.bMode !== "chat") { await openSplitView(wbViewOpen ? "board-h" : "chat-v"); }
-  const qEl = document.getElementById("split-query");
-  const ctx = "Task: " + task.title + (task.due_date ? " (due " + task.due_date + ")" : "") + (task.description ? "\nNotes: " + task.description : "") + "\n\nHelp me plan or draft the next steps for this task.";
-  if (qEl) { qEl.value = ctx; qEl.focus(); }
-}
-function bindSplitResizer() {
-  const resizer = document.getElementById("split-resizer"), main = document.getElementById("main-content");
-  if (!resizer || !main) { return; }
-  let dragging = false;
-  const setRatio = function (next) {
-    splitState.ratio = Math.max(25, Math.min(75, Math.round(next)));
-    main.style.setProperty("--split-a", splitState.ratio + "%");
-    resizer.setAttribute("aria-valuenow", String(splitState.ratio));
   };
-  resizer.addEventListener("pointerdown", function (e) {
-    if (e.button !== 0) { return; }
-    dragging = true; resizer.classList.add("is-dragging"); resizer.setPointerCapture(e.pointerId);
-  });
-  resizer.addEventListener("pointermove", function (e) {
-    if (!dragging) { return; }
-    const rect = main.getBoundingClientRect();
-    const pct = splitState.orientation === "vertical" ? ((e.clientX - rect.left) / rect.width) * 100 : ((e.clientY - rect.top) / rect.height) * 100;
-    setRatio(pct);
-  });
-  const endDrag = function () { dragging = false; resizer.classList.remove("is-dragging"); };
-  resizer.addEventListener("pointerup", endDrag); resizer.addEventListener("lostpointercapture", endDrag);
-  resizer.addEventListener("keydown", function (e) {
-    const dec = splitState.orientation === "vertical" ? "ArrowLeft" : "ArrowUp";
-    const inc = splitState.orientation === "vertical" ? "ArrowRight" : "ArrowDown";
-    if (e.key === dec) { e.preventDefault(); setRatio(splitState.ratio - 5); }
-    else if (e.key === inc) { e.preventDefault(); setRatio(splitState.ratio + 5); }
-  });
+  fr.src = url;
 }
-function bindSplitUX() {
-  document.querySelectorAll("[data-split-preset]").forEach(function (btn) {
-    btn.addEventListener("click", function () { openSplitView(btn.getAttribute("data-split-preset")); });
-  });
-  document.querySelectorAll("[data-split-b-mode]").forEach(function (btn) {
-    btn.addEventListener("click", async function () {
-      splitState.bMode = btn.getAttribute("data-split-b-mode") || "chat";
-      if (splitState.bMode === "guide" && typeof loadGuidesCatalog === "function") { await loadGuidesCatalog(null); }
-      syncSplitSelectors(); applySplitLayout();
-      if (splitState.bMode === "guide") { renderSplitGuide(); } else { renderSplitChatStream(); }
+
+function syncSplitSelectors() {
+  const agSel = document.getElementById("split-agent-select");
+  if (agSel) {
+    const list = typeof agentTeam !== "undefined" && Array.isArray(agentTeam) && agentTeam.length ? agentTeam : [{ id: "saga", name: "Saga" }, { id: "lisbeth", name: "Lisbeth" }, { id: "plague", name: "Plague" }];
+    if (!list.some(function (a) { return a.id === wbLayout.splitAgentId; })) {
+      wbLayout.splitAgentId = (list.find(function (a) { return a.id !== (typeof activeAgentId !== "undefined" ? activeAgentId : "saga"); }) || list[0]).id;
+    }
+    agSel.innerHTML = list.map(function (a) {
+      return "<option value='" + escapeHtml(a.id) + "'" + (a.id === wbLayout.splitAgentId ? " selected" : "") + ">" + escapeHtml(a.name) + "</option>";
+    }).join("");
+  }
+  syncRightDocSelector();
+}
+
+function renderSplitChatTabs() {
+  const list = document.getElementById("split-chat-tablist"); if (!list) { return; }
+  if (!wbLayout.splitTabs.length) { wbLayout.splitTabs = [{ id: "sp_0", chatId: "", title: "" }]; }
+  if (!wbLayout.splitTabs.some(function (tb) { return tb.id === wbLayout.activeSplitTabId; })) { wbLayout.activeSplitTabId = wbLayout.splitTabs[0].id; }
+  list.innerHTML = wbLayout.splitTabs.map(function (tb) {
+    const sel = tb.id === wbLayout.activeSplitTabId;
+    const closeX = wbLayout.splitTabs.length > 1 ? "<span class='wb-tab-x' data-sp-close='" + escapeHtml(tb.id) + "' role='button' aria-label='Close tab'>✕</span>" : "";
+    return "<button type='button' role='tab' aria-selected='" + String(sel) + "' data-sp-tab='" + escapeHtml(tb.id) + "' class='wb-zone-tab'><span>" + escapeHtml(tb.title || t("wb_tile_chat")) + "</span>" + closeX + "</button>";
+  }).join("");
+  list.querySelectorAll("[data-sp-tab]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      const x = e.target.closest("[data-sp-close]");
+      if (x) { e.stopPropagation(); closeSplitChatTab(x.getAttribute("data-sp-close")); return; }
+      activateSplitChatTab(btn.getAttribute("data-sp-tab"));
     });
   });
-  const flipBtn = document.getElementById("split-flip-btn"), closeBtn = document.getElementById("split-close-btn");
-  if (flipBtn) { flipBtn.addEventListener("click", function () { splitState.orientation = splitState.orientation === "vertical" ? "horizontal" : "vertical"; applySplitLayout(); }); }
-  if (closeBtn) { closeBtn.addEventListener("click", closeSplitView); }
-  const agSel = document.getElementById("split-agent-select"), thSel = document.getElementById("split-thread-select"), newBtn = document.getElementById("split-new-chat-btn"), gSel = document.getElementById("split-guide-select");
-  if (agSel) { agSel.addEventListener("change", function () { splitState.agentId = agSel.value; renderSplitChatStream(); }); }
-  if (thSel) { thSel.addEventListener("change", function () { openSplitThread(thSel.value); }); }
-  if (newBtn) { newBtn.addEventListener("click", function () { openSplitThread(""); }); }
-  if (gSel) { gSel.addEventListener("change", function () { splitState.guideId = gSel.value; renderSplitGuide(); }); }
-  const gExt = document.getElementById("split-guide-extract-btn");
-  if (gExt) { gExt.addEventListener("click", function () { if (splitState.guideId && typeof extractTasksToBoard === "function") { extractTasksToBoard({ doc_id: splitState.guideId }); } }); }
-  const form = document.getElementById("split-chat-form"), qEl = document.getElementById("split-query"), subBtn = document.getElementById("split-submit-btn");
-  if (form) { form.addEventListener("submit", function (e) { e.preventDefault(); if (splitState.controller) { abortSplitRequest(); return; } runSplitChatSubmit(); }); }
-  if (subBtn) { subBtn.addEventListener("click", function (e) { if (splitState.controller) { e.preventDefault(); abortSplitRequest(); } }); }
-  if (qEl) {
-    qEl.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        if (e.isComposing || e.keyCode === 229) { return; }
-        if (form) { form.requestSubmit(); }
+}
+
+function activateSplitChatTab(tabId) {
+  const tb = wbLayout.splitTabs.find(function (item) { return item.id === tabId; });
+  if (!tb) { return; }
+  wbLayout.activeSplitTabId = tb.id;
+  renderSplitChatTabs();
+  ensureEmbedFrame("center-split-frame", "/?embed=1&role=split-chat&view=chat&agent_id=" + encodeURIComponent(wbLayout.splitAgentId) + (tb.chatId ? ("&chat_id=" + encodeURIComponent(tb.chatId)) : ""), { type: "realm:load-chat", chatId: tb.chatId || "", agentId: wbLayout.splitAgentId });
+}
+
+function closeSplitChatTab(tabId) {
+  wbLayout.splitTabs = wbLayout.splitTabs.filter(function (tb) { return tb.id !== tabId; });
+  if (!wbLayout.splitTabs.length) { wbLayout.splitTabs.push({ id: "sp_" + Date.now().toString(36), chatId: "", title: "" }); }
+  if (wbLayout.activeSplitTabId === tabId) { activateSplitChatTab(wbLayout.splitTabs[wbLayout.splitTabs.length - 1].id); }
+  else { renderSplitChatTabs(); }
+}
+
+function openSplitChat(opts) {
+  const o = opts || {};
+  wbLayout.splitOpen = true;
+  syncSplitSelectors();
+  if (o.chatId) {
+    let tb = wbLayout.splitTabs.find(function (item) { return item.chatId === o.chatId; });
+    if (!tb) {
+      const cur = wbLayout.splitTabs.find(function (item) { return item.id === wbLayout.activeSplitTabId; });
+      const found = Array.isArray(savedChats) ? savedChats.find(function (c) { return c.chat_id === o.chatId; }) : null;
+      const title = (found && found.title) || o.title || t("wb_tile_chat");
+      if (cur && !cur.chatId) { cur.chatId = o.chatId; cur.title = title; tb = cur; }
+      else { tb = { id: "sp_" + Date.now().toString(36), chatId: o.chatId, title: title }; wbLayout.splitTabs.push(tb); }
+    }
+    wbLayout.activeSplitTabId = tb.id;
+  }
+  const active = wbLayout.splitTabs.find(function (item) { return item.id === wbLayout.activeSplitTabId; }) || wbLayout.splitTabs[0];
+  renderSplitChatTabs();
+  applyWorkbenchGrid();
+  const qs = "/?embed=1&role=split-chat&view=chat&agent_id=" + encodeURIComponent(wbLayout.splitAgentId) + (active && active.chatId ? ("&chat_id=" + encodeURIComponent(active.chatId)) : "");
+  ensureEmbedFrame("center-split-frame", qs, { type: "realm:load-chat", chatId: (active && active.chatId) || "", agentId: wbLayout.splitAgentId, draft: o.draft || "" });
+}
+
+function closeSplitChat() { wbLayout.splitOpen = false; applyWorkbenchGrid(); }
+function openChatInSplit(chatId) { openSplitChat({ chatId: chatId || "" }); }
+
+function handleSplitFrameChatState(msg) {
+  const cur = wbLayout.splitTabs.find(function (tb) { return tb.id === wbLayout.activeSplitTabId; });
+  if (cur) {
+    if (msg.chatId !== undefined) { cur.chatId = msg.chatId || ""; }
+    if (msg.title) { cur.title = msg.title; }
+    else if (!cur.chatId) { cur.title = ""; }
+    renderSplitChatTabs();
+  }
+  if (msg.agentId) { wbLayout.splitAgentId = msg.agentId; syncSplitSelectors(); }
+  if (msg.refreshChats && typeof loadRecentChats === "function") { loadRecentChats(); }
+}
+
+function sendTaskToSplitChat(task) {
+  if (!task) { return; }
+  if (IS_EMBED) { notifyParentFrame({ type: "realm:parent-action", action: "ask-task", task: task }); return; }
+  const ctx = "Task: " + task.title + (task.due_date ? " (due " + task.due_date + ")" : "") + (task.description ? "\nNotes: " + task.description : "") + "\n\nHelp me plan or draft the next steps for this task.";
+  openSplitChat({ draft: ctx });
+}
+
+function renderBottomPanelTabs() {
+  BP_TOOLS.forEach(function (tool) {
+    const tab = document.querySelector("[data-bp-tool='" + tool + "']");
+    const chk = document.querySelector("[data-bp-vis='" + tool + "']");
+    const vis = wbLayout.bottomVisible[tool] !== false;
+    if (tab) {
+      tab.hidden = !vis;
+      const sel = tool === wbLayout.bottomTool;
+      tab.setAttribute("aria-selected", String(sel));
+      tab.tabIndex = sel ? 0 : -1;
+    }
+    if (chk) { chk.setAttribute("aria-checked", String(vis)); }
+  });
+}
+
+function setBottomTool(tool) {
+  if (!BP_TOOLS.includes(tool)) { return; }
+  wbLayout.bottomVisible[tool] = true;
+  wbLayout.bottomTool = tool;
+  saveBottomToolPrefs();
+  renderBottomPanelTabs();
+  if (wbLayout.bottomOpen) {
+    ensureEmbedFrame("bottom-panel-frame", "/?embed=1&role=bottom-panel&view=" + encodeURIComponent(tool), { type: "realm:open-view", view: tool });
+  }
+  const activeTab = document.querySelector("[data-bp-tool='" + tool + "']");
+  if (activeTab && activeTab.scrollIntoView) { activeTab.scrollIntoView({ block: "nearest", inline: "nearest" }); }
+}
+
+function openBottomPanel(tool) {
+  if (tool && BP_TOOLS.includes(tool)) { wbLayout.bottomTool = tool; wbLayout.bottomVisible[tool] = true; saveBottomToolPrefs(); }
+  if (!wbLayout.bottomVisible[wbLayout.bottomTool]) { wbLayout.bottomTool = BP_TOOLS.find(function (k) { return wbLayout.bottomVisible[k]; }) || "work"; }
+  wbLayout.bottomOpen = true;
+  renderBottomPanelTabs();
+  applyWorkbenchGrid();
+  ensureEmbedFrame("bottom-panel-frame", "/?embed=1&role=bottom-panel&view=" + encodeURIComponent(wbLayout.bottomTool), { type: "realm:open-view", view: wbLayout.bottomTool });
+}
+
+function closeBottomPanel() { wbLayout.bottomOpen = false; wbLayout.bottomMax = false; applyWorkbenchGrid(); }
+function toggleBottomPanel(tool) { if (wbLayout.bottomOpen && (!tool || tool === wbLayout.bottomTool)) { closeBottomPanel(); } else { openBottomPanel(tool); } }
+
+function toggleBottomToolVisibility(tool) {
+  const enabledCount = BP_TOOLS.filter(function (k) { return wbLayout.bottomVisible[k]; }).length;
+  if (wbLayout.bottomVisible[tool] && enabledCount <= 1) { return; }
+  wbLayout.bottomVisible[tool] = !wbLayout.bottomVisible[tool];
+  saveBottomToolPrefs();
+  if (!wbLayout.bottomVisible[wbLayout.bottomTool]) {
+    const fallback = BP_TOOLS.find(function (k) { return wbLayout.bottomVisible[k]; }) || "work";
+    setBottomTool(fallback);
+  } else { renderBottomPanelTabs(); }
+}
+
+function resetSplitOnAreaChange() {
+  wbLayout.rightDocId = "";
+  wbLayout.splitTabs = [{ id: "sp_" + Date.now().toString(36), chatId: "", title: "" }];
+  wbLayout.activeSplitTabId = wbLayout.splitTabs[0].id;
+  renderSplitChatTabs();
+  if (wbLayout.rightOpen && wbLayout.rightTab === "doc") { renderRightDocumentPane(); }
+  if (typeof broadcastToEmbedFrames === "function") { broadcastToEmbedFrames({ type: "realm:sync-area" }); }
+}
+
+function bindWorkbenchResizer(resId, axis, onDelta, onKeyboard) {
+  const res = document.getElementById(resId); if (!res) { return; }
+  let dragging = false;
+  res.addEventListener("pointerdown", function (e) {
+    if (e.button !== 0) { return; }
+    dragging = true; res.classList.add("is-dragging"); document.body.classList.add("is-resizing-panes");
+    res.setPointerCapture(e.pointerId);
+  });
+  res.addEventListener("pointermove", function (e) { if (dragging) { onDelta(e); } });
+  const end = function () { dragging = false; res.classList.remove("is-dragging"); document.body.classList.remove("is-resizing-panes"); };
+  res.addEventListener("pointerup", end); res.addEventListener("lostpointercapture", end);
+  res.addEventListener("keydown", function (e) {
+    const dec = axis === "v" ? "ArrowLeft" : "ArrowUp", inc = axis === "v" ? "ArrowRight" : "ArrowDown";
+    if (e.key === dec) { e.preventDefault(); onKeyboard(-1); }
+    else if (e.key === inc) { e.preventDefault(); onKeyboard(1); }
+  });
+}
+
+function bindSplitUX() {
+  if (IS_EMBED) { return; }
+  loadBottomToolPrefs();
+  renderBottomPanelTabs();
+  renderSplitChatTabs();
+
+  const splitBtn = document.getElementById("center-split-btn"), spClose = document.getElementById("split-chat-close-btn"), spAdd = document.getElementById("split-chat-add-btn");
+  if (splitBtn) { splitBtn.addEventListener("click", function () { if (wbLayout.splitOpen) { closeSplitChat(); } else { openSplitChat({}); } }); }
+  if (spClose) { spClose.addEventListener("click", closeSplitChat); }
+  if (spAdd) {
+    spAdd.addEventListener("click", function () {
+      const id = "sp_" + Date.now().toString(36);
+      wbLayout.splitTabs.push({ id: id, chatId: "", title: "" });
+      activateSplitChatTab(id);
+    });
+  }
+  const agSel = document.getElementById("split-agent-select");
+  if (agSel) {
+    agSel.addEventListener("change", function () {
+      wbLayout.splitAgentId = agSel.value;
+      const fr = document.getElementById("center-split-frame");
+      if (fr && fr.contentWindow && fr.dataset.loaded === "1") {
+        fr.contentWindow.postMessage({ source: "realm-parent", type: "realm:set-agent", agentId: wbLayout.splitAgentId }, window.location.origin);
       }
     });
   }
-  window.addEventListener("resize", function () { if (splitState.open) { applySplitLayout(); } });
-  bindSplitResizer();
+
+  const bpBtn = document.getElementById("layout-bottom-btn"), bpClose = document.getElementById("bottom-panel-close-btn"), bpMax = document.getElementById("bottom-panel-max-btn");
+  if (bpBtn) { bpBtn.addEventListener("click", function () { toggleBottomPanel(); }); }
+  if (bpClose) { bpClose.addEventListener("click", closeBottomPanel); }
+  if (bpMax) { bpMax.addEventListener("click", function () { wbLayout.bottomMax = !wbLayout.bottomMax; applyWorkbenchGrid(); }); }
+  document.querySelectorAll("[data-bp-tool]").forEach(function (btn) {
+    btn.addEventListener("click", function () { setBottomTool(btn.getAttribute("data-bp-tool")); });
+  });
+  if (typeof bindRovingTablist === "function") { bindRovingTablist("#bottom-panel-tablist [role='tab']", function (btn) { setBottomTool(btn.getAttribute("data-bp-tool")); }); }
+  document.querySelectorAll("[data-bp-vis]").forEach(function (btn) {
+    btn.addEventListener("click", function () { toggleBottomToolVisibility(btn.getAttribute("data-bp-vis")); });
+  });
+
+  const rsBtn = document.getElementById("layout-right-btn");
+  if (rsBtn) { rsBtn.addEventListener("click", function () { setRightSidebarOpen(!wbLayout.rightOpen); }); }
+  document.querySelectorAll("[data-right-tab]").forEach(function (btn) {
+    btn.addEventListener("click", function () { setRightSidebarTab(btn.getAttribute("data-right-tab")); });
+  });
+  if (typeof bindRovingTablist === "function") { bindRovingTablist("#right-sidebar-tablist [role='tab']", function (btn) { setRightSidebarTab(btn.getAttribute("data-right-tab")); }); }
+  const rDocSel = document.getElementById("right-doc-select"), rDocExt = document.getElementById("right-doc-extract-btn");
+  if (rDocSel) { rDocSel.addEventListener("change", function () { wbLayout.rightDocId = rDocSel.value; renderRightDocumentPane(); }); }
+  if (rDocExt) { rDocExt.addEventListener("click", function () { if (wbLayout.rightDocId && typeof extractTasksToBoard === "function") { extractTasksToBoard({ doc_id: wbLayout.rightDocId }); } }); }
+
+  bindWorkbenchResizer("center-split-resizer", "v", function (e) {
+    const row = document.getElementById("center-editor-row"); if (!row) { return; }
+    const rect = row.getBoundingClientRect();
+    wbLayout.splitRatio = Math.max(28, Math.min(72, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
+    applyWorkbenchGrid();
+  }, function (dir) { wbLayout.splitRatio = Math.max(28, Math.min(72, wbLayout.splitRatio + dir * 4)); applyWorkbenchGrid(); });
+
+  bindWorkbenchResizer("bottom-panel-resizer", "h", function (e) {
+    const col = document.getElementById("workbench-center-col"); if (!col) { return; }
+    const rect = col.getBoundingClientRect();
+    wbLayout.editorHeightPct = Math.max(22, Math.min(78, Math.round(((e.clientY - rect.top) / rect.height) * 100)));
+    applyWorkbenchGrid();
+  }, function (dir) { wbLayout.editorHeightPct = Math.max(22, Math.min(78, wbLayout.editorHeightPct + dir * 4)); applyWorkbenchGrid(); });
+
+  bindWorkbenchResizer("right-sidebar-resizer", "v", function (e) {
+    const grid = document.getElementById("workbench-grid"); if (!grid) { return; }
+    const rect = grid.getBoundingClientRect();
+    wbLayout.rightWidthPx = Math.max(260, Math.min(560, Math.round(rect.right - e.clientX)));
+    applyWorkbenchGrid();
+  }, function (dir) { wbLayout.rightWidthPx = Math.max(260, Math.min(560, wbLayout.rightWidthPx - dir * 24)); applyWorkbenchGrid(); });
+
+  window.addEventListener("resize", applyWorkbenchGrid);
+  applyWorkbenchGrid();
 }
 """

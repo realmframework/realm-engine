@@ -63,8 +63,8 @@ IMPACT_VIEW_HTML: str = r"""<section id="impact-view" class="wb-view hidden" ari
 
 IMPACT_MODALS_HTML: str = r"""<dialog id="impact-entry-modal" closedby="any" aria-labelledby="ie-modal-title" class="wb-dialog">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem;border-bottom:1px solid var(--border-subtle);padding-bottom:0.65rem">
-    <h2 id="ie-modal-title" data-i18n="imp_log_btn" style="margin:0;font-size:calc(1.125rem * var(--ui-scale,1));font-weight:600">Log Impact</h2>
-    <button type="button" data-m4-close="impact-entry-modal" aria-label="Close impact dialog" class="wb-icon-btn">✕</button>
+    <h2 id="ie-modal-title" data-i18n="imp_modal_new" style="margin:0;font-size:calc(1.125rem * var(--ui-scale,1));font-weight:600">Log Impact</h2>
+    <button type="button" data-close-dialog="impact-entry-modal" aria-label="Close impact dialog" class="wb-icon-btn">✕</button>
   </div>
   <form id="ie-form" style="display:flex;flex-direction:column;gap:0.75rem">
     <input id="ie-id" type="hidden" value="" />
@@ -88,7 +88,7 @@ IMPACT_MODALS_HTML: str = r"""<dialog id="impact-entry-modal" closedby="any" ari
         <button id="ie-delete" type="button" hidden data-i18n="delete_btn" class="wb-btn wb-btn-sm wb-btn-danger">Delete</button>
       </div>
       <div style="display:flex;gap:0.5rem;margin-inline-start:auto">
-        <button type="button" data-m4-close="impact-entry-modal" data-i18n="cancel" class="wb-btn">Cancel</button>
+        <button type="button" data-close-dialog="impact-entry-modal" data-i18n="cancel" class="wb-btn">Cancel</button>
         <button type="submit" data-i18n="save" class="wb-btn wb-btn-primary">Save</button>
       </div>
     </div>

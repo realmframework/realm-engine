@@ -1,182 +1,159 @@
-"""Codex-inspired Multi-Tab Side Workbench controller: Launcher, Chat, Guide, Tasks, Focus & Impact Tabs."""
+"""Center Area Open Chat Tabs & Docked Right Sidebar (Inspector + Document) controller."""
 
 WORKBENCH_TABS_SCRIPT: str = r"""
-let wbSideTabs = [{ id: "tab_chat", kind: "chat", title: "" }];
-let wbActiveSideTabId = "tab_chat";
-const WB_SIDE_TILE_KEYS = { launcher: "wb_new_tab", chat: "wb_tile_chat", guide: "wb_tile_guide", tasks: "wb_tile_tasks", focus: "wb_tile_focus", impact: "wb_tile_impact" };
+let centerChatTabs = [{ id: "ct_0", chatId: "", title: "" }];
+let activeCenterTabId = "ct_0";
 
-function wbSideTabTitle(tab) {
-  if (tab.title) { return tab.title; }
-  return t(WB_SIDE_TILE_KEYS[tab.kind] || "wb_new_tab");
+function syncRightDocSelector() {
+  const sel = document.getElementById("right-doc-select"); if (!sel) { return; }
+  const guides = typeof allGuides !== "undefined" && Array.isArray(allGuides) ? allGuides : [];
+  sel.innerHTML = guides.length ? guides.map(function (g) {
+    return "<option value='" + escapeHtml(g.doc_id) + "'" + (g.doc_id === wbLayout.rightDocId ? " selected" : "") + ">" + escapeHtml(g.title || g.doc_id) + "</option>";
+  }).join("") : "<option value=''>" + escapeHtml(t("sp_no_guides")) + "</option>";
+  if (guides.length && (!wbLayout.rightDocId || !guides.some(function (g) { return g.doc_id === wbLayout.rightDocId; }))) {
+    wbLayout.rightDocId = guides[0].doc_id; sel.value = wbLayout.rightDocId;
+  }
 }
-function renderSideWorkbenchTabs() {
-  const list = document.getElementById("wb-side-tablist");
-  if (!list) { return; }
-  if (!wbSideTabs.length) { wbSideTabs = [{ id: "tab_launcher", kind: "launcher", title: "" }]; }
-  if (!wbSideTabs.some(function (tb) { return tb.id === wbActiveSideTabId; })) { wbActiveSideTabId = wbSideTabs[0].id; }
-  list.innerHTML = wbSideTabs.map(function (tb) {
-    const sel = tb.id === wbActiveSideTabId;
-    const closeBtn = wbSideTabs.length > 1 ? "<span class='wb-tab-x' data-wb-close-tab='" + escapeHtml(tb.id) + "' role='button' aria-label='Close tab'>✕</span>" : "";
-    return "<button type='button' role='tab' aria-selected='" + String(sel) + "' data-wb-side-tab='" + escapeHtml(tb.id) + "' class='wb-side-tab'><span>" + escapeHtml(wbSideTabTitle(tb)) + "</span>" + closeBtn + "</button>";
+
+function renderRightDocumentPane() {
+  syncRightDocSelector();
+  const box = document.getElementById("right-doc-scroll"); if (!box) { return; }
+  const guides = typeof allGuides !== "undefined" && Array.isArray(allGuides) ? allGuides : [];
+  const g = guides.find(function (item) { return item.doc_id === wbLayout.rightDocId; }) || guides[0];
+  if (!g) { box.innerHTML = "<div class='wb-empty'>" + escapeHtml(t("sp_no_guides")) + "</div>"; return; }
+  wbLayout.rightDocId = g.doc_id;
+  box.innerHTML = "<h2 style='margin:0;font-size:calc(1.1rem * var(--ui-scale,1));font-weight:600'>" + escapeHtml(g.title) + "</h2>"
+    + (g.sections || []).map(function (s) {
+      return "<section style='padding:0.85rem 0.95rem;border-radius:0.8rem;background:var(--background);border:1px solid var(--border-subtle)'><h3 style='margin:0 0 0.45rem;font-size:calc(0.95rem * var(--ui-scale,1));font-weight:600'>" + escapeHtml(s.section_title) + "</h3><div class='md-body text-sm leading-relaxed flex flex-col gap-2'>" + formatMarkdown(s.content || "", false, 3) + "</div></section>";
+    }).join("");
+}
+
+function setRightSidebarTab(tab) {
+  wbLayout.rightTab = tab === "doc" ? "doc" : "inspector";
+  document.querySelectorAll("[data-right-tab]").forEach(function (btn) {
+    const active = btn.getAttribute("data-right-tab") === wbLayout.rightTab;
+    btn.setAttribute("aria-selected", String(active)); btn.tabIndex = active ? 0 : -1;
+  });
+  const pInsp = document.getElementById("right-panel-inspector"), pDoc = document.getElementById("right-panel-doc");
+  if (pInsp) { pInsp.hidden = wbLayout.rightTab !== "inspector"; }
+  if (pDoc) { pDoc.hidden = wbLayout.rightTab !== "doc"; }
+  if (wbLayout.rightTab === "doc") { renderRightDocumentPane(); }
+  else if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
+}
+
+function setRightSidebarOpen(open, tab) {
+  wbLayout.rightOpen = Boolean(open);
+  if (typeof inspectorOpen !== "undefined") { inspectorOpen = wbLayout.rightOpen; }
+  if (tab) { wbLayout.rightTab = tab === "doc" ? "doc" : "inspector"; }
+  applyWorkbenchGrid();
+  if (wbLayout.rightOpen) { setRightSidebarTab(wbLayout.rightTab); }
+  else if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
+}
+
+function renderCenterChatTabs() {
+  if (typeof IS_EMBED !== "undefined" && IS_EMBED) { return; }
+  const list = document.getElementById("center-tablist"); if (!list) { return; }
+  if (!centerChatTabs.length) { centerChatTabs = [{ id: "ct_0", chatId: "", title: "" }]; }
+  if (!centerChatTabs.some(function (tb) { return tb.id === activeCenterTabId; })) { activeCenterTabId = centerChatTabs[0].id; }
+  list.innerHTML = centerChatTabs.map(function (tb) {
+    const sel = tb.id === activeCenterTabId;
+    const label = tb.title || t("new_chat").replace(/^\+\s*/, "");
+    const closeX = centerChatTabs.length > 1
+      ? "<span class='wb-tab-x' data-ct-close='" + escapeHtml(tb.id) + "' role='button' aria-label='Close chat tab'>✕</span>"
+      : "";
+    return "<button type='button' role='tab' aria-selected='" + String(sel) + "' tabindex='" + (sel ? "0" : "-1") + "' data-ct-tab='" + escapeHtml(tb.id) + "' class='wb-zone-tab'><span>" + escapeHtml(label) + "</span>" + closeX + "</button>";
   }).join("");
-  list.querySelectorAll("[data-wb-side-tab]").forEach(function (btn) {
+  list.querySelectorAll("[data-ct-tab]").forEach(function (btn) {
     btn.addEventListener("click", function (e) {
-      const closeEl = e.target.closest("[data-wb-close-tab]");
-      if (closeEl) { e.stopPropagation(); closeSideWorkbenchTab(closeEl.getAttribute("data-wb-close-tab")); return; }
-      activateSideWorkbenchTab(btn.getAttribute("data-wb-side-tab"));
+      const x = e.target.closest("[data-ct-close]");
+      if (x) { e.stopPropagation(); closeCenterChatTab(x.getAttribute("data-ct-close")); return; }
+      activateCenterChatTab(btn.getAttribute("data-ct-tab"));
     });
   });
-  syncSideWorkbenchBody();
+  if (typeof bindRovingTablist === "function") {
+    bindRovingTablist("#center-tablist [role='tab']", function (btn) { activateCenterChatTab(btn.getAttribute("data-ct-tab")); });
+  }
+  const activeEl = list.querySelector("[aria-selected='true']");
+  if (activeEl && activeEl.scrollIntoView) { activeEl.scrollIntoView({ block: "nearest", inline: "nearest" }); }
 }
-function syncSideWorkbenchBody() {
-  const active = wbSideTabs.find(function (tb) { return tb.id === wbActiveSideTabId; }) || wbSideTabs[0];
-  const kind = active ? active.kind : "chat";
-  const panels = {
-    launcher: document.getElementById("split-launcher-body"),
-    chat: document.getElementById("split-chat-body"),
-    guide: document.getElementById("split-guide-body"),
-    tasks: document.getElementById("split-tasks-body"),
-    focus: document.getElementById("split-focus-body"),
-    impact: document.getElementById("split-impact-body")
-  };
-  Object.entries(panels).forEach(function (pair) { if (pair[1]) { pair[1].hidden = pair[0] !== kind; } });
-  if (typeof splitState !== "undefined" && (kind === "chat" || kind === "guide")) { splitState.bMode = kind; }
-  if (kind === "guide" && typeof renderSplitGuide === "function") { renderSplitGuide(); }
-  else if (kind === "chat" && typeof renderSplitChatStream === "function") { syncSplitSelectors(); renderSplitChatStream(); }
-  else if (kind === "tasks") { renderSideQuickTasks(); }
-  else if (kind === "focus") { renderSideQuickFocus(); }
-  else if (kind === "impact") { renderSideQuickImpact(); }
-  else if (kind === "launcher") { renderSideLauncherResults(""); }
-}
-function activateSideWorkbenchTab(tabId) {
-  wbActiveSideTabId = tabId || (wbSideTabs[0] && wbSideTabs[0].id) || "";
-  renderSideWorkbenchTabs();
-}
-function closeSideWorkbenchTab(tabId) {
-  wbSideTabs = wbSideTabs.filter(function (tb) { return tb.id !== tabId; });
-  if (!wbSideTabs.length) { wbSideTabs.push({ id: "tab_launcher_" + Date.now(), kind: "launcher", title: "" }); }
-  if (wbActiveSideTabId === tabId) { wbActiveSideTabId = wbSideTabs[wbSideTabs.length - 1].id; }
-  renderSideWorkbenchTabs();
-}
-function openSideWorkbenchTab(kind, opts) {
-  const opt = opts || {}, k = kind || "launcher";
-  const existing = opt.reuse !== false ? wbSideTabs.find(function (tb) { return tb.kind === k && (!opt.title || tb.title === opt.title); }) : null;
-  if (existing) {
-    const cur = wbSideTabs.find(function (tb) { return tb.id === wbActiveSideTabId; });
-    if (cur && cur.kind === "launcher" && cur.id !== existing.id) { wbSideTabs = wbSideTabs.filter(function (tb) { return tb.id !== cur.id; }); }
-    wbActiveSideTabId = existing.id;
+
+function syncCenterChatTab(chatId, title) {
+  if (typeof IS_EMBED !== "undefined" && IS_EMBED) {
+    notifyParentFrame({ type: "realm:chat-state", chatId: chatId || "", title: title || "", agentId: typeof activeAgentId !== "undefined" ? activeAgentId : "", refreshChats: Boolean(chatId) });
+    return;
+  }
+  const cid = chatId || "";
+  if (cid) {
+    const existing = centerChatTabs.find(function (tb) { return tb.chatId === cid; });
+    if (existing) {
+      activeCenterTabId = existing.id;
+      if (title) { existing.title = title; }
+      renderCenterChatTabs();
+      return;
+    }
+    const cur = centerChatTabs.find(function (tb) { return tb.id === activeCenterTabId; });
+    if (cur && !cur.chatId) {
+      cur.chatId = cid; cur.title = title || "";
+    } else {
+      const id = "ct_" + Date.now().toString(36).slice(-5);
+      centerChatTabs.push({ id: id, chatId: cid, title: title || "" });
+      activeCenterTabId = id;
+    }
   } else {
-    const cur = wbSideTabs.find(function (tb) { return tb.id === wbActiveSideTabId; });
-    if (cur && cur.kind === "launcher" && k !== "launcher") { cur.kind = k; cur.title = opt.title || ""; }
+    const blank = centerChatTabs.find(function (tb) { return !tb.chatId; });
+    if (blank) { activeCenterTabId = blank.id; }
     else {
-      const id = "tab_" + k + "_" + Date.now().toString(36).slice(-4);
-      wbSideTabs.push({ id: id, kind: k, title: opt.title || "" });
-      wbActiveSideTabId = id;
+      const id = "ct_" + Date.now().toString(36).slice(-5);
+      centerChatTabs.push({ id: id, chatId: "", title: "" });
+      activeCenterTabId = id;
     }
   }
-  if (typeof splitState !== "undefined" && !splitState.open && typeof openSplitMode === "function") {
-    splitState.open = true; splitState.orientation = opt.orientation || splitState.orientation || "vertical";
-    if (typeof applySplitLayout === "function") { applySplitLayout(); }
+  renderCenterChatTabs();
+}
+
+function activateCenterChatTab(tabId) {
+  const tb = centerChatTabs.find(function (item) { return item.id === tabId; });
+  if (!tb) { return; }
+  activeCenterTabId = tb.id;
+  if (typeof setActiveRailSection === "function") { setActiveRailSection("chat", false); }
+  if (tb.chatId) {
+    if (tb.chatId !== currentChatId && typeof openSavedChat === "function") { openSavedChat(tb.chatId); }
+    else if (typeof setViewMode === "function") { setViewMode(Boolean(currentTurns && currentTurns.length)); }
+  } else if (typeof resetHome === "function") {
+    resetHome();
   }
-  renderSideWorkbenchTabs();
+  renderCenterChatTabs();
 }
-function renderSideLauncherResults(q) {
-  const box = document.getElementById("wb-launcher-results"); if (!box) { return; }
-  const needle = String(q || "").trim().toLowerCase();
-  if (!needle) { box.innerHTML = ""; return; }
-  const hits = [];
-  (typeof allGuides !== "undefined" && Array.isArray(allGuides) ? allGuides : []).forEach(function (g) {
-    if ((g.title || "").toLowerCase().includes(needle)) { hits.push({ kind: "guide", id: g.doc_id, label: g.title || g.doc_id, badge: t("library") }); }
-  });
-  (typeof wbState !== "undefined" && Array.isArray(wbState.tasks) ? wbState.tasks : []).forEach(function (tk) {
-    if ((tk.title || "").toLowerCase().includes(needle)) { hits.push({ kind: "task", id: tk.id, label: tk.title, badge: t("wb_tab_tasks") }); }
-  });
-  box.innerHTML = hits.slice(0, 6).map(function (h) {
-    return "<button type='button' data-lnch-kind='" + escapeHtml(h.kind) + "' data-lnch-id='" + escapeHtml(h.id) + "' class='drawer-item' style='background:var(--surface-raised);border:1px solid var(--border-subtle)'><span class='drawer-item-lead'><span>" + escapeHtml(h.label) + "</span></span><span class='drawer-badge'>" + escapeHtml(h.badge) + "</span></button>";
-  }).join("");
-  box.querySelectorAll("[data-lnch-kind]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      const hk = btn.getAttribute("data-lnch-kind"), hid = btn.getAttribute("data-lnch-id");
-      if (hk === "guide") {
-        if (typeof splitState !== "undefined") { splitState.guideId = hid || ""; }
-        openSideWorkbenchTab("guide", { title: btn.querySelector("span").textContent || "" });
-      } else { openSideWorkbenchTab("tasks"); }
-    });
-  });
+
+function closeCenterChatTab(tabId) {
+  const wasActive = activeCenterTabId === tabId;
+  centerChatTabs = centerChatTabs.filter(function (tb) { return tb.id !== tabId; });
+  if (!centerChatTabs.length) {
+    centerChatTabs = [{ id: "ct_" + Date.now().toString(36).slice(-5), chatId: "", title: "" }];
+  }
+  if (wasActive) { activateCenterChatTab(centerChatTabs[centerChatTabs.length - 1].id); }
+  else { renderCenterChatTabs(); }
 }
-function renderSideQuickTasks() {
-  const list = document.getElementById("wb-side-task-list"); if (!list) { return; }
-  const cols = (typeof wbState !== "undefined" && wbState.columns) || [];
-  const doneIds = new Set(cols.filter(function (c) { return c.is_done; }).map(function (c) { return c.id; }));
-  const doneCol = cols.find(function (c) { return c.is_done; }) || cols[cols.length - 1];
-  const openTasks = ((typeof wbState !== "undefined" && wbState.tasks) || []).filter(function (tk) { return !doneIds.has(tk.column_id); }).slice(0, 18);
-  if (!openTasks.length) { list.innerHTML = "<div class='wb-empty'>" + escapeHtml(t("wb_empty_tasks")) + "</div>"; return; }
-  list.innerHTML = openTasks.map(function (tk) {
-    return "<div class='wb-task-row' style='margin:0;padding:0.55rem 0.7rem'><button type='button' data-side-done='" + escapeHtml(tk.id) + "' aria-pressed='false' aria-label='" + escapeHtml(tk.title) + "' class='wb-check-btn'></button><button type='button' data-side-open-tk='" + escapeHtml(tk.id) + "' class='wb-card-title'>" + escapeHtml(tk.title) + "</button>" + (tk.due_date ? "<span class='wb-chip'>" + escapeHtml(tk.due_date) + "</span>" : "") + "</div>";
-  }).join("");
-  list.querySelectorAll("[data-side-done]").forEach(function (btn) {
-    btn.addEventListener("click", async function () {
-      if (doneCol && typeof wbApi === "function") { await wbApi("/api/work-board/tasks/" + encodeURIComponent(btn.getAttribute("data-side-done")), { method: "PATCH", body: JSON.stringify({ column_id: doneCol.id }) }); renderSideQuickTasks(); }
-    });
-  });
-  list.querySelectorAll("[data-side-open-tk]").forEach(function (btn) {
-    btn.addEventListener("click", function () { if (typeof openWorkTaskModal === "function") { openWorkTaskModal(btn.getAttribute("data-side-open-tk")); } });
-  });
+
+function resetCenterChatTabsOnAreaChange() {
+  centerChatTabs = [{ id: "ct_" + Date.now().toString(36).slice(-5), chatId: "", title: "" }];
+  activeCenterTabId = centerChatTabs[0].id;
+  renderCenterChatTabs();
 }
-function renderSideQuickFocus() {
-  const box = document.getElementById("wb-side-focus-goals"); if (!box) { return; }
-  const goals = (typeof focState !== "undefined" && focState.goals) || [], trajs = (typeof focState !== "undefined" && focState.analytics && focState.analytics.trajectories) || {};
-  document.querySelectorAll("[data-side-snd]").forEach(function (b) { b.setAttribute("aria-pressed", String(typeof dfSound !== "undefined" && b.getAttribute("data-side-snd") === dfSound)); });
-  box.innerHTML = goals.length ? goals.map(function (g) {
-    const tr = trajs[g.id] || { logged_hours: 0, pct_hours: 0 };
-    return "<div class='goal-card' style='padding:0.75rem'><div style='display:flex;justify-content:space-between;gap:0.4rem'><strong>" + escapeHtml(g.title) + "</strong><span class='wb-chip'>" + tr.pct_hours + "%</span></div><progress class='goal-progress' value='" + tr.pct_hours + "' max='100' aria-label='" + escapeHtml(g.title) + "'></progress></div>";
-  }).join("") : "<div class='wb-empty'>" + escapeHtml(t("foc_empty_goals")) + "</div>";
-}
-function renderSideQuickImpact() {
-  const box = document.getElementById("wb-side-imp-recent"); if (!box) { return; }
-  const items = ((typeof impState !== "undefined" && impState.impact_entries) || []).slice(0, 6);
-  box.innerHTML = items.map(function (e) {
-    return "<div class='wf-run-step'><strong>" + escapeHtml(e.what_done) + "</strong><div style='color:var(--text-muted);font-size:0.8rem'>" + escapeHtml(e.effect) + "</div></div>";
-  }).join("");
-}
+
 function bindWorkbenchTabsUX() {
-  const addBtn = document.getElementById("wb-side-add-tab");
-  if (addBtn) { addBtn.addEventListener("click", function () { openSideWorkbenchTab("launcher", { reuse: false }); const inp = document.getElementById("wb-launcher-search"); if (inp) { inp.value = ""; inp.focus(); } }); }
-  const lnchSearch = document.getElementById("wb-launcher-search");
-  if (lnchSearch) { lnchSearch.addEventListener("input", function () { renderSideLauncherResults(lnchSearch.value); }); }
-  document.querySelectorAll("[data-open-side-tile]").forEach(function (btn) {
-    btn.addEventListener("click", function () { openSideWorkbenchTab(btn.getAttribute("data-open-side-tile") || "chat"); });
-  });
-  const stForm = document.getElementById("wb-side-task-form");
-  if (stForm) {
-    stForm.addEventListener("submit", async function (e) {
-      e.preventDefault();
-      const inp = document.getElementById("wb-side-task-in"), title = inp ? inp.value.trim() : "";
-      if (!title || typeof wbApi !== "function") { return; }
-      inp.value = "";
-      await wbApi("/api/work-board/tasks", { method: "POST", body: JSON.stringify({ title: title }) });
-      renderSideQuickTasks();
+  if (typeof IS_EMBED !== "undefined" && IS_EMBED) { return; }
+  const addBtn = document.getElementById("center-add-tab-btn");
+  if (addBtn) {
+    addBtn.addEventListener("click", function () {
+      const id = "ct_" + Date.now().toString(36).slice(-5);
+      centerChatTabs.push({ id: id, chatId: "", title: "" });
+      activeCenterTabId = id;
+      if (typeof setActiveRailSection === "function") { setActiveRailSection("chat", false); }
+      if (typeof resetHome === "function") { resetHome(); }
+      renderCenterChatTabs();
     });
   }
-  const openDeep = document.getElementById("wb-side-open-deep");
-  if (openDeep) { openDeep.addEventListener("click", function () { if (typeof openDeepFocusModal === "function") { openDeepFocusModal("", ""); } }); }
-  document.querySelectorAll("[data-side-snd]").forEach(function (btn) {
-    btn.addEventListener("click", function () { if (typeof startFocusSoundscape === "function") { startFocusSoundscape(btn.getAttribute("data-side-snd") || "off"); renderSideQuickFocus(); } });
-  });
-  const openImp = document.getElementById("wb-side-open-impact");
-  if (openImp) { openImp.addEventListener("click", function () { if (typeof openImpactEntryModal === "function") { openImpactEntryModal(null); } }); }
-  const siForm = document.getElementById("wb-side-imp-form");
-  if (siForm) {
-    siForm.addEventListener("submit", async function (e) {
-      e.preventDefault();
-      const w = document.getElementById("wb-si-what").value.trim(), ef = document.getElementById("wb-si-effect").value.trim();
-      if (!w || !ef || typeof impApi !== "function") { return; }
-      if (await impApi("/api/impact/entries", { method: "POST", body: JSON.stringify({ what_done: w, effect: ef, outcome_tag: "quality" }) })) {
-        document.getElementById("wb-si-what").value = ""; document.getElementById("wb-si-effect").value = "";
-        showToast(t("imp_saved_toast")); renderSideQuickImpact();
-      }
-    });
-  }
-  renderSideWorkbenchTabs();
+  renderCenterChatTabs();
 }
 """

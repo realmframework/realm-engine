@@ -1,26 +1,34 @@
 """Atomic local persistence, date arithmetic, summary metrics, and RAG snapshot for Work Board."""
 
 import calendar
-import uuid
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 from pathlib import Path
 
-from core.db import atomic_write_text, backup_corrupt_file
-from core.linked_vaults import CACHE_DIR, cache_study_path
-from core.runtime import data_root
+from core.json_store import (
+    area_store_path,
+    load_model_json,
+    new_id,
+    save_model_json,
+    store_lock,
+    today_iso,
+    utc_now,
+)
 from core.work_contracts import BoardColumn, RecurrenceRule, WorkBoardState
 
-
-def utc_now() -> str:
-    return datetime.now(UTC).isoformat()
-
-
-def today_iso() -> str:
-    return date.today().isoformat()
-
-
-def new_id(prefix: str) -> str:
-    return f"{prefix}_{uuid.uuid4().hex[:10]}"
+__all__ = [
+    "advance_due_date",
+    "board_path",
+    "board_summary",
+    "default_columns",
+    "done_column_ids",
+    "load_board",
+    "new_id",
+    "render_board_markdown",
+    "save_board",
+    "store_lock",
+    "today_iso",
+    "utc_now",
+]
 
 
 def default_columns() -> list[BoardColumn]:
@@ -33,38 +41,17 @@ def default_columns() -> list[BoardColumn]:
 
 
 def board_path(area: str, root: Path | None = None) -> Path:
-    resolved_root = (root or data_root()).resolve()
-    if not area or not area.strip():
-        cache = resolved_root / CACHE_DIR
-        cache.mkdir(parents=True, exist_ok=True)
-        target = cache / "_default.work_board.json"
-    else:
-        target = cache_study_path(area.strip(), "work_board.json", resolved_root)
-    if target.is_symlink() or target.with_suffix(".json.tmp").is_symlink():
-        raise ValueError("Work board storage cannot be a symbolic link")
-    return target
+    return area_store_path(area, "work_board.json", root)
 
 
 def load_board(path: Path) -> WorkBoardState:
-    if path.is_symlink():
-        raise ValueError("Work board storage cannot be a symbolic link")
-    if not path.is_file():
-        return WorkBoardState(columns=default_columns())
-    try:
-        state = WorkBoardState.model_validate_json(path.read_text(encoding="utf-8"))
-    except ValueError:
-        backup_corrupt_file(path)
-        return WorkBoardState(columns=default_columns())
-    except OSError:
-        return WorkBoardState(columns=default_columns())
+    state = load_model_json(path, WorkBoardState, lambda: WorkBoardState(columns=default_columns()))
     return state if state.columns else state.model_copy(update={"columns": default_columns()})
 
 
-def save_board(state: WorkBoardState, path: Path) -> None:
-    if path.is_symlink() or path.with_suffix(".json.tmp").is_symlink():
-        raise ValueError("Work board storage cannot be a symbolic link")
+def save_board(state: WorkBoardState, path: Path) -> WorkBoardState:
     normalized = state if state.columns else state.model_copy(update={"columns": default_columns()})
-    atomic_write_text(path, normalized.model_dump_json(indent=2))
+    return save_model_json(normalized, path, WorkBoardState)
 
 
 def advance_due_date(iso_date: str, recurrence: RecurrenceRule) -> str:

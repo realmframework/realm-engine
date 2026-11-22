@@ -69,7 +69,7 @@ def build_source_resolver(
                     for c in matching
                 ]
                 sub = f"{active.app_title} · {matching[0].subfolder or active.knowledge_dir}"
-                return doc_title, "\n\n---\n\n".join(sections), sub, [matching[0].file_path], logo, accent, glow
+                return doc_title, "\n\n---\n\n".join(sections), sub, [doc_title], logo, accent, glow
 
             title = str(body.get("title") or "REALM Presentation").strip()
             md = str(body.get("markdown") or "").strip()

@@ -177,15 +177,8 @@ async function runFormatSynthesis(formatId) {
     const res = await areaFetch("/api/chats/" + encodeURIComponent(chatAtStart) + "/synthesize", { method: "POST", headers, signal: controller.signal, body: JSON.stringify({ format_id: formatId, extra_instruction: extra, free_chat: freeChatMode, agent_id: (typeof activeAgentId !== "undefined" && activeAgentId) || "saga", provider: providerEl.value, model: modelEl.value.trim() || null, api_key: apiKey || null }) });
     if (res.status === 499 || stale()) { return; }
     if (!res.ok) { const e = await safeJson(res); throw new Error(e.detail || "Synthesis failed."); }
-    if (!res.body || !res.body.getReader) { throw new Error("Streaming synthesis is unavailable in this browser."); }
-    const reader = res.body.getReader(), decoder = new TextDecoder();
-    let buf = "", doneSession = null, stoppedFlag = false;
-    const handle = function (raw) {
-      if (stale()) { return; }
-      let ev = "message", lines = [];
-      for (const ln of raw.split(/\r?\n/)) { if (ln.startsWith("event:")) { ev = ln.slice(6).trim(); } else if (ln.startsWith("data:")) { lines.push(ln.slice(5).trim()); } }
-      if (!lines.length) { return; }
-      let p = null; try { p = JSON.parse(lines.join("\n")); } catch (_e) { return; }
+    let doneSession = null, stoppedFlag = false;
+    const completed = await readSseStream(res, function (ev, p) {
       if (ev === "thinking") {
         const had = Boolean(pendingTurn.streamingThinking);
         pendingTurn.streamingThinking = (pendingTurn.streamingThinking || "") + String(p.delta || "");
@@ -198,16 +191,8 @@ async function runFormatSynthesis(formatId) {
       else if (ev === "done") { doneSession = p; if (p.context_usage) { lastContextUsage = p.context_usage; } }
       else if (ev === "stopped") { stoppedFlag = true; pendingTurn.loadingTutor = false; pendingTurn.stopped = true; const partial = String((p && p.partial) || pendingTurn.streamingText || "").trim(); if (partial) { pendingTurn.tutor = { answer: partial, cited_titles: [], knowledge_gap_detected: false }; } renderChatStream(); }
       else if (ev === "error") { throw new Error((p && p.detail) || "Synthesis failed."); }
-    };
-    while (true) {
-      const step = await reader.read(); if (step.done) { break; }
-      if (stale()) { try { await reader.cancel(); } catch (_e) {} return; }
-      buf += decoder.decode(step.value, { stream: true });
-      let idx; while ((idx = buf.indexOf("\n\n")) !== -1) { const ch = buf.slice(0, idx); buf = buf.slice(idx + 2); if (ch.trim()) { handle(ch); } }
-    }
-    buf += decoder.decode();
-    if (buf.trim()) { handle(buf); }
-    if (stale()) { return; }
+    }, stale);
+    if (!completed || stale()) { return; }
     if (doneSession) { currentTurns = (doneSession.turns || []).map(t => Object.assign({}, t, { collapsed: true })); renderChatStream(); await loadRecentChats(); refreshBudget(); }
     else if (!stoppedFlag) { pendingTurn.loadingTutor = false; const partial = String(pendingTurn.streamingText || "").trim(); if (!partial) { pendingTurn.isError = true; } pendingTurn.tutor = { answer: partial || "Synthesis stream ended unexpectedly.", cited_titles: [], knowledge_gap_detected: false }; renderChatStream(); }
   } catch (err) { if ((!err || err.name !== "AbortError") && !stale()) { pendingTurn.loadingTutor = false; pendingTurn.isError = true; pendingTurn.tutor = { answer: err.message || "Synthesis failed.", cited_titles: [], knowledge_gap_detected: false }; renderChatStream(); refreshBudget(); } }
@@ -256,9 +241,7 @@ async function exportPdfRequest(payload, filenameFallback) {
     showToast(t("toast_exp_pdf_gen"), 10000);
     const res = await areaFetch("/api/export/pdf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     if (!res.ok) { const e = await safeJson(res); throw new Error(e.detail || t("err_export_pdf")); }
-    const blob = await res.blob(), url = URL.createObjectURL(blob), a = document.createElement("a");
-    a.href = url; a.download = (filenameFallback || "realm-export") + ".pdf"; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    downloadBlob(await res.blob(), (filenameFallback || "realm-export") + ".pdf");
     showToast(t("toast_exp_pdf_ok"));
   } catch (err) { showToast(err.message || t("err_export_pdf")); }
 }
@@ -270,7 +253,9 @@ function exportTurnPdf(tIdx) {
 }
 function exportFullChatPdf() { if (currentChatId) { exportPdfRequest({ chat_id: currentChatId, free_chat: freeChatMode }, chatSlug((currentTurns[0] && currentTurns[0].query) || "conversation")); } }
 function setInspectorOpen(open, restoreFocus) {
-  inspectorOpen = Boolean(open); syncInspectorSidebar();
+  inspectorOpen = Boolean(open);
+  if (typeof setRightSidebarOpen === "function") { setRightSidebarOpen(inspectorOpen, inspectorOpen ? "inspector" : undefined); }
+  else { syncInspectorSidebar(); }
   if (inspectorOpen) { refreshContextUsage(); const cb = document.getElementById("close-inspector-btn"); if (cb) { cb.focus({ preventScroll: true }); } }
   else if (restoreFocus) { const tb = document.getElementById("inspector-toggle-btn"); if (tb && !tb.hidden) { tb.focus({ preventScroll: true }); } }
 }
@@ -278,15 +263,20 @@ function syncInspectorSidebar() {
   const toggleBtn = document.getElementById("inspector-toggle-btn"), aside = document.getElementById("inspector-sidebar"), body = document.getElementById("inspector-sidebar-body");
   const graphVisible = document.getElementById("graph-view") && !document.getElementById("graph-view").classList.contains("hidden");
   const hasChat = Boolean(currentChatId && (currentTurns.length || activeAttachedNotes.length) && isActiveView && !graphVisible);
+  const rightOpen = typeof wbLayout !== "undefined" ? Boolean(wbLayout.rightOpen) : inspectorOpen;
   if (toggleBtn) {
     toggleBtn.hidden = !hasChat;
-    toggleBtn.setAttribute("aria-expanded", String(Boolean(hasChat && inspectorOpen)));
-    toggleBtn.classList.toggle("text-[#4BB8E8]", Boolean(hasChat && inspectorOpen));
+    toggleBtn.setAttribute("aria-expanded", String(Boolean(hasChat && rightOpen && (typeof wbLayout === "undefined" || wbLayout.rightTab === "inspector"))));
+    const tokLbl = document.getElementById("inspector-token-label");
+    if (tokLbl) { tokLbl.textContent = (lastContextUsage && lastContextUsage.used_tokens > 0) ? fmtTokens(lastContextUsage.used_tokens) : t("insp_tokens_short"); }
   }
   if (!aside || !body) { return; }
-  const show = Boolean(hasChat && inspectorOpen);
-  aside.hidden = !show;
-  if (!show) { return; }
+  if (typeof wbLayout === "undefined") { aside.hidden = !Boolean(hasChat && inspectorOpen); }
+  if (!rightOpen) { return; }
+  if (!hasChat) {
+    body.innerHTML = "<div class='wb-empty'>" + escapeHtml(t("insp_empty_hint")) + "</div>";
+    return;
+  }
   const ctx = lastContextUsage || { used_tokens: 0, max_tokens: 32768, percent: 0, summary_tokens: 0, history_tokens: 0, notes_tokens: 0, rag_tokens: 0, is_compacted: false };
   const pct = Math.min(100, Number(ctx.percent || 0)), pctLabel = pct > 0 && pct < 1 ? "<1%" : (Math.round(pct) + "%");
   const barColor = pct >= 88 ? "var(--status-danger)" : (pct >= 70 ? "var(--status-warn)" : "var(--accent)");

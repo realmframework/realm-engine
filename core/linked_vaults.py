@@ -120,7 +120,7 @@ def unlink_folder(name: str, root: Path) -> bool:
     data.pop(name, None)
     _save_linked_vaults(root, data)
     cache_root = root.resolve() / CACHE_DIR
-    for suffix in (".index.json", ".chats.json", ".study_deck.json", ".study_progress.json"):
+    for suffix in (".index.json", ".chats.json", ".study_deck.json", ".study_progress.json", ".work_board.json", ".impact_ledger.json", ".focus_engine.json", ".workflows.json"):
         item = cache_root / f"{name}{suffix}"
         if item.is_file() and not item.is_symlink():
             item.unlink(missing_ok=True)

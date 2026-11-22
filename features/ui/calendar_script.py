@@ -91,9 +91,9 @@ function renderWorkCalendar() {
       const cellCls = "wb-cal-cell" + (other ? " is-other-month" : "") + (isToday ? " is-today" : "");
       cells.push("<div class='" + cellCls + "' data-cal-drop-date='" + iso + "'>"
         + "<div class='wb-cal-day-num" + (isToday ? " is-today" : "") + "'><span>" + p.d + "</span>"
-        + "<button type='button' data-cal-quick-add='" + iso + "' aria-label='" + escapeHtml(t("wb_new_event") + " " + iso) + "' class='wb-icon-btn' style='width:1.4rem;height:1.4rem;font-size:0.85rem'>+</button></div>"
+        + "<button type='button' data-cal-quick-add='" + iso + "' aria-label='" + escapeHtml(t("wb_ev_modal_new") + " " + iso) + "' class='wb-icon-btn' style='width:1.4rem;height:1.4rem;font-size:calc(0.85rem * var(--ui-scale,1))'>+</button></div>"
         + items.slice(0, 4).map(wbCalItemHtml).join("")
-        + (items.length > 4 ? "<span style='font-size:0.72rem;color:var(--text-subtle);padding-inline:0.35rem'>+" + (items.length - 4) + "</span>" : "")
+        + (items.length > 4 ? "<span style='font-size:calc(0.72rem * var(--ui-scale,1));color:var(--text-subtle);padding-inline:0.35rem'>+" + (items.length - 4) + "</span>" : "")
         + "</div>");
     }
     canvas.innerHTML = "<div class='wb-cal-month'>" + dows.map(function (d) { return "<div class='wb-cal-dow'>" + escapeHtml(d) + "</div>"; }).join("") + cells.join("") + "</div>";
@@ -106,7 +106,7 @@ function renderWorkCalendar() {
       cols.push("<div class='wb-cal-week-col" + (isToday ? " is-today" : "") + "' data-cal-drop-date='" + iso + "'>"
         + "<div class='wb-cal-day-num" + (isToday ? " is-today" : "") + "'><span>" + escapeHtml(dows[i] + " " + wbParseIso(iso).d) + "</span>"
         + "<button type='button' data-cal-quick-add='" + iso + "' aria-label='" + escapeHtml(t("wb_new_event") + " " + iso) + "' class='wb-icon-btn' style='width:1.5rem;height:1.5rem'>+</button></div>"
-        + (items.length ? items.map(wbCalItemHtml).join("") : "<span style='font-size:0.78rem;color:var(--text-subtle)'>—</span>")
+        + (items.length ? items.map(wbCalItemHtml).join("") : "<span style='font-size:calc(0.78rem * var(--ui-scale,1));color:var(--text-subtle)'>—</span>")
         + "</div>");
     }
     canvas.innerHTML = "<div class='wb-cal-week'>" + cols.join("") + "</div>";
@@ -157,7 +157,7 @@ function bindCalendarInteractions(canvas) {
 function openWorkEventModal(eventId, presetDate) {
   const modal = document.getElementById("work-event-modal"); if (!modal) { return; }
   const ev = eventId ? (wbState.events || []).find(function (e) { return e.id === eventId; }) : null;
-  document.getElementById("wb-ev-modal-title").textContent = ev ? t("wb_edit_event") : t("wb_new_event");
+  document.getElementById("wb-ev-modal-title").textContent = ev ? t("wb_edit_event") : t("wb_ev_modal_new");
   document.getElementById("wb-ef-id").value = ev ? ev.id : "";
   document.getElementById("wb-ef-title").value = ev ? ev.title : "";
   document.getElementById("wb-ef-date").value = ev ? ev.date : (presetDate || wbCalAnchor || wbTodayIso());

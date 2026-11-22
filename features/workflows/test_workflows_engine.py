@@ -87,7 +87,7 @@ def test_cancellation_and_due_schedule_detection(tmp_path: Path) -> None:
     async def _slow_stream(*_args: object, **_kwargs: object):
         for i in range(10):
             await asyncio.sleep(0.02)
-            yield {"event": "token", "text": f"tok{i}"}
+            yield {"type": "token", "delta": f"tok{i}"}
 
     async def _run_cancel() -> str:
         run_status = ""

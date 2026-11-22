@@ -81,8 +81,8 @@ def test_deterministic_and_ai_task_extraction() -> None:
     assert len(tasks) == 3
     assert tasks[0]["priority"] == "urgent" and tasks[0]["due_date"] == "2026-06-01"
 
-    async def _fake_stream(_msgs: list[dict[str, str]], _cfg: object) -> AsyncIterator[dict[str, object]]:
-        yield {"event": "token", "text": '<tasks_json>[{"title":"Audit KPIs","description":"Q2 metrics","priority":"high","due_date":"2026-06-15"}]</tasks_json>'}
+    async def _fake_stream(_msgs: list[dict[str, str]], _cfg: object, **_kw: object) -> AsyncIterator[dict[str, object]]:
+        yield {"type": "token", "delta": '<tasks_json>[{"title":"Audit KPIs","description":"Q2 metrics","priority":"high","due_date":"2026-06-15"}]</tasks_json>'}
 
     ai_tasks, mode = asyncio.run(extractor.extract_tasks_with_ai("Review metrics", _fake_stream, object()))  # type: ignore[arg-type]
     assert mode == "ai" and len(ai_tasks) == 1 and ai_tasks[0]["title"] == "Audit KPIs"
@@ -117,3 +117,5 @@ def test_work_board_router_end_to_end(tmp_path: Path) -> None:
 
     assert client.delete(f"/api/work-board/tasks/{t1['id']}").status_code == 200
     assert client.delete(f"/api/work-board/projects/{p['id']}").status_code == 200
+    assert client.post("/api/work-board/events", json={"title": "Bad Date", "date": "2026-99-99"}).status_code == 400
+    assert client.post("/api/work-board/tasks", json={"title": "Wrong WS"}, headers={"x-knowledge-area": "other_ws"}).status_code == 409

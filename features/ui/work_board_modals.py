@@ -2,8 +2,8 @@
 
 WORK_BOARD_MODALS_HTML: str = r"""<dialog id="work-task-modal" closedby="any" aria-labelledby="wb-task-modal-title" class="wb-dialog">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;border-bottom:1px solid var(--border-subtle);padding-bottom:0.7rem">
-    <h2 id="wb-task-modal-title" data-i18n="wb_new_task" style="margin:0;font-size:calc(1.125rem * var(--ui-scale, 1));font-weight:600">New Task</h2>
-    <button type="button" data-wb-close="work-task-modal" aria-label="Close task dialog" class="wb-icon-btn">✕</button>
+    <h2 id="wb-task-modal-title" data-i18n="wb_task_modal_new" style="margin:0;font-size:calc(1.125rem * var(--ui-scale, 1));font-weight:600">New Task</h2>
+    <button type="button" data-close-dialog="work-task-modal" aria-label="Close task dialog" class="wb-icon-btn">✕</button>
   </div>
   <form id="wb-task-form" style="display:flex;flex-direction:column;gap:0.8rem">
     <input id="wb-tf-id" type="hidden" value="" />
@@ -34,7 +34,7 @@ WORK_BOARD_MODALS_HTML: str = r"""<dialog id="work-task-modal" closedby="any" ar
         <button id="wb-tf-ask-chat" type="button" hidden data-i18n="sp_ask_in_chat" class="wb-btn">Ask in Split Chat</button>
       </div>
       <div style="display:flex;gap:0.5rem;margin-inline-start:auto">
-        <button type="button" data-wb-close="work-task-modal" data-i18n="cancel" class="wb-btn">Cancel</button>
+        <button type="button" data-close-dialog="work-task-modal" data-i18n="cancel" class="wb-btn">Cancel</button>
         <button type="submit" data-i18n="save" class="wb-btn wb-btn-primary">Save</button>
       </div>
     </div>
@@ -43,8 +43,8 @@ WORK_BOARD_MODALS_HTML: str = r"""<dialog id="work-task-modal" closedby="any" ar
 
 <dialog id="work-project-modal" closedby="any" aria-labelledby="wb-proj-modal-title" class="wb-dialog">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;border-bottom:1px solid var(--border-subtle);padding-bottom:0.7rem">
-    <h2 id="wb-proj-modal-title" data-i18n="wb_new_project" style="margin:0;font-size:calc(1.125rem * var(--ui-scale, 1));font-weight:600">New Project</h2>
-    <button type="button" data-wb-close="work-project-modal" aria-label="Close project dialog" class="wb-icon-btn">✕</button>
+    <h2 id="wb-proj-modal-title" data-i18n="wb_proj_modal_new" style="margin:0;font-size:calc(1.125rem * var(--ui-scale, 1));font-weight:600">New Project</h2>
+    <button type="button" data-close-dialog="work-project-modal" aria-label="Close project dialog" class="wb-icon-btn">✕</button>
   </div>
   <form id="wb-project-form" style="display:flex;flex-direction:column;gap:0.8rem">
     <input id="wb-pf-id" type="hidden" value="" />
@@ -59,7 +59,7 @@ WORK_BOARD_MODALS_HTML: str = r"""<dialog id="work-task-modal" closedby="any" ar
     <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;padding-top:0.65rem;border-top:1px solid var(--border-subtle)">
       <button id="wb-pf-delete" type="button" hidden data-i18n="delete_btn" class="wb-btn wb-btn-danger">Delete</button>
       <div style="display:flex;gap:0.5rem;margin-inline-start:auto">
-        <button type="button" data-wb-close="work-project-modal" data-i18n="cancel" class="wb-btn">Cancel</button>
+        <button type="button" data-close-dialog="work-project-modal" data-i18n="cancel" class="wb-btn">Cancel</button>
         <button type="submit" data-i18n="save" class="wb-btn wb-btn-primary">Save</button>
       </div>
     </div>
@@ -68,8 +68,8 @@ WORK_BOARD_MODALS_HTML: str = r"""<dialog id="work-task-modal" closedby="any" ar
 
 <dialog id="work-event-modal" closedby="any" aria-labelledby="wb-ev-modal-title" class="wb-dialog">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;border-bottom:1px solid var(--border-subtle);padding-bottom:0.7rem">
-    <h2 id="wb-ev-modal-title" data-i18n="wb_new_event" style="margin:0;font-size:calc(1.125rem * var(--ui-scale, 1));font-weight:600">New Calendar Event</h2>
-    <button type="button" data-wb-close="work-event-modal" aria-label="Close event dialog" class="wb-icon-btn">✕</button>
+    <h2 id="wb-ev-modal-title" data-i18n="wb_ev_modal_new" style="margin:0;font-size:calc(1.125rem * var(--ui-scale, 1));font-weight:600">New Calendar Event</h2>
+    <button type="button" data-close-dialog="work-event-modal" aria-label="Close event dialog" class="wb-icon-btn">✕</button>
   </div>
   <form id="wb-event-form" style="display:flex;flex-direction:column;gap:0.8rem">
     <input id="wb-ef-id" type="hidden" value="" />
@@ -85,7 +85,7 @@ WORK_BOARD_MODALS_HTML: str = r"""<dialog id="work-task-modal" closedby="any" ar
     <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;padding-top:0.65rem;border-top:1px solid var(--border-subtle)">
       <button id="wb-ef-delete" type="button" hidden data-i18n="delete_btn" class="wb-btn wb-btn-danger">Delete</button>
       <div style="display:flex;gap:0.5rem;margin-inline-start:auto">
-        <button type="button" data-wb-close="work-event-modal" data-i18n="cancel" class="wb-btn">Cancel</button>
+        <button type="button" data-close-dialog="work-event-modal" data-i18n="cancel" class="wb-btn">Cancel</button>
         <button type="submit" data-i18n="save" class="wb-btn wb-btn-primary">Save</button>
       </div>
     </div>
@@ -95,7 +95,7 @@ WORK_BOARD_MODALS_HTML: str = r"""<dialog id="work-task-modal" closedby="any" ar
 <dialog id="work-extract-modal" closedby="any" aria-labelledby="wb-ext-modal-title" class="wb-dialog">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;border-bottom:1px solid var(--border-subtle);padding-bottom:0.7rem">
     <h2 id="wb-ext-modal-title" data-i18n="wb_extract_title" style="margin:0;font-size:calc(1.125rem * var(--ui-scale, 1));font-weight:600">Extract Tasks to Board</h2>
-    <button type="button" data-wb-close="work-extract-modal" aria-label="Close extract dialog" class="wb-icon-btn">✕</button>
+    <button type="button" data-close-dialog="work-extract-modal" aria-label="Close extract dialog" class="wb-icon-btn">✕</button>
   </div>
   <form id="wb-extract-form" style="display:flex;flex-direction:column;gap:0.8rem">
     <div class="wb-field"><label for="wb-ext-text" data-i18n="wb_ext_text_lbl">Meeting Notes, Report, or Action Items</label><textarea id="wb-ext-text" rows="6" required maxlength="40000" placeholder="- [ ] Review Q2 report&#10;- [ ] Prepare presentation slides by 2026-06-01" class="wb-textarea"></textarea></div>
@@ -108,7 +108,7 @@ WORK_BOARD_MODALS_HTML: str = r"""<dialog id="work-task-modal" closedby="any" ar
       <input id="wb-ext-use-ai" type="checkbox" switch role="switch" checked />
     </label>
     <div style="display:flex;justify-content:flex-end;gap:0.5rem;padding-top:0.65rem;border-top:1px solid var(--border-subtle)">
-      <button type="button" data-wb-close="work-extract-modal" data-i18n="cancel" class="wb-btn">Cancel</button>
+      <button type="button" data-close-dialog="work-extract-modal" data-i18n="cancel" class="wb-btn">Cancel</button>
       <button id="wb-ext-submit" type="submit" data-i18n="wb_extract_btn" class="wb-btn wb-btn-primary">Extract Tasks</button>
     </div>
   </form>

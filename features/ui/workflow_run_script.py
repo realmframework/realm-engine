@@ -89,8 +89,8 @@ function renderWorkflowRuns() {
   if (liveBox) {
     liveBox.innerHTML = wfLiveSteps.map(function (s) {
       return "<div class='wf-run-step'><div style='display:flex;justify-content:space-between;gap:0.4rem'><strong>" + escapeHtml(s.label) + "</strong><span class='wb-chip'>" + escapeHtml(t(WF_STAT_KEYS[s.status] || "wf_st_completed")) + (s.duration_ms ? (" · " + s.duration_ms + "ms") : "") + "</span></div>"
-        + (s.artifact_note ? "<div style='color:var(--accent);font-size:0.8rem'>" + escapeHtml(s.artifact_note) + "</div>" : "")
-        + (s.output_preview ? "<div style='color:var(--text-muted);font-size:0.78rem;white-space:pre-wrap;max-height:5rem;overflow:auto'>" + escapeHtml(s.output_preview.slice(0, 260)) + "</div>" : "") + "</div>";
+        + (s.artifact_note ? "<div style='color:var(--accent);font-size:calc(0.8rem * var(--ui-scale,1))'>" + escapeHtml(s.artifact_note) + "</div>" : "")
+        + (s.output_preview ? "<div style='color:var(--text-muted);font-size:calc(0.78rem * var(--ui-scale,1));white-space:pre-wrap;max-height:5rem;overflow:auto'>" + escapeHtml(s.output_preview.slice(0, 260)) + "</div>" : "") + "</div>";
     }).join("");
   }
   if (histBox) {
@@ -98,8 +98,8 @@ function renderWorkflowRuns() {
     if (!runs.length && !wfLiveSteps.length) { histBox.innerHTML = "<div class='wb-empty'>" + escapeHtml(t("wf_empty_runs")) + "</div>"; return; }
     histBox.innerHTML = runs.slice(0, 12).map(function (r) {
       return "<div class='wf-run-step'><div style='display:flex;justify-content:space-between;gap:0.4rem'><strong>" + escapeHtml(r.workflow_name) + "</strong><span class='wb-chip'>" + escapeHtml(t(WF_STAT_KEYS[r.status] || "wf_st_completed")) + "</span></div>"
-        + "<div style='font-size:0.78rem;color:var(--text-muted)'>" + escapeHtml((r.started_at || "").slice(0, 16).replace("T", " ")) + " · " + (r.steps ? r.steps.length : 0) + " steps</div>"
-        + (r.error ? "<div style='font-size:0.78rem;color:var(--status-danger)'>" + escapeHtml(r.error) + "</div>" : "") + "</div>";
+        + "<div style='font-size:calc(0.78rem * var(--ui-scale,1));color:var(--text-muted)'>" + escapeHtml((r.started_at || "").slice(0, 16).replace("T", " ")) + " · " + escapeHtml(t("wf_steps_n", { n: r.steps ? r.steps.length : 0 })) + "</div>"
+        + (r.error ? "<div style='font-size:calc(0.78rem * var(--ui-scale,1));color:var(--status-danger)'>" + escapeHtml(r.error) + "</div>" : "") + "</div>";
     }).join("");
   }
 }
@@ -107,9 +107,9 @@ function openWorkflowTemplatesModal() {
   const modal = document.getElementById("wf-templates-modal"), grid = document.getElementById("wf-tpl-grid");
   if (!modal || !grid) { return; }
   grid.innerHTML = (wfState.templates || []).map(function (tpl) {
-    return "<article class='wf-tpl-card'><div style='display:flex;justify-content:space-between;gap:0.4rem;align-items:center'><span class='wf-node-badge'>" + escapeHtml(t(WF_TRIG_KEYS[tpl.trigger_kind] || "wf_trig_manual")) + "</span><span class='wb-chip'>" + tpl.node_count + " steps</span></div>"
+    return "<article class='wf-tpl-card'><div style='display:flex;justify-content:space-between;gap:0.4rem;align-items:center'><span class='wf-node-badge'>" + escapeHtml(t(WF_TRIG_KEYS[tpl.trigger_kind] || "wf_trig_manual")) + "</span><span class='wb-chip'>" + escapeHtml(t("wf_steps_n", { n: tpl.node_count })) + "</span></div>"
       + "<h3 style='margin:0;font-size:calc(0.95rem * var(--ui-scale,1));font-weight:600'>" + escapeHtml(tpl.name) + "</h3>"
-      + "<p style='margin:0;font-size:0.84rem;color:var(--text-muted);line-height:1.45;flex:1'>" + escapeHtml(tpl.description) + "</p>"
+      + "<p style='margin:0;font-size:calc(0.84rem * var(--ui-scale,1));color:var(--text-muted);line-height:1.45;flex:1'>" + escapeHtml(tpl.description) + "</p>"
       + "<button type='button' data-wf-install-tpl='" + escapeHtml(tpl.id) + "' class='wb-btn wb-btn-sm wb-btn-primary'>" + escapeHtml(t("wf_use_template")) + "</button></article>";
   }).join("");
   grid.querySelectorAll("[data-wf-install-tpl]").forEach(function (btn) {
@@ -133,28 +133,16 @@ async function runActiveWorkflowStream(inputText) {
   try {
     const res = await areaFetch("/api/workflows/" + encodeURIComponent(wf.id) + "/run/stream", { method: "POST", headers: headers, signal: ctrl.signal, body: JSON.stringify({ input_text: inputText || wf.name, provider: providerEl ? providerEl.value : "ollama", model: (modelEl && modelEl.value) || "qwen3:8b", trigger_source: "manual" }) });
     if (!res.ok) { const d = await safeJson(res); throw new Error(d.detail || "Workflow run failed"); }
-    const reader = res.body.getReader(), dec = new TextDecoder();
-    let buf = "";
-    while (true) {
-      const part = await reader.read(); if (part.done) { break; }
-      buf += dec.decode(part.value, { stream: true });
-      const blocks = buf.split("\n\n"); buf = blocks.pop() || "";
-      blocks.forEach(function (blk) {
-        const dLine = blk.split("\n").find(function (l) { return l.startsWith("data: "); });
-        if (!dLine) { return; }
-        try {
-          const ev = JSON.parse(dLine.slice(6));
-          if (ev.event === "run_start") { wfActiveRunId = ev.run_id || ""; }
-          else if (ev.event === "step_start") { wfNodeRunState[ev.node_id] = "running"; renderWorkflowCanvas(wf); }
-          else if (ev.event === "step_done" && ev.step) { wfNodeRunState[ev.step.node_id] = ev.step.status; wfLiveSteps.push(ev.step); renderWorkflowCanvas(wf); renderWorkflowRuns(); }
-          else if (ev.event === "step_skipped" && ev.step) { wfNodeRunState[ev.step.node_id] = "skipped"; wfLiveSteps.push(ev.step); renderWorkflowCanvas(wf); renderWorkflowRuns(); }
-          else if (ev.event === "run_error") { showToast(ev.error || "Workflow failed", 4000); }
-          else if (ev.event === "run_done" && ev.run) {
-            showToast(ev.run.status === "cancelled" ? t("wf_run_stopped_toast") : t("wf_run_done_toast"));
-          }
-        } catch (_e) {}
-      });
-    }
+    await readSseStream(res, function (evName, ev) {
+      if (evName === "run_start") { wfActiveRunId = ev.run_id || ""; }
+      else if (evName === "step_start") { wfNodeRunState[ev.node_id] = "running"; renderWorkflowCanvas(wf); }
+      else if (evName === "step_done" && ev.step) { wfNodeRunState[ev.step.node_id] = ev.step.status; wfLiveSteps.push(ev.step); renderWorkflowCanvas(wf); renderWorkflowRuns(); }
+      else if (evName === "step_skipped" && ev.step) { wfNodeRunState[ev.step.node_id] = "skipped"; wfLiveSteps.push(ev.step); renderWorkflowCanvas(wf); renderWorkflowRuns(); }
+      else if (evName === "run_error") { showToast(ev.error || "Workflow failed", 4000); }
+      else if (evName === "run_done" && ev.run) {
+        showToast(ev.run.status === "cancelled" ? t("wf_run_stopped_toast") : t("wf_run_done_toast"));
+      }
+    }, function () { return ctrl.signal.aborted; });
   } catch (err) {
     if (!ctrl.signal.aborted) { showToast(err.message || "Workflow error", 3800); }
   } finally {
@@ -173,12 +161,11 @@ function bindWorkflowStudioUX() {
   if (typeof bindRovingTablist === "function") { bindRovingTablist("#wf-side-tablist [role='tab']", function (b) { setWorkflowSideTab(b.getAttribute("data-wf-side")); }); }
   document.querySelectorAll("[data-wf-side]").forEach(function (b) { b.addEventListener("click", function () { setWorkflowSideTab(b.getAttribute("data-wf-side")); }); });
   document.querySelectorAll("[data-wf-mode]").forEach(function (b) { b.addEventListener("click", function () { wfViewMode = b.getAttribute("data-wf-mode") || "canvas"; renderWorkflowsView(); }); });
-  document.querySelectorAll("[data-m5-close]").forEach(function (b) { b.addEventListener("click", function () { const d = document.getElementById(b.getAttribute("data-m5-close")); if (d && d.open) { d.close(); } }); });
   const sel = document.getElementById("wf-select");
   if (sel) { sel.addEventListener("change", function () { wfActiveId = sel.value; wfSelectedNodeId = ""; wfNodeRunState = {}; wfLiveSteps = []; renderWorkflowsView(); }); }
   ["wf-templates-btn", "wf-empty-tpl-btn"].forEach(function (id) { const el = document.getElementById(id); if (el) { el.addEventListener("click", openWorkflowTemplatesModal); } });
   const createBlank = async function () {
-    await wfApi("/api/workflows", { method: "POST", body: JSON.stringify({ name: "Custom Pipeline", description: "", trigger_kind: "manual", schedule_minutes: 0, nodes: [{ id: "n1", kind: "trigger", label: "Manual Trigger", x: 36, y: 120, config: { trigger_kind: "manual" } }, { id: "n2", kind: "run_agent", label: "Run Saga", x: 310, y: 120, config: { agent_id: "saga", prompt: "Summarize key takeaways:\n\n{{input}}" } }], edges: [{ id: "e1", source: "n1", target: "n2", branch: "default" }] }) });
+    await wfApi("/api/workflows", { method: "POST", body: JSON.stringify({ name: t("wf_default_name"), description: "", trigger_kind: "manual", schedule_minutes: 0, nodes: [{ id: "n1", kind: "trigger", label: t("wf_trig_manual"), x: 36, y: 120, config: { trigger_kind: "manual" } }, { id: "n2", kind: "run_agent", label: t("wf_k_run_agent"), x: 310, y: 120, config: { agent_id: "saga", prompt: "Summarize key takeaways:\n\n{{input}}" } }], edges: [{ id: "e1", source: "n1", target: "n2", branch: "default" }] }) });
   };
   ["wf-new-btn", "wf-empty-new-btn"].forEach(function (id) { const el = document.getElementById(id); if (el) { el.addEventListener("click", createBlank); } });
   const addNodeBtn = document.getElementById("wf-add-node-btn");

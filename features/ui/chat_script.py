@@ -54,7 +54,7 @@ async function loadSystemStatus() {
     const statusMsg = isHybrid ? t("rag_hybrid_active") : t("rag_keyword_active");
     if (ragBadge) { ragBadge.textContent = statusMsg; ragBadge.className = "text-xs font-mono " + (isHybrid ? "text-[#38D399]" : "text-[#4BB8E8]"); }
     if (obStatus) { obStatus.innerHTML = modeCopy(st.ollama_online ? "Local AI is connected. Choose a model to start chatting." : "Search and privacy tools are ready. Connect AI when you want answers, too.", statusMsg); }
-    if (st.is_first_run && !safeStorageGet("onboarded")) { openOnboardingWizard(1); }
+    if ((typeof IS_EMBED === "undefined" || !IS_EMBED) && st.is_first_run && !safeStorageGet("onboarded")) { openOnboardingWizard(1); }
     const audRes = await areaFetch("/api/audio/status"), aud = audRes.ok ? await safeJson(audRes) : {}, mSel = document.getElementById("tts-model");
     phononAvailable = aud.phonon_available !== false;
     ttsCatalog = Array.isArray(aud.tts_models) && aud.tts_models.length ? aud.tts_models : [{ model: "phonon:latest", voices: ["default", "Zoey", "Easton", "Freya", "Hugh", "Hadley"] }, { model: "openai:tts-1", voices: ["alloy", "nova", "echo"] }, { model: "elevenlabs:tts", voices: ["Rachel", "Adam", "Josh", "Bella"] }, { model: "disabled", voices: ["none"] }];
@@ -128,7 +128,10 @@ async function loadRecentChats() {
     const data = await safeJson(res);
     if (version === areaVersion && op === recentChatsOp && free === Boolean(typeof freeChatMode !== "undefined" && freeChatMode) && Array.isArray(data)) {
       savedChats = data; renderRecentChats();
-      if (typeof syncSplitSelectors === "function" && typeof splitState !== "undefined" && splitState.open) { syncSplitSelectors(); }
+      if (currentChatId && typeof syncCenterChatTab === "function") {
+        const cur = savedChats.find(function (c) { return c.chat_id === currentChatId; });
+        if (cur) { syncCenterChatTab(currentChatId, cur.title || ""); }
+      }
     }
   } catch (_e) {}
 }
@@ -136,10 +139,13 @@ function renderRecentChats() {
   const listEl = document.getElementById("recent-chats-list"); if (!listEl) { return; }
   if (!Array.isArray(savedChats) || !savedChats.length) { listEl.innerHTML = "<div class='px-4 py-1.5 text-xs text-[#738196]'>" + escapeHtml(t("no_recent_chats")) + "</div>"; return; }
   listEl.innerHTML = savedChats.map(function (c) {
-    const rowCls = c.chat_id === currentChatId ? "group w-full flex items-center justify-between gap-1 px-4 py-2 rounded-lg bg-[#4BB8E8]/15 text-[#4BB8E8] text-sm font-medium transition-colors" : "group w-full flex items-center justify-between gap-1 px-4 py-2 rounded-lg text-sm text-[#A0B0C8] hover:text-[#EEF2F8] hover:bg-white/[0.04] transition-colors";
-    return "<div class='" + rowCls + "'><button type='button' data-open-chat='" + escapeHtml(c.chat_id) + "' class='flex-1 text-left truncate'>" + escapeHtml(c.title) + "</button><button type='button' data-del-chat='" + escapeHtml(c.chat_id) + "' aria-label='" + escapeHtml(t("aria_del_chat", { title: c.title })) + "' class='opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 text-xs text-[#738196] hover:text-[#EEF2F8] px-1 transition-opacity'>✕</button></div>";
+    const rowCls = c.chat_id === currentChatId ? "group w-full flex items-center justify-between gap-1 px-3 py-2 rounded-lg bg-[#4BB8E8]/15 text-[#4BB8E8] text-sm font-medium transition-colors" : "group w-full flex items-center justify-between gap-1 px-3 py-2 rounded-lg text-sm text-[#A0B0C8] hover:text-[#EEF2F8] hover:bg-white/[0.04] transition-colors";
+    return "<div class='" + rowCls + "'><button type='button' data-open-chat='" + escapeHtml(c.chat_id) + "' class='flex-1 text-left truncate'>" + escapeHtml(c.title) + "</button><button type='button' data-split-chat='" + escapeHtml(c.chat_id) + "' title='" + escapeHtml(t("sp_open_in_split")) + "' aria-label='" + escapeHtml(t("sp_open_in_split")) + "' class='opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 text-[#738196] hover:text-[#4BB8E8] p-0.5 transition-opacity'><svg aria-hidden='true' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7'><rect x='3' y='4' width='18' height='16' rx='2'/><path d='M12 4v16'/></svg></button><button type='button' data-del-chat='" + escapeHtml(c.chat_id) + "' aria-label='" + escapeHtml(t("aria_del_chat", { title: c.title })) + "' class='opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 text-xs text-[#738196] hover:text-[#EEF2F8] px-1 transition-opacity'>✕</button></div>";
   }).join("");
   listEl.querySelectorAll("[data-open-chat]").forEach(function (btn) { btn.addEventListener("click", function () { openSavedChat(btn.getAttribute("data-open-chat") || ""); }); });
+  listEl.querySelectorAll("[data-split-chat]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) { e.stopPropagation(); if (typeof openChatInSplit === "function") { openChatInSplit(btn.getAttribute("data-split-chat") || ""); } });
+  });
   listEl.querySelectorAll("[data-del-chat]").forEach(function (btn) {
     btn.addEventListener("click", function (e) { e.stopPropagation(); deleteSavedChat(btn.getAttribute("data-del-chat") || ""); });
   });
@@ -163,6 +169,7 @@ async function openSavedChat(chatId) {
     if (typeof renderAttachedChips === "function") { renderAttachedChips(); }
     currentTurns = (session.turns || []).map(function (t) { return Object.assign({}, t, { collapsed: Boolean(t.ask_tutor) }); });
     if (typeof adoptChatAgent === "function") { adoptChatAgent(session); }
+    if (typeof syncCenterChatTab === "function") { syncCenterChatTab(session.chat_id, session.title || (currentTurns[0] && currentTurns[0].query) || ""); }
     setActiveTag(null); setViewMode(true); renderTutor(null); renderResults([], false); renderChatStream(); renderRecentChats();
     if (typeof refreshContextUsage === "function") { refreshContextUsage(); }
   } catch (_e) {}

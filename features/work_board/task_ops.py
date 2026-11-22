@@ -1,5 +1,6 @@
 """Pure task CRUD, Kanban reordering, and recurring task transitions."""
 
+from core.json_store import validate_iso_date
 from core.work_contracts import (
     PriorityLevel,
     RecurrenceRule,
@@ -35,9 +36,10 @@ def add_task(state: WorkBoardState, title: str, column_id: str = "", project_id:
     valid_cols = {c.id for c in state.columns}
     col_id = column_id if column_id in valid_cols else state.columns[0].id
     pos, now, done_cols = sum(1 for t in state.tasks if t.column_id == col_id), utc_now(), done_column_ids(state)
+    safe_due = validate_iso_date(due_date, allow_empty=True, field_name="due_date")
     task = WorkTask(
         id=new_id("tsk"), title=title.strip(), description=description.strip(), column_id=col_id,
-        project_id=project_id.strip(), priority=priority, due_date=due_date.strip(),
+        project_id=project_id.strip(), priority=priority, due_date=safe_due,
         scheduled_start=scheduled_start.strip(), scheduled_end=scheduled_end.strip(), recurrence=recurrence,
         subtasks=subtasks or [], tags=[t.strip() for t in (tags or []) if t.strip()][:16],
         linked_doc_id=linked_doc_id.strip(), linked_chat_id=linked_chat_id.strip(),
@@ -53,7 +55,9 @@ def edit_task(state: WorkBoardState, task_id: str, updates: dict[str, object]) -
         if task.id != task_id:
             tasks.append(task)
             continue
-        clean = {k: v for k, v in updates.items() if v is not None}
+        clean = {k: (v.strip() if isinstance(v, str) else v) for k, v in updates.items() if v is not None}
+        if "due_date" in clean:
+            clean["due_date"] = validate_iso_date(str(clean["due_date"]), allow_empty=True, field_name="due_date")
         if "column_id" in clean and str(clean["column_id"]) not in valid_cols:
             raise ValueError("Target column does not exist")
         next_col = str(clean.get("column_id", task.column_id))
@@ -62,7 +66,7 @@ def edit_task(state: WorkBoardState, task_id: str, updates: dict[str, object]) -
             clean["completed_at"] = now
         elif next_col not in done_cols and task.column_id in done_cols:
             clean["completed_at"] = ""
-        found = task.model_copy(update=clean)
+        found = WorkTask.model_validate({**task.model_dump(), **clean})
         spawned = _maybe_spawn_recurring(state, task, found, done_cols)
         tasks.append(found)
     if not found:

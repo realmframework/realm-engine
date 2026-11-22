@@ -10,7 +10,6 @@ TimeSource = Literal["timer", "focus", "manual"]
 OutcomeTag = Literal["quality", "time_saved", "revenue", "wellbeing", "milestone"]
 GoalStatus = Literal["active", "achieved", "paused"]
 SoundscapeMode = Literal["off", "brown", "rain", "drone"]
-_DATE_RE = r"^$|^\d{4}-\d{2}-\d{2}$"
 
 
 class ActiveTimer(StrictModel):

@@ -1,37 +1,15 @@
-"""Codex-inspired Two-Tier Spatial Shell controller: 52px Rail, Context Drawer & Calm Top Bar."""
+"""Spatial Shell controller: 52px Activity Rail, Context Drawer, Calm Top Bar & Anchored Popovers."""
 
 SHELL_SCRIPT: str = r"""
 let activeRailSection = "chat";
-let desktopDrawerCollapsed = safeStorageGet("realm_drawer_collapsed") === "1";
 
 function closeShellPopovers() {
-  ["rail-more-menu", "rail-status-popover", "topbar-more-menu", "wb-more-menu"].forEach(function (id) {
+  ["rail-more-menu", "rail-status-popover", "topbar-more-menu", "wb-more-menu", "bottom-panel-more-menu"].forEach(function (id) {
     const el = document.getElementById(id);
     if (el && el.matches && el.matches(":popover-open") && el.hidePopover) { try { el.hidePopover(); } catch (_e) {} }
   });
 }
-function applyDesktopDrawerState() {
-  const narrow = typeof sidebarNarrowMq !== "undefined" && sidebarNarrowMq.matches;
-  const sb = document.getElementById("sidebar"), railTog = document.getElementById("rail-drawer-toggle");
-  if (!narrow) {
-    document.body.classList.toggle("drawer-collapsed", desktopDrawerCollapsed);
-    if (sb) { sb.inert = desktopDrawerCollapsed; sb.classList.remove("-translate-x-full"); }
-    if (railTog) { railTog.setAttribute("aria-expanded", String(!desktopDrawerCollapsed)); }
-  }
-}
-function toggleContextDrawer(forceOpen) {
-  const narrow = typeof sidebarNarrowMq !== "undefined" && sidebarNarrowMq.matches;
-  if (narrow) {
-    if (typeof mobileDrawerOpen !== "undefined" && typeof syncSidebarDrawer === "function") {
-      mobileDrawerOpen = forceOpen !== undefined ? Boolean(forceOpen) : !mobileDrawerOpen;
-      syncSidebarDrawer(mobileDrawerOpen ? "open" : "close");
-    }
-    return;
-  }
-  desktopDrawerCollapsed = forceOpen !== undefined ? !Boolean(forceOpen) : !desktopDrawerCollapsed;
-  safeStorageSet("realm_drawer_collapsed", desktopDrawerCollapsed ? "1" : "0");
-  applyDesktopDrawerState();
-}
+
 function updateTopbarContext(customTitle) {
   const titleEl = document.getElementById("topbar-title");
   if (titleEl) {
@@ -45,6 +23,8 @@ function updateTopbarContext(customTitle) {
         label = aw ? (t("wf_title") + " · " + aw.name) : t("wf_title");
       } else if (document.getElementById("graph-view") && !document.getElementById("graph-view").classList.contains("hidden")) {
         label = t("graph_view");
+      } else if (document.getElementById("reader-heading")) {
+        label = document.getElementById("reader-heading").textContent.trim() || t("library");
       } else if (document.getElementById("library-view")) {
         label = t("library");
       } else if (typeof currentChatId !== "undefined" && currentChatId && Array.isArray(savedChats)) {
@@ -69,6 +49,7 @@ function updateTopbarContext(customTitle) {
     dot.hidden = !(activeTimer || hasOverdue);
   }
 }
+
 function renderDrawerDynamicLists() {
   const wfList = document.getElementById("drawer-workflows-list");
   if (wfList && typeof wfState !== "undefined" && Array.isArray(wfState.workflows)) {
@@ -99,6 +80,7 @@ function renderDrawerDynamicLists() {
     });
   }
 }
+
 function setActiveRailSection(section, navigate) {
   const safe = ["chat", "library", "work", "workflows", "studio"].includes(section) ? section : "chat";
   activeRailSection = safe;
@@ -132,6 +114,7 @@ function setActiveRailSection(section, navigate) {
   renderDrawerDynamicLists();
   updateTopbarContext();
 }
+
 function handleShellAction(act) {
   closeShellPopovers();
   if (act === "graph" && typeof openGraphView === "function") { setActiveRailSection("library", false); openGraphView(); }
@@ -140,6 +123,7 @@ function handleShellAction(act) {
   else if (act === "briefing" && typeof openBriefingModal === "function") { openBriefingModal({}); }
   else if (act === "link-folder" && typeof linkExistingFolder === "function") { linkExistingFolder(); }
   else if (act === "settings" && typeof openSettings === "function") { openSettings("workspace"); }
+  else if (act === "guide" && typeof openGuideModal === "function") { openGuideModal(); }
   else if (act === "new-note" && typeof openNewNoteModal === "function") { openNewNoteModal(); }
   else if (act === "upload" && typeof openUploadDialog === "function") { openUploadDialog(); }
   else if (act === "new-chat" && typeof resetHome === "function") { setActiveRailSection("chat", false); resetHome(); }
@@ -147,26 +131,18 @@ function handleShellAction(act) {
   else if (act === "log-impact" && typeof openImpactEntryModal === "function") { openImpactEntryModal(null); }
   else if (act === "open-kanban" && typeof openWorkBoardView === "function") { setActiveRailSection("work", false); openWorkBoardView("kanban"); }
   else if (act === "wf-new") { const b = document.getElementById("wf-new-btn"); if (b) { b.click(); } }
-  else if (act === "wf-templates" && typeof openWorkflowTemplatesModal === "function") { openWorkflowTemplatesModal(); }
 }
+
 function bindSpatialShellUX() {
-  applyDesktopDrawerState();
-  const railTog = document.getElementById("rail-drawer-toggle");
+  const railTog = document.getElementById("rail-drawer-toggle"), topLeftBtn = document.getElementById("layout-left-btn");
   if (railTog) { railTog.addEventListener("click", function () { toggleContextDrawer(); }); }
-  const colBtn = document.getElementById("sidebar-collapse-btn");
-  if (colBtn) {
-    colBtn.addEventListener("click", function (e) {
-      if (!(typeof sidebarNarrowMq !== "undefined" && sidebarNarrowMq.matches)) {
-        e.stopImmediatePropagation();
-        toggleContextDrawer(false);
-      }
-    }, true);
-  }
+  if (topLeftBtn) { topLeftBtn.addEventListener("click", function () { toggleContextDrawer(); }); }
   document.querySelectorAll("[data-rail-section]").forEach(function (btn) {
     btn.addEventListener("click", function () {
       const sec = btn.getAttribute("data-rail-section") || "chat";
-      if (sec === activeRailSection && sec !== "chat" && sec !== "work" && !desktopDrawerCollapsed) { toggleContextDrawer(false); return; }
-      setActiveRailSection(sec, true);
+      const inMobileStrip = Boolean(btn.closest("#mobile-rail-strip"));
+      if (!inMobileStrip && sec === activeRailSection && sec !== "chat" && sec !== "work" && !desktopDrawerCollapsed) { toggleContextDrawer(false); return; }
+      setActiveRailSection(sec, !inMobileStrip);
     });
   });
   document.querySelectorAll("[data-shell-act]").forEach(function (btn) {
@@ -181,6 +157,13 @@ function bindSpatialShellUX() {
   });
   const topTimer = document.getElementById("topbar-timer-pill");
   if (topTimer) { topTimer.addEventListener("click", function () { setActiveRailSection("work", false); if (typeof openImpactView === "function") { openImpactView("time"); } }); }
+  if (typeof bindAnchoredPopover === "function") {
+    bindAnchoredPopover("rail-more-menu", "rail-more-btn", { side: "right" });
+    bindAnchoredPopover("rail-status-popover", "rail-status-btn", { side: "right", align: "bottom" });
+    bindAnchoredPopover("topbar-more-menu", "topbar-more-btn", { align: "right" });
+    bindAnchoredPopover("wb-more-menu", "wb-more-btn", { align: "right" });
+    bindAnchoredPopover("bottom-panel-more-menu", "bottom-panel-more-btn", { align: "right" });
+  }
   const stPop = document.getElementById("rail-status-popover");
   if (stPop) { stPop.addEventListener("toggle", function () { updateTopbarContext(); }); }
   setActiveRailSection("chat", false);

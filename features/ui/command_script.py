@@ -23,6 +23,13 @@ function buildCommandPaletteItems() {
     { group: "cmd_grp_actions", id: "act-new-chat", label: t("new_chat"), sub: "", kbd: "", run: () => resetHome() },
     { group: "cmd_grp_actions", id: "act-free-chat", label: t("free_chat"), sub: (typeof freeChatMode !== "undefined" && freeChatMode) ? "ON" : "OFF", kbd: "", run: () => { if (typeof setFreeChatMode === "function") { setFreeChatMode(!freeChatMode); } } },
     { group: "cmd_grp_actions", id: "act-library", label: t("library"), sub: String(workspaceDocCount || 0), kbd: "", run: () => { setActiveTag(null); openLibraryCatalog(null); } },
+    { group: "cmd_grp_actions", id: "act-work-board", label: t("work_board_nav"), sub: "Work OS", kbd: "", run: () => { if (typeof openWorkBoardView === "function") { openWorkBoardView("kanban"); } } },
+    { group: "cmd_grp_actions", id: "act-focus", label: t("focus_nav"), sub: "Work OS", kbd: "", run: () => { if (typeof openFocusView === "function") { openFocusView(); } } },
+    { group: "cmd_grp_actions", id: "act-impact", label: t("impact_nav"), sub: "Work OS", kbd: "", run: () => { if (typeof openImpactView === "function") { openImpactView("roi"); } } },
+    { group: "cmd_grp_actions", id: "act-workflows", label: t("workflows_nav"), sub: "", kbd: "", run: () => { if (typeof openWorkflowsView === "function") { openWorkflowsView(); } } },
+    { group: "cmd_grp_actions", id: "act-split-chat", label: t("sh_toggle_right"), sub: "", kbd: "", run: () => { if (typeof openSplitChat === "function") { if (typeof wbLayout !== "undefined" && wbLayout.splitOpen) { closeSplitChat(); } else { openSplitChat({}); } } } },
+    { group: "cmd_grp_actions", id: "act-bottom-panel", label: t("sh_toggle_bottom"), sub: "", kbd: "", run: () => { if (typeof toggleBottomPanel === "function") { toggleBottomPanel(); } } },
+    { group: "cmd_grp_actions", id: "act-right-sidebar", label: t("sh_toggle_right_sb"), sub: "", kbd: "", run: () => { if (typeof setRightSidebarOpen === "function" && typeof wbLayout !== "undefined") { setRightSidebarOpen(!wbLayout.rightOpen); } } },
     { group: "cmd_grp_actions", id: "act-graph", label: t("graph_view"), sub: "2D", kbd: "", run: () => { setActiveTag(null); openGraphView(); } },
     { group: "cmd_grp_actions", id: "act-agents", label: t("agents_nav"), sub: typeof activeAgentName === "function" ? activeAgentName() : "", kbd: "", run: () => { if (typeof openAgentStudio === "function") { openAgentStudio("roster"); } } },
     { group: "cmd_grp_actions", id: "act-formats", label: t("formats_nav"), sub: "", kbd: "", run: () => { if (typeof openFormatStudio === "function") { openFormatStudio("browse"); } } },
@@ -37,19 +44,9 @@ function buildCommandPaletteItems() {
     { group: "cmd_grp_actions", id: "act-settings", label: t("settings"), sub: "", kbd: "", run: () => openSettings("workspace") },
     { group: "cmd_grp_actions", id: "act-guide", label: t("guide_title"), sub: "/help", kbd: "", run: () => { if (typeof openGuideModal === "function") { openGuideModal(); } } },
     { group: "cmd_grp_actions", id: "act-appearance", label: t("tab_appearance"), sub: t("a11y_section_title"), kbd: "", run: () => openSettings("appearance") },
-    { group: "cmd_grp_actions", id: "act-theme", label: t("cmd_act_theme_toggle"), sub: "", kbd: "", run: () => {
-      const cur = (workspaceConfig && workspaceConfig.theme_mode) || "system";
-      const darkNow = cur === "dark" || (cur === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-      const next = darkNow ? "light" : "dark";
-      const acc = (workspaceConfig && workspaceConfig.theme_accent) || "#4BB8E8", gl = (workspaceConfig && workspaceConfig.theme_glow) || "#6366F1";
-      applyThemeTokens(next, acc, gl, true); persistThemeWorkspace(next, acc, gl);
-    } },
-    { group: "cmd_grp_actions", id: "act-motion", label: t("cmd_act_reduce_motion"), sub: (typeof readingComfort !== "undefined" && readingComfort.reduce_motion) ? "ON" : "OFF", kbd: "", run: () => {
-      if (typeof updateReadingComfort === "function") { updateReadingComfort({ reduce_motion: !readingComfort.reduce_motion }); }
-    } },
-    { group: "cmd_grp_actions", id: "act-eco", label: t("eco_title"), sub: (workspaceConfig && workspaceConfig.eco_mode) ? "ON" : "OFF", kbd: "", run: () => {
-      if (typeof setEcoModeUI === "function") { setEcoModeUI(!(workspaceConfig && workspaceConfig.eco_mode)); }
-    } }
+    { group: "cmd_grp_actions", id: "act-theme", label: t("cmd_act_theme_toggle"), sub: "", kbd: "", run: () => { const cur = (workspaceConfig && workspaceConfig.theme_mode) || "system", darkNow = cur === "dark" || (cur === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches), next = darkNow ? "light" : "dark", acc = (workspaceConfig && workspaceConfig.theme_accent) || "#4BB8E8", gl = (workspaceConfig && workspaceConfig.theme_glow) || "#6366F1"; applyThemeTokens(next, acc, gl, true); persistThemeWorkspace(next, acc, gl); } },
+    { group: "cmd_grp_actions", id: "act-motion", label: t("cmd_act_reduce_motion"), sub: (typeof readingComfort !== "undefined" && readingComfort.reduce_motion) ? "ON" : "OFF", kbd: "", run: () => { if (typeof updateReadingComfort === "function") { updateReadingComfort({ reduce_motion: !readingComfort.reduce_motion }); } } },
+    { group: "cmd_grp_actions", id: "act-eco", label: t("eco_title"), sub: (workspaceConfig && workspaceConfig.eco_mode) ? "ON" : "OFF", kbd: "", run: () => { if (typeof setEcoModeUI === "function") { setEcoModeUI(!(workspaceConfig && workspaceConfig.eco_mode)); } } }
   );
   if (inChat) {
     items.push(

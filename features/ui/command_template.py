@@ -10,12 +10,12 @@ html.realm-dyslexic body, html.realm-dyslexic .md-body, html.realm-dyslexic .com
 html.realm-hc-focus { --border: light-dark(rgba(11, 16, 32, 0.44), rgba(238, 242, 248, 0.44)); --border-subtle: light-dark(rgba(11, 16, 32, 0.24), rgba(238, 242, 248, 0.24)); }
 html.realm-hc-focus :where(a:any-link, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 3px solid var(--accent) !important; outline-offset: 3px !important; }
 html.realm-reduce-motion .ambient-stage { display: none !important; }
-html.realm-reduce-motion .stream-cursor, html.realm-reduce-motion .md-body.is-streaming *::after, html.realm-reduce-motion .animate-pulse, html.realm-reduce-motion .animate-spin { animation: none !important; }
-html.realm-reduce-motion #sidebar, html.realm-reduce-motion #main-shell, html.realm-reduce-motion html.no-native-switch input[type="checkbox"][switch]::before, html.realm-reduce-motion .study-progress-fill { transition: none !important; }
+html.realm-reduce-motion .md-body.is-streaming *::after, html.realm-reduce-motion .animate-pulse, html.realm-reduce-motion .animate-spin { animation: none !important; }
+html.realm-reduce-motion #sidebar, html.realm-reduce-motion #main-shell, html.realm-reduce-motion.no-native-switch input[type="checkbox"][switch]::before, html.realm-reduce-motion .study-progress-fill { transition: none !important; }
 html.realm-reduce-motion .active\:scale-95:active { transform: none !important; }
 html.realm-reduce-motion ::view-transition-group(*), html.realm-reduce-motion ::view-transition-old(*), html.realm-reduce-motion ::view-transition-new(*) { animation: none !important; }
 @media (prefers-reduced-motion: reduce) {
-  .animate-pulse, .animate-spin, .stream-cursor, .md-body.is-streaming *::after { animation: none !important; }
+  .animate-pulse, .animate-spin, .md-body.is-streaming *::after { animation: none !important; }
   #sidebar, #main-shell, .study-progress-fill, html.no-native-switch input[type="checkbox"][switch]::before { transition: none !important; }
   .active\:scale-95:active { transform: none !important; }
 }
@@ -47,7 +47,6 @@ html.realm-reduce-motion ::view-transition-group(*), html.realm-reduce-motion ::
 #cmd-palette-foot { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 1rem; border-top: 1px solid var(--border-subtle); font-size: calc(0.8125rem * var(--ui-scale, 1)); color: var(--text-subtle); flex-shrink: 0; }
 .cmd-item, .slash-item { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.6rem; text-align: left; font-size: calc(0.9375rem * var(--ui-scale, 1)); color: var(--text-muted); cursor: pointer; border: 1px solid transparent; transition: background-color 0.12s ease, color 0.12s ease; }
 .cmd-item:hover, .cmd-item[aria-selected="true"], .slash-item:hover, .slash-item[aria-selected="true"] { background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--text); border-color: color-mix(in oklab, var(--accent) 30%, transparent); }
-.cmd-kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: calc(0.8125rem * var(--ui-scale, 1)); padding: 0.15rem 0.45rem; border-radius: 0.375rem; border: 1px solid var(--border); color: var(--text-subtle); background: var(--background); }
 #slash-cmd-menu { position: absolute; top: calc(100% + 0.5rem); left: 0; right: 0; z-index: 45; max-block-size: 17.5rem; overflow-y: auto; border-radius: 1rem; padding: 0.4rem; border: 1px solid var(--border); background: color-mix(in oklab, var(--surface-raised) 96%, transparent); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); box-shadow: var(--dialog-shadow); }
 .chat-dock #slash-cmd-menu { top: auto; bottom: calc(100% + 0.5rem); }
 #slash-cmd-menu[hidden] { display: none !important; }

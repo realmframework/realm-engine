@@ -23,11 +23,6 @@ class DeckSpec(StrictModel):
     slides: list[SlideItem] = Field(..., min_length=1, max_length=60)
 
 
-class AgentBuilderMessage(StrictModel):
-    role: Literal["user", "assistant"]
-    content: str = Field(..., min_length=1, max_length=4000)
-
-
 class AgentDraft(StrictModel):
     name: str = Field(..., min_length=1, max_length=40)
     role: str = Field(default="Specialist", max_length=64)

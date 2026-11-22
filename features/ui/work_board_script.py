@@ -6,7 +6,6 @@ from features.ui.work_board_modals_script import WORK_BOARD_MODALS_SCRIPT
 WORK_BOARD_SCRIPT: str = CALENDAR_SCRIPT + WORK_BOARD_MODALS_SCRIPT + r"""
 let wbState = { columns: [], projects: [], tasks: [], events: [], summary: {} };
 let wbActiveTab = "kanban", wbProjectFilter = "", wbTaskFilter = "open", wbTaskSearch = "", wbEditingSubtasks = [], wbDragTaskId = null, wbViewOpen = false, wbLoadedArea = null;
-const WB_GRIP_SVG = "<svg aria-hidden='true' width='13' height='13' viewBox='0 0 24 24' fill='currentColor'><circle cx='9' cy='6' r='1.7'/><circle cx='15' cy='6' r='1.7'/><circle cx='9' cy='12' r='1.7'/><circle cx='15' cy='12' r='1.7'/><circle cx='9' cy='18' r='1.7'/><circle cx='15' cy='18' r='1.7'/></svg>";
 const WB_PRIO_KEYS = { low: "wb_prio_low", medium: "wb_prio_medium", high: "wb_prio_high", urgent: "wb_prio_urgent" };
 const WB_REC_KEYS = { none: "wb_rec_none", daily: "wb_rec_daily", weekly: "wb_rec_weekly", monthly: "wb_rec_monthly" };
 const WB_DEF_COL_MAP = { todo: ["To Do", "wb_col_todo"], doing: ["In Progress", "wb_col_doing"], review: ["Review", "wb_col_review"], done: ["Done", "wb_col_done"] };
@@ -30,18 +29,10 @@ function applyWorkBoardState(data) {
   if (wbViewOpen) { renderWorkBoardAll(); }
 }
 async function wbApi(path, opts) {
-  const version = areaVersion, cfg = Object.assign({ headers: {} }, opts || {});
-  if (cfg.body && !cfg.headers["Content-Type"]) { cfg.headers["Content-Type"] = "application/json"; }
-  try {
-    const res = await areaFetch(path, cfg), data = await safeJson(res);
-    if (version !== areaVersion) { return null; }
-    if (!res.ok) { throw new Error(data.detail || "Work Board request failed"); }
+  return jsonAreaApi(path, opts, "Work Board request failed", function (data) {
     applyWorkBoardState(data);
-    return data;
-  } catch (err) {
-    if (version === areaVersion) { showToast(err.message || "Work Board error", 3500); }
-    return null;
-  }
+    if (opts && opts.method && opts.method !== "GET" && typeof notifyParentFrame === "function") { notifyParentFrame({ type: "realm:work-updated", kind: "work" }); }
+  });
 }
 async function loadWorkBoardSummary(force) {
   const area = activeKnowledgeArea || "";
@@ -61,24 +52,12 @@ function closeWorkBoardView() {
   const view = document.getElementById("work-board-view");
   if (view) { view.classList.add("hidden"); }
   const btn = document.getElementById("sidebar-work-btn");
-  if (btn) { btn.classList.remove("bg-[#4BB8E8]/15", "text-[#4BB8E8]"); }
+  if (btn) { btn.classList.remove("is-active"); }
 }
 async function openWorkBoardView(tab) {
-  abortActiveRequest(); stopActiveAudio(); stopGraphSimulation();
-  if (typeof closeFocusView === "function") { closeFocusView(); }
-  if (typeof closeImpactView === "function") { closeImpactView(); }
-  if (typeof closeWorkflowsView === "function") { closeWorkflowsView(); }
-  if (typeof syncInspectorSidebar === "function") { inspectorOpen = false; syncInspectorSidebar(); }
   wbViewOpen = true;
-  if (typeof setAmbientDimmed === "function") { setAmbientDimmed(true); }
-  const shell = document.getElementById("workspace-shell"), gv = document.getElementById("graph-view"), view = document.getElementById("work-board-view");
-  if (shell) { shell.classList.add("hidden"); }
-  if (gv) { gv.classList.add("hidden"); }
-  if (view) { view.classList.remove("hidden"); }
-  const btn = document.getElementById("sidebar-work-btn");
-  if (btn) { btn.classList.add("bg-[#4BB8E8]/15", "text-[#4BB8E8]"); }
+  activateWorkspaceView("work-board-view", { sidebarBtnId: "sidebar-work-btn", railSection: "work" });
   if (tab) { setWorkBoardTab(tab); }
-  if (typeof setActiveRailSection === "function") { setActiveRailSection("work", false); }
   await wbApi("/api/work-board");
   renderWorkBoardAll();
   if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
@@ -161,12 +140,12 @@ function renderWorkKanban() {
         + "</div>";
       return "<article class='wb-card' draggable='true' data-wb-card='" + escapeHtml(tk.id) + "'>"
         + "<div class='wb-card-top'>"
-        + "<span class='wb-drag-handle' aria-label='" + escapeHtml(t("wb_drag_aria", { title: tk.title })) + "'>" + WB_GRIP_SVG + "</span>"
+        + "<span class='wb-drag-handle' aria-label='" + escapeHtml(t("wb_drag_aria", { title: tk.title })) + "'>" + GRIP_DOTS_SVG + "</span>"
         + "<button type='button' data-wb-open-task='" + escapeHtml(tk.id) + "' class='wb-card-title" + (col.is_done ? " is-done" : "") + "'>" + escapeHtml(tk.title) + "</button>"
         + moveBtns + "</div>" + wbTaskMetaHtml(tk) + "</article>";
     }).join("");
     const colLabel = wbColTitle(col);
-    const delCol = cols.length > 1 ? "<button type='button' data-wb-del-col='" + escapeHtml(col.id) + "' aria-label='" + escapeHtml(t("delete_btn") + " " + colLabel) + "' class='wb-icon-btn' style='width:1.5rem;height:1.5rem;font-size:0.78rem'>✕</button>" : "";
+    const delCol = cols.length > 1 ? "<button type='button' data-wb-del-col='" + escapeHtml(col.id) + "' aria-label='" + escapeHtml(t("delete_btn") + " " + colLabel) + "' class='wb-icon-btn' style='width:1.5rem;height:1.5rem;font-size:calc(0.78rem * var(--ui-scale,1))'>✕</button>" : "";
     return "<section class='wb-col' data-wb-col='" + escapeHtml(col.id) + "' aria-label='" + escapeHtml(colLabel) + "'>"
       + "<div class='wb-col-head'><div class='wb-col-title-wrap'><span class='wb-dot' style='background:" + escapeHtml(col.color) + "'></span><h2 class='wb-col-title'>" + escapeHtml(colLabel) + "</h2><span class='wb-col-count'>" + cards.length + "</span></div>" + delCol + "</div>"
       + "<div class='wb-col-list' data-wb-col-list='" + escapeHtml(col.id) + "'>" + cardsHtml + "</div>"
@@ -219,7 +198,7 @@ function bindKanbanEvents(wrap) {
       const task = (wbState.tasks || []).find(function (tk) { return tk.id === tid; });
       const col = (wbState.columns || []).find(function (c) { return c.id === dest; });
       const ok = await wbApi("/api/work-board/tasks/reorder", { method: "POST", body: JSON.stringify({ task_id: tid, target_column_id: dest, target_index: idx }) });
-      if (ok && task && col) { announceWorkStatus(t("wb_moved_toast", { title: task.title, col: col.title })); }
+      if (ok && task && col) { announceWorkStatus(t("wb_moved_toast", { title: task.title, col: wbColTitle(col) })); }
     });
   });
   wrap.querySelectorAll("[data-wb-col-quick]").forEach(function (form) {
@@ -296,7 +275,7 @@ function renderWorkProjects() {
     return "<article class='wb-project-card'>"
       + "<div style='display:flex;align-items:center;justify-content:space-between;gap:0.5rem'><div style='display:flex;align-items:center;gap:0.5rem;min-width:0'><span class='wb-dot' style='background:" + escapeHtml(p.color) + "'></span><h3 style='margin:0;font-size:calc(1rem * var(--ui-scale,1));font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>" + escapeHtml(p.title) + "</h3></div><span class='wb-chip'>" + escapeHtml(t(stKey)) + "</span></div>"
       + (p.description ? "<p style='margin:0;color:var(--text-muted);font-size:calc(0.875rem * var(--ui-scale,1));line-height:1.5'>" + escapeHtml(p.description) + "</p>" : "")
-      + "<div style='display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-muted)'><span>" + done + " / " + pTasks.length + " · " + pct + "%</span><span>" + escapeHtml(p.target_date || "") + (p.target_hours ? " · " + p.target_hours + "h" : "") + "</span></div>"
+      + "<div style='display:flex;justify-content:space-between;font-size:calc(0.8rem * var(--ui-scale,1));color:var(--text-muted)'><span>" + done + " / " + pTasks.length + " · " + pct + "%</span><span>" + escapeHtml(p.target_date || "") + (p.target_hours ? " · " + p.target_hours + "h" : "") + "</span></div>"
       + "<div class='wb-progress-track'><div class='wb-progress-fill' style='width:" + pct + "%;background:" + escapeHtml(p.color) + "'></div></div>"
       + "<div style='display:flex;gap:0.45rem;margin-top:0.2rem'><button type='button' data-wb-focus-proj='" + escapeHtml(p.id) + "' class='wb-btn wb-btn-sm'>" + escapeHtml(t("wb_open_on_board")) + "</button><button type='button' data-wb-edit-proj='" + escapeHtml(p.id) + "' class='wb-btn wb-btn-sm'>" + escapeHtml(t("wb_edit_project")) + "</button></div>"
       + "</article>";

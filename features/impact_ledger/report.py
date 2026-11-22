@@ -1,4 +1,4 @@
-"""Executive Impact & ROI Report renderer (.pdf via fpdf2 and widescreen .pptx via python-pptx)."""
+"""Executive Impact & ROI Report renderer (.pdf via fpdf2 with Unicode TTF and .pptx via python-pptx)."""
 
 import io
 from typing import cast
@@ -9,71 +9,64 @@ from pptx.dml.color import RGBColor
 from pptx.util import Inches, Pt
 
 from core.impact_contracts import ImpactLedgerState
+from core.pdf_fonts import hex_to_rgb, pdf_encode, setup_pdf_unicode_font
 from features.impact_ledger.store import compute_roi_summary
 
 
-def _latin(text: str) -> str:
-    return text.replace("—", "-").replace("–", "-").replace("•", "-").replace("€", "EUR ").encode("latin-1", "replace").decode("latin-1")
-
-
-def _hex_rgb(hex_str: str) -> RGBColor:
-    clean = hex_str.lstrip("#")
-    return RGBColor(int(clean[0:2], 16), int(clean[2:4], 16), int(clean[4:6], 16))
-
-
 def render_impact_pdf(state: ImpactLedgerState, title: str, project_names: dict[str, str] | None = None) -> bytes:
-    """Render an executive Impact, Time & ROI PDF report."""
+    """Render an executive Impact, Time & ROI PDF report with full Unicode / € support."""
     summary = compute_roi_summary(state)
     cur, pmap = str(summary["currency"]), project_names or {}
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=True, margin=16)
+    fam, uni = setup_pdf_unicode_font(pdf, "ImpactSans")
     pdf.add_page()
-    pdf.set_font("Helvetica", "B", 18)
+    pdf.set_font(fam, "B", 18)
     pdf.set_text_color(11, 16, 32)
-    pdf.cell(0, 10, _latin(title), new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(0, 10, pdf_encode(title, uni), new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
     pdf.set_text_color(90, 105, 130)
     roi_str = f"{summary['roi_pct']}%" if summary["roi_pct"] is not None else "N/A"
     kpi_line = f"Hours: {summary['total_hours']}h  |  Cost: {cur} {summary['total_cost']}  |  Value: {cur} {summary['total_value']}  |  Net: {cur} {summary['net_impact']}  |  ROI: {roi_str}"
-    pdf.cell(0, 7, _latin(kpi_line), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 7, pdf_encode(kpi_line, uni), new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
 
     by_proj = cast(list[dict[str, object]], summary["by_project"])
     if by_proj:
-        pdf.set_font("Helvetica", "B", 13)
+        pdf.set_font(fam, "B", 13)
         pdf.set_text_color(11, 16, 32)
         pdf.cell(0, 8, "ROI by Project", new_x="LMARGIN", new_y="NEXT")
-        pdf.set_font("Helvetica", "", 10)
+        pdf.set_font(fam, "", 10)
         for row in by_proj[:20]:
             pid = str(row["project_id"])
             pname = pmap.get(pid, pid or "General")
             proi = f"{row['roi_pct']}%" if row["roi_pct"] is not None else "N/A"
-            pdf.multi_cell(pdf.epw, 6, _latin(f"- {pname}: {row['hours']}h | Cost {cur} {row['cost']} | Value {cur} {row['value']} | ROI {proi}"), new_x="LMARGIN", new_y="NEXT")
+            pdf.multi_cell(pdf.epw, 6, pdf_encode(f"- {pname}: {row['hours']}h | Cost {cur} {row['cost']} | Value {cur} {row['value']} | ROI {proi}", uni), new_x="LMARGIN", new_y="NEXT")
         pdf.ln(3)
 
     if state.impact_entries:
-        pdf.set_font("Helvetica", "B", 13)
+        pdf.set_font(fam, "B", 13)
         pdf.set_text_color(11, 16, 32)
         pdf.cell(0, 8, "Impact Documentation (Wirksamkeitsdokumentation)", new_x="LMARGIN", new_y="NEXT")
         for imp in state.impact_entries[:30]:
-            pdf.set_font("Helvetica", "B", 10)
+            pdf.set_font(fam, "B", 10)
             pdf.set_text_color(15, 23, 42)
-            pdf.multi_cell(pdf.epw, 6, _latin(f"[{imp.date}] {imp.what_done}"), new_x="LMARGIN", new_y="NEXT")
-            pdf.set_font("Helvetica", "", 9.5)
+            pdf.multi_cell(pdf.epw, 6, pdf_encode(f"[{imp.date}] {imp.what_done}", uni), new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font(fam, "", 9.5)
             pdf.set_text_color(55, 65, 81)
-            pdf.multi_cell(pdf.epw, 5.5, _latin(f"Effect: {imp.effect}"), new_x="LMARGIN", new_y="NEXT")
+            pdf.multi_cell(pdf.epw, 5.5, pdf_encode(f"Effect: {imp.effect}", uni), new_x="LMARGIN", new_y="NEXT")
             if imp.evidence_notes:
-                pdf.multi_cell(pdf.epw, 5, _latin(f"Notes: {imp.evidence_notes[:300]}"), new_x="LMARGIN", new_y="NEXT")
+                pdf.multi_cell(pdf.epw, 5, pdf_encode(f"Notes: {imp.evidence_notes[:300]}", uni), new_x="LMARGIN", new_y="NEXT")
             pdf.ln(1.5)
 
     if state.time_entries:
-        pdf.set_font("Helvetica", "B", 13)
+        pdf.set_font(fam, "B", 13)
         pdf.set_text_color(11, 16, 32)
         pdf.cell(0, 8, "Recent Time Entries", new_x="LMARGIN", new_y="NEXT")
-        pdf.set_font("Helvetica", "", 9.5)
+        pdf.set_font(fam, "", 9.5)
         pdf.set_text_color(55, 65, 81)
         for te in state.time_entries[:40]:
-            pdf.multi_cell(pdf.epw, 5.5, _latin(f"{te.date}  |  {te.duration_minutes:.0f} min  |  {te.label} ({te.source})"), new_x="LMARGIN", new_y="NEXT")
+            pdf.multi_cell(pdf.epw, 5.5, pdf_encode(f"{te.date}  |  {te.duration_minutes:.0f} min  |  {te.label} ({te.source})", uni), new_x="LMARGIN", new_y="NEXT")
 
     return bytes(pdf.output())
 
@@ -85,7 +78,7 @@ def render_impact_pptx(state: ImpactLedgerState, title: str, accent_hex: str = "
     prs = Presentation()
     prs.slide_width, prs.slide_height = Inches(13.333), Inches(7.5)
     blank = prs.slide_layouts[6]
-    accent = _hex_rgb(accent_hex if len(accent_hex) == 7 else "#4BB8E8")
+    accent = RGBColor(*hex_to_rgb(accent_hex))
     navy, white, slate = RGBColor(11, 16, 32), RGBColor(238, 242, 248), RGBColor(30, 41, 59)
 
     s0 = prs.slides.add_slide(blank)

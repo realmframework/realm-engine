@@ -17,8 +17,10 @@ from features.ui import query_engine
 from features.ui.eco_sync_script import ECO_SYNC_SCRIPT
 from features.ui.markdown_script import MARKDOWN_SCRIPT
 from features.ui.script import CLIENT_SCRIPT
+from features.ui.shared_ui_script import SHARED_UI_SCRIPT
 from features.ui.stream_script import STREAM_SCRIPT
 from features.ui.studio_script import STUDIO_SCRIPT
+from features.ui.workflow_run_script import WORKFLOW_RUN_SCRIPT
 
 
 def _run_node(code: str) -> str:
@@ -99,9 +101,9 @@ console.log(JSON.stringify(matches));
 
 
 def test_stream_scripts_flush_text_decoder_after_loop() -> None:
-    assert "buffer += decoder.decode();" in STREAM_SCRIPT
-    assert "buf += decoder.decode();" in STREAM_SCRIPT
-    assert "buf += decoder.decode();" in STUDIO_SCRIPT
+    assert "buf += decoder.decode();" in SHARED_UI_SCRIPT
+    for script in (STREAM_SCRIPT, STUDIO_SCRIPT, WORKFLOW_RUN_SCRIPT):
+        assert "readSseStream(" in script and "new TextDecoder()" not in script
 
 
 def test_query_engine_retrieve_applies_muted_and_pinned_doc_ids() -> None:

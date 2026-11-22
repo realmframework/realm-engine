@@ -234,5 +234,6 @@ async function openLibraryCatalog(tagFilter) {
   const upBtn = document.getElementById("library-upload-btn"); if (upBtn) { upBtn.addEventListener("click", function () { openUploadDialog(); }); }
   resultsEl.querySelectorAll("[data-open-guide]").forEach(function (btn) { btn.addEventListener("click", function (e) { e.stopPropagation(); const g = guides[Number(btn.getAttribute("data-open-guide") || 0)]; if (g) { renderGuideReader(g, tagFilter); } }); });
   resultsEl.querySelectorAll("[data-guide-idx]").forEach(function (card) { card.addEventListener("click", function (e) { if (e.target.closest("button, a, details, select, input")) { return; } const g = guides[Number(card.getAttribute("data-guide-idx") || 0)]; if (g) { renderGuideReader(g, tagFilter); } }); });
+  if (typeof updateTopbarContext === "function") { updateTopbarContext(t("library")); }
 }
 """ + FOLDER_SCRIPT + READER_SCRIPT

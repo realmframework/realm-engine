@@ -234,7 +234,7 @@ function bindPowerUX() {
   if (brGen) { brGen.addEventListener("click", generateAudioBriefingUI); }
   document.querySelectorAll("[data-br-mode]").forEach(btn => btn.addEventListener("click", () => { briefingMode = btn.getAttribute("data-br-mode") || "solo"; syncBriefingModeUI(); }));
   const dlWav = document.getElementById("br-download-wav"), dlMd = document.getElementById("br-download-md");
-  if (dlWav) { dlWav.addEventListener("click", () => { if (!briefingAudioUrl) { return; } const a = document.createElement("a"); a.href = briefingAudioUrl; a.download = "realm-briefing.wav"; a.click(); }); }
+  if (dlWav) { dlWav.addEventListener("click", () => { if (!briefingAudioUrl) { return; } const a = document.createElement("a"); a.href = briefingAudioUrl; a.download = "realm-briefing.wav"; document.body.appendChild(a); a.click(); a.remove(); }); }
   if (dlMd) { dlMd.addEventListener("click", () => { if (briefingLastTranscript && typeof downloadBlobText === "function") { downloadBlobText("# REALM Audio Briefing\n\n" + briefingLastTranscript + "\n", "realm-briefing.md", "text/markdown;charset=utf-8"); } }); }
   const clipBtn = document.getElementById("clip-url-btn");
   if (clipBtn) { clipBtn.addEventListener("click", clipUrlToLibrary); }

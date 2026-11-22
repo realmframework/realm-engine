@@ -90,8 +90,11 @@ def test_output_formats_atomic_symlink_and_corrupt_backup(tmp_path: Path) -> Non
 
 
 def test_logging_redacts_secrets_and_version_matches_pyproject(tmp_path: Path) -> None:
-    pyproject = tomllib.loads((Path(__file__).resolve().parent.parent / "pyproject.toml").read_text(encoding="utf-8"))
-    assert version.APP_VERSION == pyproject["project"]["version"]
+    root = Path(__file__).resolve().parent.parent
+    expected = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+    assert version.APP_VERSION == expected
+    assert version._FALLBACK_VERSION == expected
+    assert f'#define AppVersion "{expected}"' in (root / "packaging/realm-engine.iss").read_text(encoding="utf-8")
     logger = logging_config.configure_logging(tmp_path)
     logger.warning("Upstream error Bearer secret_token_999999 and sk-proj-999999999")
     for h in logger.handlers:

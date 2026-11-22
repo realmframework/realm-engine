@@ -1,13 +1,16 @@
 """Atomic local persistence, DAG cycle validation, and CRUD for Workflow Pipelines."""
 
-import uuid
 from collections import deque
-from datetime import UTC, datetime
 from pathlib import Path
 
-from core.db import atomic_write_text, backup_corrupt_file
-from core.linked_vaults import CACHE_DIR, cache_study_path
-from core.runtime import data_root
+from core.json_store import (
+    area_store_path,
+    load_model_json,
+    new_id,
+    save_model_json,
+    store_lock,
+    utc_now,
+)
 from core.workflow_contracts import (
     WorkflowDefinition,
     WorkflowEdge,
@@ -19,26 +22,15 @@ from features.workflows.templates import starter_templates
 
 MAX_RUN_HISTORY = 40
 
-
-def utc_now() -> str:
-    return datetime.now(UTC).isoformat()
-
-
-def new_id(prefix: str) -> str:
-    return f"{prefix}_{uuid.uuid4().hex[:10]}"
+__all__ = [
+    "MAX_RUN_HISTORY", "add_workflow", "delete_workflow", "install_template",
+    "load_workflows", "new_id", "record_run", "save_workflows", "store_lock",
+    "topological_order", "update_workflow", "utc_now", "workflows_path",
+]
 
 
 def workflows_path(area: str, root: Path | None = None) -> Path:
-    resolved_root = (root or data_root()).resolve()
-    if not area or not area.strip():
-        cache = resolved_root / CACHE_DIR
-        cache.mkdir(parents=True, exist_ok=True)
-        target = cache / "_default.workflows.json"
-    else:
-        target = cache_study_path(area.strip(), "workflows.json", resolved_root)
-    if target.is_symlink() or target.with_suffix(".json.tmp").is_symlink():
-        raise ValueError("Workflow storage path cannot be a symbolic link")
-    return target
+    return area_store_path(area, "workflows.json", root)
 
 
 def topological_order(nodes: list[WorkflowNode], edges: list[WorkflowEdge]) -> list[WorkflowNode]:
@@ -70,21 +62,11 @@ def topological_order(nodes: list[WorkflowNode], edges: list[WorkflowEdge]) -> l
 
 
 def load_workflows(path: Path) -> WorkflowState:
-    if path.is_symlink():
-        raise ValueError("Workflow storage path cannot be a symbolic link")
-    if not path.is_file():
-        return WorkflowState()
-    try:
-        return WorkflowState.model_validate_json(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        backup_corrupt_file(path)
-        return WorkflowState()
+    return load_model_json(path, WorkflowState, WorkflowState)
 
 
-def save_workflows(state: WorkflowState, path: Path) -> None:
-    if path.is_symlink():
-        raise ValueError("Workflow storage path cannot be a symbolic link")
-    atomic_write_text(path, state.model_dump_json(indent=2))
+def save_workflows(state: WorkflowState, path: Path) -> WorkflowState:
+    return save_model_json(state, path, WorkflowState)
 
 
 def add_workflow(

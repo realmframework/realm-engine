@@ -2,12 +2,12 @@
 
 import json
 import re
-from collections.abc import AsyncIterator, Callable
 
+from core.ai_stream import StreamMessagesFn, collect_stream_text
 from core.contracts import TutorConfig
+from core.json_store import validate_iso_date
 from core.work_contracts import PriorityLevel
 
-StreamMessagesFn = Callable[..., AsyncIterator[dict[str, object]]]
 _DATE_RE = re.compile(r"\b(20\d{2}-\d{2}-\d{2})\b")
 _BULLET_RE = re.compile(r"^\s*(?:[-*•]\s*(?:\[\s*\]\s*)?|\d+[.)]\s+)(.+)$")
 _PREFIX_RE = re.compile(r"^\s*(?:todo|action|task|next step|aufgabe|to-do|tarea)\s*[:\-]\s*(.+)$", re.IGNORECASE)
@@ -79,8 +79,11 @@ def _parse_llm_tasks(raw_text: str, max_items: int = 12) -> list[dict[str, str]]
         prio_raw = str(item.get("priority") or "medium").lower().strip()
         prio = prio_raw if prio_raw in {"low", "medium", "high", "urgent"} else "medium"
         due = str(item.get("due_date") or "").strip()
-        if due and not _DATE_RE.fullmatch(due):
-            due = ""
+        if due:
+            try:
+                due = validate_iso_date(due, allow_empty=True)
+            except ValueError:
+                due = ""
         out.append({"title": title, "description": str(item.get("description") or "").strip()[:400], "priority": prio, "due_date": due})
         if len(out) >= max_items:
             break
@@ -108,14 +111,11 @@ async def extract_tasks_with_ai(
         'Each item: {"title": string, "description": string, "priority": "low"|"medium"|"high"|"urgent", "due_date": "YYYY-MM-DD" or ""}. '
         f"Return at most {max_items} high-signal tasks."
     )
-    buf: list[str] = []
     try:
-        async for ev in stream_messages([{"role": "system", "content": system}, {"role": "user", "content": trimmed}], tutor_config):
-            if ev.get("event") == "token":
-                buf.append(str(ev.get("text") or ""))
+        raw = await collect_stream_text(stream_messages, [{"role": "system", "content": system}, {"role": "user", "content": trimmed}], tutor_config)
     except Exception:
         return extract_tasks_deterministic(trimmed, max_items=max_items), "deterministic"
-    parsed = _parse_llm_tasks("".join(buf), max_items=max_items)
+    parsed = _parse_llm_tasks(raw, max_items=max_items)
     if parsed:
         return parsed, "ai"
     return extract_tasks_deterministic(trimmed, max_items=max_items), "deterministic"

@@ -36,12 +36,5 @@ STUDIO_MODAL_HTML: str = (
       <button id="save-custom-fmt-btn" type="submit" data-i18n="fmt_save_btn" class="px-4 py-2 rounded-xl bg-[#4BB8E8] text-[#04060F] font-semibold text-xs hover:brightness-110 transition">Save Custom Format</button>
     </div>
   </form>
-</dialog>
-<aside id="inspector-sidebar" hidden aria-label="Engine Inspector" class="fixed right-0 top-0 h-screen w-[356px] max-w-[92vw] z-50 bg-[#0B1020] border-l border-[rgba(238,242,248,0.12)] shadow-2xl flex flex-col p-4 gap-4 overflow-y-auto overscroll-contain">
-  <div class="shrink-0 flex items-center justify-between gap-2 pb-3 border-b border-[rgba(238,242,248,0.08)]">
-    <div class="flex items-center gap-2 text-sm font-medium text-[#EEF2F8]"><svg aria-hidden="true" class="w-4 h-4 text-[#4BB8E8] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span data-i18n="insp_title">Engine Inspector</span></div>
-    <button id="close-inspector-btn" type="button" aria-label="Close Engine Inspector" data-i18n-aria-label="aria_close_inspector" class="h-8 w-8 rounded-full text-[#738196] hover:text-[#EEF2F8] hover:bg-white/[0.06] flex items-center justify-center text-sm shrink-0">✕</button>
-  </div>
-  <div id="inspector-sidebar-body" class="flex flex-col gap-4 text-sm shrink-0 pb-10"></div>
-</aside>"""
+</dialog>"""
 )

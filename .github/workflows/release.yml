@@ -14,6 +14,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   verify:
     name: Verify code & release version
@@ -31,7 +35,13 @@ jobs:
       - run: uv sync --frozen
       - run: uv run ruff check .
       - run: uv run pyright
+      - run: uv run pyright --pythonplatform Windows
       - run: uv run pytest
+      - name: Verify assembled client JS syntax
+        shell: bash
+        run: |
+          uv run python -c "import re; from pathlib import Path; from features.ui.script import CLIENT_SCRIPT; js = re.sub(r'^\s*<script>\s*|\s*</script>\s*$', '', CLIENT_SCRIPT); Path('/tmp/realm_release_check.js').write_text(js, encoding='utf-8')"
+          node --check /tmp/realm_release_check.js
 
       - id: ver
         name: Validate pyproject.toml version matches Git tag
@@ -72,6 +82,9 @@ jobs:
 
       - name: Install desktop build dependencies
         run: uv sync --frozen --group desktop
+
+      - name: Run macOS Pytest suite
+        run: uv run pytest
 
       - id: sign_check
         name: Check Apple signing & notarization secrets
@@ -169,6 +182,9 @@ jobs:
 
       - name: Install desktop build dependencies
         run: uv sync --frozen --group desktop
+
+      - name: Run Windows Pytest suite
+        run: uv run pytest
 
       - name: Build, smoke-test, and package Windows installer & portable ZIP
         shell: pwsh

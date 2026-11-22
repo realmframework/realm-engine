@@ -39,9 +39,7 @@ function chatSlug(title) {
   return String(title || "conversation").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "conversation";
 }
 function downloadBlobText(content, filename, mime) {
-  const url = URL.createObjectURL(new Blob([content], { type: mime })), link = document.createElement("a");
-  link.href = url; link.download = filename; document.body.appendChild(link); link.click(); link.remove();
-  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  downloadBlob(new Blob([content], { type: mime }), filename);
 }
 function stripMarkdownToText(md) {
   return String(md || "").replace(/```[^\n]*\n([\s\S]*?)```/g, "$1").replace(/^#{1,6}\s+/gm, "").replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1 ($2)").replace(/[*_`]+/g, "").trim();
@@ -124,9 +122,6 @@ function bindChatActions(stream) {
     link.addEventListener("click", function (event) { event.preventDefault(); openCitationGuide(Number(link.dataset.readerTurn), Number(link.dataset.readerChunk)); });
   });
 }
-document.addEventListener("click", function (e) {
-  document.querySelectorAll("details.export-menu[open], details.turn-more-menu[open]").forEach(function (d) { if (!d.contains(e.target)) { d.open = false; } });
-});
 async function openCitationGuide(turnIndex, chunkIndex) {
   const chunk = currentTurns[turnIndex] && currentTurns[turnIndex].results[chunkIndex] && currentTurns[turnIndex].results[chunkIndex].chunk;
   if (!chunk) { return; }

@@ -12,6 +12,7 @@ NOTARY_KEY=""
 NOTARY_KEY_ID=""
 NOTARY_ISSUER=""
 SKIP_DMG=0
+CLEAN_BUILD=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -47,8 +48,12 @@ while [[ $# -gt 0 ]]; do
       SKIP_DMG=1
       shift
       ;;
+    --no-clean)
+      CLEAN_BUILD=0
+      shift
+      ;;
     -h|--help)
-      echo "Usage: $0 [--sign \"Developer ID Application: ...\"] [--auto-sign] [--require-signed] [--notarize-profile <profile> | --notary-key <p8> --notary-key-id <id> --notary-issuer <uuid>] [--skip-dmg]"
+      echo "Usage: $0 [--sign \"Developer ID Application: ...\"] [--auto-sign] [--require-signed] [--notarize-profile <profile> | --notary-key <p8> --notary-key-id <id> --notary-issuer <uuid>] [--skip-dmg] [--no-clean]"
       exit 0
       ;;
     *)
@@ -75,19 +80,28 @@ ICON_DIR="$ROOT/packaging/icons"
 ICONSET="$ICON_DIR/realm-engine.iconset"
 ICNS="$ICON_DIR/realm-engine.icns"
 
-echo "==> Generating macOS .icns icon from $ICON_SRC"
-rm -rf "$ICONSET"
-mkdir -p "$ICONSET"
-for size in 16 32 128 256 512; do
-  sips -z "$size" "$size" "$ICON_SRC" --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
-  double=$((size * 2))
-  sips -z "$double" "$double" "$ICON_SRC" --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
-done
-iconutil -c icns "$ICONSET" -o "$ICNS"
-rm -rf "$ICONSET"
+if [[ ! -f "$ICNS" || "$ICON_SRC" -nt "$ICNS" ]]; then
+  echo "==> Generating macOS .icns icon from $ICON_SRC"
+  rm -rf "$ICONSET"
+  mkdir -p "$ICONSET"
+  for size in 16 32 128 256 512; do
+    sips -z "$size" "$size" "$ICON_SRC" --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
+    double=$((size * 2))
+    sips -z "$double" "$double" "$ICON_SRC" --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
+  done
+  iconutil -c icns "$ICONSET" -o "$ICNS"
+  rm -rf "$ICONSET"
+else
+  echo "==> Reusing up-to-date macOS .icns icon: $ICNS"
+fi
 
+PYI_FLAGS=(--noconfirm)
+if [[ "$CLEAN_BUILD" -eq 1 ]]; then
+  PYI_FLAGS+=(--clean)
+fi
 echo "==> Building REALM Engine.app (${VERSION}, ${ARCH_LABEL} / ${RAW_ARCH}) with PyInstaller"
-uv run --group desktop pyinstaller --noconfirm --clean "$ROOT/packaging/realm-engine.spec"
+uv run --group desktop pyinstaller "${PYI_FLAGS[@]}" "$ROOT/packaging/realm-engine.spec"
+rm -rf "$ROOT/dist/REALM Engine"
 
 run_smoke_test() {
   local smoke_dir
@@ -147,7 +161,10 @@ if [[ -n "$SIGN_IDENTITY" ]]; then
   echo "    Post-sign Hardened Runtime smoke test passed"
 fi
 
-if [[ "$SKIP_DMG" -eq 0 ]]; then
+if [[ "$SKIP_DMG" -eq 1 ]]; then
+  find "$ROOT/dist" -maxdepth 1 -name "REALM-Engine-*-macos-*.dmg" -delete 2>/dev/null || true
+else
+  find "$ROOT/dist" -maxdepth 1 -name "REALM-Engine-*-macos-*.dmg" ! -name "$(basename "$DMG_PATH")" -delete 2>/dev/null || true
   echo "==> Creating styled drag-to-Applications DMG: $DMG_PATH"
   BG_PNG="$ICON_DIR/installer-bg.png"
   uv run --group desktop python "$ROOT/packaging/make_dmg_background.py" "$BG_PNG"

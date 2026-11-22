@@ -40,38 +40,21 @@ function applyImpactState(data) {
   if (impViewOpen) { renderImpactView(); }
 }
 async function impApi(path, opts) {
-  const version = areaVersion, cfg = Object.assign({ headers: {} }, opts || {});
-  if (cfg.body && !cfg.headers["Content-Type"]) { cfg.headers["Content-Type"] = "application/json"; }
-  try {
-    const res = await areaFetch(path, cfg), data = await safeJson(res);
-    if (version !== areaVersion) { return null; }
-    if (!res.ok) { throw new Error(data.detail || "Impact request failed"); }
+  return jsonAreaApi(path, opts, "Impact request failed", function (data) {
     if (Array.isArray(data.time_entries)) { applyImpactState(data); }
-    return data;
-  } catch (err) {
-    if (version === areaVersion) { showToast(err.message || "Impact error", 3500); }
-    return null;
-  }
+    if (opts && opts.method && opts.method !== "GET" && typeof notifyParentFrame === "function") { notifyParentFrame({ type: "realm:work-updated", kind: "impact" }); }
+  });
 }
 async function loadImpactSummary() { await impApi("/api/impact"); }
 function closeImpactView() {
   impViewOpen = false;
   const v = document.getElementById("impact-view"); if (v) { v.classList.add("hidden"); }
-  const b = document.getElementById("sidebar-impact-btn"); if (b) { b.classList.remove("bg-[#4BB8E8]/15", "text-[#4BB8E8]"); }
+  const b = document.getElementById("sidebar-impact-btn"); if (b) { b.classList.remove("is-active"); }
 }
 async function openImpactView(tab) {
-  abortActiveRequest(); stopActiveAudio(); stopGraphSimulation();
-  if (typeof closeWorkBoardView === "function") { closeWorkBoardView(); }
-  if (typeof closeFocusView === "function") { closeFocusView(); }
-  if (typeof closeWorkflowsView === "function") { closeWorkflowsView(); }
-  if (typeof syncInspectorSidebar === "function") { inspectorOpen = false; syncInspectorSidebar(); }
   impViewOpen = true;
-  if (typeof setAmbientDimmed === "function") { setAmbientDimmed(true); }
-  const shell = document.getElementById("workspace-shell"), gv = document.getElementById("graph-view"), v = document.getElementById("impact-view");
-  if (shell) { shell.classList.add("hidden"); } if (gv) { gv.classList.add("hidden"); } if (v) { v.classList.remove("hidden"); }
-  const b = document.getElementById("sidebar-impact-btn"); if (b) { b.classList.add("bg-[#4BB8E8]/15", "text-[#4BB8E8]"); }
+  activateWorkspaceView("impact-view", { sidebarBtnId: "sidebar-impact-btn", railSection: "work" });
   if (tab) { setImpactTab(tab); }
-  if (typeof setActiveRailSection === "function") { setActiveRailSection("work", false); }
   await impApi("/api/impact");
   renderImpactView();
   if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
@@ -132,7 +115,7 @@ function renderImpactView() {
           + "<button type='button' data-imp-edit='" + escapeHtml(e.id) + "' class='wb-btn wb-btn-sm'>" + escapeHtml(t("imp_edit_btn")) + "</button></div>"
           + "<div><div class='impact-q-lbl'>" + escapeHtml(t("imp_what_done")) + "</div><div style='font-weight:500;margin-top:0.15rem'>" + escapeHtml(e.what_done) + "</div></div>"
           + "<div><div class='impact-q-lbl'>" + escapeHtml(t("imp_effect")) + "</div><div style='margin-top:0.15rem;color:var(--prose)'>" + escapeHtml(e.effect) + "</div></div>"
-          + (e.evidence_notes ? "<div style='font-size:0.85rem;color:var(--text-muted)'>" + escapeHtml(e.evidence_notes) + "</div>" : "")
+          + (e.evidence_notes ? "<div style='font-size:calc(0.85rem * var(--ui-scale,1));color:var(--text-muted)'>" + escapeHtml(e.evidence_notes) + "</div>" : "")
           + "<div style='display:flex;flex-wrap:wrap;gap:0.4rem'>" + (e.hours_invested ? "<span class='wb-chip'>" + e.hours_invested + "h</span>" : "") + (e.time_saved_hours ? "<span class='wb-chip'>+" + e.time_saved_hours + "h</span>" : "") + (e.estimated_value ? "<span class='wb-chip'>" + escapeHtml(fmtMoney(e.estimated_value, cur)) + "</span>" : "") + "</div></article>";
       }).join("");
       jList.querySelectorAll("[data-imp-edit]").forEach(function (btn) { btn.addEventListener("click", function () { openImpactEntryModal(btn.getAttribute("data-imp-edit")); }); });
@@ -145,7 +128,7 @@ function renderImpactView() {
     else {
       tList.innerHTML = impState.time_entries.slice(0, 60).map(function (te) {
         return "<div class='wb-task-row'><span class='wb-chip'>" + escapeHtml(te.date) + "</span>"
-          + "<div style='min-width:0'><div style='font-weight:500'>" + escapeHtml(te.label) + "</div><div style='font-size:0.8rem;color:var(--text-muted)'>" + escapeHtml(impProjectTitle(te.project_id) + " · " + te.source) + "</div></div>"
+          + "<div style='min-width:0'><div style='font-weight:500'>" + escapeHtml(te.label) + "</div><div style='font-size:calc(0.8rem * var(--ui-scale,1));color:var(--text-muted)'>" + escapeHtml(impProjectTitle(te.project_id) + " · " + te.source) + "</div></div>"
           + "<div style='display:flex;align-items:center;gap:0.45rem'><span class='wb-chip'>" + Math.round(te.duration_minutes) + " min</span><button type='button' data-imp-del-time='" + escapeHtml(te.id) + "' aria-label='Delete time entry' class='wb-icon-btn'>✕</button></div></div>";
       }).join("");
       tList.querySelectorAll("[data-imp-del-time]").forEach(function (b) { b.addEventListener("click", function () { impApi("/api/impact/time/" + encodeURIComponent(b.getAttribute("data-imp-del-time")), { method: "DELETE" }); }); });
@@ -156,7 +139,7 @@ function renderImpactView() {
 function openImpactEntryModal(entryId) {
   const modal = document.getElementById("impact-entry-modal"); if (!modal) { return; }
   const e = entryId ? impState.impact_entries.find(function (x) { return x.id === entryId; }) : null;
-  document.getElementById("ie-modal-title").textContent = e ? t("imp_edit_btn") : t("imp_log_btn");
+  document.getElementById("ie-modal-title").textContent = e ? t("imp_edit_btn") : t("imp_modal_new");
   document.getElementById("ie-id").value = e ? e.id : "";
   document.getElementById("ie-date").value = e ? e.date : (typeof wbTodayIso === "function" ? wbTodayIso() : new Date().toISOString().slice(0, 10));
   if (typeof populateProjectSelect === "function") { populateProjectSelect(document.getElementById("ie-project"), e ? e.project_id : "", true); }
@@ -175,9 +158,7 @@ async function downloadImpactReport(fmt) {
   try {
     const res = await areaFetch("/api/impact/report", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ format: fmt }) });
     if (!res.ok) { throw new Error("Report export failed"); }
-    const blob = await res.blob(), url = URL.createObjectURL(blob), a = document.createElement("a");
-    a.href = url; a.download = (activeKnowledgeArea || "realm") + "_impact_roi." + fmt; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    downloadBlob(await res.blob(), (activeKnowledgeArea || "realm") + "_impact_roi." + fmt);
     showToast(t("imp_report_toast"));
   } catch (err) { showToast(err.message || "Export failed", 3500); }
 }
@@ -186,7 +167,8 @@ function bindImpactUX() {
   if (sBtn) { sBtn.addEventListener("click", function () { openImpactView(); }); }
   if (typeof bindRovingTablist === "function") { bindRovingTablist("#imp-tablist [role='tab']", function (b) { setImpactTab(b.getAttribute("data-imp-tab")); }); }
   document.querySelectorAll("[data-imp-tab]").forEach(function (b) { b.addEventListener("click", function () { setImpactTab(b.getAttribute("data-imp-tab")); }); });
-  ["imp-add-entry-btn", "imp-add-journal-btn"].forEach(function (id) { const el = document.getElementById(id); if (el) { el.addEventListener("click", function () { openImpactEntryModal(null); }); } });
+  const addEntryBtn = document.getElementById("imp-add-entry-btn");
+  if (addEntryBtn) { addEntryBtn.addEventListener("click", function () { openImpactEntryModal(null); }); }
   const pdfBtn = document.getElementById("imp-exp-pdf-btn"), pptBtn = document.getElementById("imp-exp-pptx-btn"), csvBtn = document.getElementById("imp-export-csv-btn");
   if (pdfBtn) { pdfBtn.addEventListener("click", function () { downloadImpactReport("pdf"); }); }
   if (pptBtn) { pptBtn.addEventListener("click", function () { downloadImpactReport("pptx"); }); }

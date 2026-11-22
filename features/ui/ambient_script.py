@@ -296,6 +296,7 @@ function setAmbientGraphPause(paused) {
   if (ambientPausedByGraph) { stopAmbientDots(); } else if (ambientEnabled) { rebuildAmbientGrid(); startAmbientLoop(); }
 }
 function bindAmbientBackdrop() {
+  if (document.documentElement.classList.contains("is-embed")) { ambientEnabled = false; return; }
   const stage = ambientStageEl(); if (!stage) { return; }
   const saved = safeStorageGet("realm_ambient_effects") !== "0";
   setAmbientEffects(saved, false);

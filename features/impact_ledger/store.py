@@ -2,52 +2,36 @@
 
 import csv
 import io
-import uuid
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 from pathlib import Path
 
-from core.db import atomic_write_text, backup_corrupt_file
 from core.impact_contracts import ImpactLedgerState
-from core.linked_vaults import CACHE_DIR, cache_study_path
-from core.runtime import data_root
+from core.json_store import (
+    area_store_path,
+    load_model_json,
+    new_id,
+    save_model_json,
+    store_lock,
+    today_iso,
+    utc_now,
+)
 
+__all__ = [
+    "compute_roi_summary", "export_timesheet_csv", "ledger_path", "load_ledger",
+    "new_id", "save_ledger", "store_lock", "today_iso", "utc_now",
+]
 
-def utc_now() -> str:
-    return datetime.now(UTC).isoformat()
-def today_iso() -> str:
-    return date.today().isoformat()
-def new_id(prefix: str) -> str:
-    return f"{prefix}_{uuid.uuid4().hex[:10]}"
 
 def ledger_path(area: str, root: Path | None = None) -> Path:
-    resolved_root = (root or data_root()).resolve()
-    if not area or not area.strip():
-        cache = resolved_root / CACHE_DIR
-        cache.mkdir(parents=True, exist_ok=True)
-        target = cache / "_default.impact_ledger.json"
-    else:
-        target = cache_study_path(area.strip(), "impact_ledger.json", resolved_root)
-    if target.is_symlink() or target.with_suffix(".json.tmp").is_symlink():
-        raise ValueError("Impact ledger storage cannot be a symbolic link")
-    return target
+    return area_store_path(area, "impact_ledger.json", root)
+
 
 def load_ledger(path: Path) -> ImpactLedgerState:
-    if path.is_symlink():
-        raise ValueError("Impact ledger storage cannot be a symbolic link")
-    if not path.is_file():
-        return ImpactLedgerState()
-    try:
-        return ImpactLedgerState.model_validate_json(path.read_text(encoding="utf-8"))
-    except ValueError:
-        backup_corrupt_file(path)
-        return ImpactLedgerState()
-    except OSError:
-        return ImpactLedgerState()
+    return load_model_json(path, ImpactLedgerState, ImpactLedgerState)
 
-def save_ledger(state: ImpactLedgerState, path: Path) -> None:
-    if path.is_symlink() or path.with_suffix(".json.tmp").is_symlink():
-        raise ValueError("Impact ledger storage cannot be a symbolic link")
-    atomic_write_text(path, state.model_dump_json(indent=2))
+
+def save_ledger(state: ImpactLedgerState, path: Path) -> ImpactLedgerState:
+    return save_model_json(state, path, ImpactLedgerState)
 
 
 def compute_roi_summary(state: ImpactLedgerState, today: str | None = None) -> dict[str, object]:

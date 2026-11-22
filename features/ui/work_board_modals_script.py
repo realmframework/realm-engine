@@ -18,7 +18,7 @@ function renderEditingSubtasks() {
 function openWorkTaskModal(taskId) {
   const modal = document.getElementById("work-task-modal"); if (!modal) { return; }
   const tk = taskId ? (wbState.tasks || []).find(function (item) { return item.id === taskId; }) : null;
-  document.getElementById("wb-task-modal-title").textContent = tk ? t("wb_edit_task") : t("wb_new_task");
+  document.getElementById("wb-task-modal-title").textContent = tk ? t("wb_edit_task") : t("wb_task_modal_new");
   document.getElementById("wb-tf-id").value = tk ? tk.id : "";
   document.getElementById("wb-tf-title").value = tk ? tk.title : "";
   document.getElementById("wb-tf-desc").value = tk ? (tk.description || "") : "";
@@ -49,7 +49,7 @@ function openWorkTaskModal(taskId) {
 function openWorkProjectModal(projectId) {
   const modal = document.getElementById("work-project-modal"); if (!modal) { return; }
   const proj = projectId ? wbProjectById(projectId) : null;
-  document.getElementById("wb-proj-modal-title").textContent = proj ? t("wb_edit_project") : t("wb_new_project");
+  document.getElementById("wb-proj-modal-title").textContent = proj ? t("wb_edit_project") : t("wb_proj_modal_new");
   document.getElementById("wb-pf-id").value = proj ? proj.id : "";
   document.getElementById("wb-pf-title").value = proj ? proj.title : "";
   document.getElementById("wb-pf-desc").value = proj ? (proj.description || "") : "";
@@ -75,11 +75,8 @@ async function extractTasksToBoard(opts) {
 function bindWorkBoardUX() {
   const sideBtn = document.getElementById("sidebar-work-btn");
   if (sideBtn) { sideBtn.addEventListener("click", function () { openWorkBoardView(); }); }
-  if (typeof bindRovingTablist === "function") { bindRovingTablist(document.getElementById("wb-tablist"), "[data-wb-tab]", function (btn) { setWorkBoardTab(btn.getAttribute("data-wb-tab")); }); }
+  if (typeof bindRovingTablist === "function") { bindRovingTablist("#wb-tablist [data-wb-tab]", function (btn) { setWorkBoardTab(btn.getAttribute("data-wb-tab")); }); }
   document.querySelectorAll("[data-wb-tab]").forEach(function (btn) { btn.addEventListener("click", function () { setWorkBoardTab(btn.getAttribute("data-wb-tab")); }); });
-  document.querySelectorAll("[data-wb-close]").forEach(function (btn) {
-    btn.addEventListener("click", function () { const d = document.getElementById(btn.getAttribute("data-wb-close")); if (d && d.open) { d.close(); } });
-  });
   const projFilter = document.getElementById("wb-project-filter");
   if (projFilter) { projFilter.addEventListener("change", function () { wbProjectFilter = projFilter.value; renderWorkBoardAll(); }); }
   const addBtn = document.getElementById("wb-add-task-btn"), newProjBtn = document.getElementById("wb-new-project-btn");
@@ -101,8 +98,6 @@ function bindWorkBoardUX() {
       showToast(t("wb_synced_toast")); if (typeof loadGuidesCatalog === "function") { loadGuidesCatalog(null); }
     });
   }
-  const splitChatBtn = document.getElementById("wb-split-chat-btn");
-  if (splitChatBtn) { splitChatBtn.addEventListener("click", function () { if (typeof openSplitView === "function") { openSplitView("board-h"); } }); }
   const askChatBtn = document.getElementById("wb-tf-ask-chat");
   if (askChatBtn) {
     askChatBtn.addEventListener("click", function () {

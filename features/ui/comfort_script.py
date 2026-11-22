@@ -2,7 +2,6 @@
 
 COMFORT_SCRIPT: str = r"""
 const ROOT_FONT_SCALES = { sm: "0.9375", md: "1", lg: "1.125", xl: "1.25" };
-const READING_SCALES = { sm: "calc(0.9375rem * 1)", md: "1rem", lg: "1.125rem", xl: "1.25rem" };
 const READING_WIDTHS = { narrow: "40rem", standard: "48rem", wide: "62rem" };
 let readingComfort = { reading_font: "default", reading_scale: "md", reading_width: "standard", high_contrast_focus: false, reduce_motion: false };
 let activeSlashRecipe = null;
@@ -141,6 +140,7 @@ function applyReadingComfort(cfg, persistLocal) {
     setAmbientEffects(!rm && (workspaceConfig.ambient_effects !== false), false);
   }
   if (typeof window.syncGraphMotion === "function") { window.syncGraphMotion(); }
+  if (typeof broadcastToEmbedFrames === "function") { broadcastToEmbedFrames({ type: "realm:sync-theme", comfort: readingComfort }); }
 }
 
 function syncComfortControlsUI() {

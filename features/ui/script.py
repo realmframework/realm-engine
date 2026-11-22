@@ -18,6 +18,7 @@ from features.ui.onboarding_script import ONBOARDING_SCRIPT
 from features.ui.privacy_script import PRIVACY_SCRIPT
 from features.ui.scope_script import SCOPE_SCRIPT
 from features.ui.settings_script import SETTINGS_SCRIPT
+from features.ui.shared_ui_script import SHARED_UI_SCRIPT
 from features.ui.stream_script import STREAM_SCRIPT
 from features.ui.studio_script import STUDIO_SCRIPT
 from features.ui.theme_script import THEME_SCRIPT
@@ -43,6 +44,7 @@ function getApiKey() { return apiKeyEl.value.trim(); }
 function hasSavedKey(provider) { return Boolean(appKeyStatus[provider] && appKeyStatus[provider].configured); }
 function escapeHtml(value) { return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
 """
+    + SHARED_UI_SCRIPT
     + SETTINGS_SCRIPT
     + I18N_SCRIPT
     + KEYS_SCRIPT
@@ -70,11 +72,11 @@ function escapeHtml(value) { return String(value).replace(/&/g, "&amp;").replace
     + r"""
 function syncChunksToggle(tutorActive) {
   chunksHeader.classList.toggle("hidden", !tutorActive || chunkCount === 0); chunksHeader.classList.toggle("flex", tutorActive && chunkCount > 0);
-  chunksTitle.textContent = (chunksCollapsed ? "▸ View " : "▾ Hide ") + chunkCount + (chunksCollapsed ? " source passages from the handbook" : " source passages");
+  chunksTitle.textContent = (chunksCollapsed ? "▸ " : "▾ ") + t("chat_passages_n", { n: chunkCount });
   resultsEl.classList.toggle("hidden", tutorActive && chunksCollapsed);
 }
 function setLoadingState(loading) {
-  promptBox.className = loading ? "w-full rounded-full bg-[#0B1020] shadow-[inset_0_0_0_1px_#4BB8E8,0_0_20px_rgba(75,184,232,0.22)] flex items-center py-3 px-4 gap-3 transition-all duration-200" : "w-full rounded-full bg-[#0B1020] shadow-[inset_0_0_0_1px_rgba(238,242,248,0.16)] focus-within:shadow-[inset_0_0_0_1px_#4BB8E8] flex items-center py-3 px-4 gap-3 transition-all duration-200";
+  promptBox.className = loading ? "is-loading w-full rounded-full bg-[#0B1020] shadow-[inset_0_0_0_1px_#4BB8E8,0_0_20px_rgba(75,184,232,0.22)] flex items-center py-3 px-4 gap-3 transition-all duration-200" : "w-full rounded-full bg-[#0B1020] shadow-[inset_0_0_0_1px_rgba(238,242,248,0.16)] focus-within:shadow-[inset_0_0_0_1px_#4BB8E8] flex items-center py-3 px-4 gap-3 transition-all duration-200";
   if (typeof autoResizeQuery === "function") { autoResizeQuery(); }
   if (!submitBtn) { return; }
   if (loading) {
@@ -210,7 +212,7 @@ function stopActiveRequest() {
   if (changed) { renderChatStream(); }
   if (queryEl) { queryEl.focus(); }
 }
-function resetHome() { activeScope = { subfolder: null, doc_id: null }; renderScopeChoices(); if (typeof resetXrayOverrides === "function") { resetXrayOverrides(); } if (typeof clearActiveSlashRecipe === "function") { clearActiveSlashRecipe(); } abortActiveRequest(); if (activeRecognition) { activeRecognition.abort(); activeRecognition = null; } stopActiveAudio(); stopGraphSimulation(); currentChatId = null; currentTurns = []; if (typeof activeAttachedNotes !== "undefined") { activeAttachedNotes = []; lastContextUsage = null; inspectorOpen = false; } if (typeof renderAttachedChips === "function") { renderAttachedChips(); } if (typeof restoreDefaultAgent === "function") { restoreDefaultAgent(); } document.getElementById("chat-stream").replaceChildren(); queryEl.value = ""; if (typeof autoResizeQuery === "function") { autoResizeQuery(); } setActiveTag(null); setViewMode(false); renderTutor(null); renderResults([], false); renderRecentChats(); if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); } queryEl.focus(); }
+function resetHome() { activeScope = { subfolder: null, doc_id: null }; renderScopeChoices(); if (typeof resetXrayOverrides === "function") { resetXrayOverrides(); } if (typeof clearActiveSlashRecipe === "function") { clearActiveSlashRecipe(); } abortActiveRequest(); if (activeRecognition) { activeRecognition.abort(); activeRecognition = null; } stopActiveAudio(); stopGraphSimulation(); currentChatId = null; currentTurns = []; if (typeof activeAttachedNotes !== "undefined") { activeAttachedNotes = []; lastContextUsage = null; } if (typeof renderAttachedChips === "function") { renderAttachedChips(); } if (typeof restoreDefaultAgent === "function") { restoreDefaultAgent(); } document.getElementById("chat-stream").replaceChildren(); queryEl.value = ""; if (typeof autoResizeQuery === "function") { autoResizeQuery(); } setActiveTag(null); setViewMode(false); renderTutor(null); renderResults([], false); renderRecentChats(); if (typeof syncCenterChatTab === "function") { syncCenterChatTab("", ""); } if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); } if (typeof IS_EMBED === "undefined" || !IS_EMBED) { queryEl.focus(); } }
 async function runSearch(withTutor, opts) {
   const opt = opts || {}, version = areaVersion, recipe = !opt.instructionPrefix && typeof consumeActiveSlashRecipe === "function" ? consumeActiveSlashRecipe() : null;
   let q = (opt.displayQuery !== undefined ? String(opt.displayQuery) : queryEl.value).trim();
@@ -226,6 +228,7 @@ async function runSearch(withTutor, opts) {
   if (!q && !selectedTag) { resetHome(); return; }
   if (!q && selectedTag) { await openLibraryCatalog(selectedTag); return; }
   if (!currentChatId) { currentChatId = newChatId(); }
+  if (typeof syncCenterChatTab === "function") { syncCenterChatTab(currentChatId, q.slice(0, 36)); }
   const controller = new AbortController(), reqId = "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
   activeController = controller; activeRequestId = reqId; renderTutor(null); renderResults([], false);
   const pendingTurn = { query: q, tag: selectedTag, ask_tutor: Boolean(useTutor), loadingTutor: Boolean(useTutor), agent_id: effAgentId, agent_name: effAgentName, tutor: null, results: [], collapsed: Boolean(useTutor), top_k: ragConfig.top_k, retrieval_mode: ragConfig.retrieval_mode, rrf_k: ragConfig.rrf_k, temperature: ragConfig.temperature };
@@ -291,7 +294,7 @@ document.getElementById("rag-reset-btn").addEventListener("click", function () {
 document.querySelectorAll("[data-retrieval-mode]").forEach(function (btn) { btn.addEventListener("click", function () { ragConfig.retrieval_mode = btn.getAttribute("data-retrieval-mode") || "hybrid"; syncRagStudioUI(); }); });
 document.getElementById("rag-top-k").addEventListener("input", function (e) { ragConfig.top_k = Number(e.target.value); syncRagStudioUI(); }); document.getElementById("rag-rrf-k").addEventListener("input", function (e) { ragConfig.rrf_k = Number(e.target.value); syncRagStudioUI(); }); document.getElementById("rag-temperature").addEventListener("input", function (e) { ragConfig.temperature = Number(e.target.value); syncRagStudioUI(); });
 document.getElementById("tts-model").addEventListener("change", syncTtsVoices); document.getElementById("tts-test-btn").addEventListener("click", previewVoice); document.getElementById("tts-api-key").addEventListener("input", function () { if (currentTurns.length) { renderChatStream(); } }); micBtn.addEventListener("click", toggleDictation);
-bindRunModes(); bindBudgetControls(); bindSettingsTabs(); bindAmbientBackdrop(); bindLanguageControls(); bindAppearanceControls(); bindAllUXBundles(); bindOnboardingTour(); bindWorkspaceMenu(); bindBackupControls(); bindGlobalDrop(); bindWebSearchControls(); bindStudioControls(); bindAgentControls(); bindApiKeyControls();
+bindRunModes(); bindBudgetControls(); bindSettingsTabs(); bindAmbientBackdrop(); bindLanguageControls(); bindAppearanceControls(); bindAllUXBundles(); bindOnboardingTour(); bindWorkspaceMenu(); bindBackupControls(); bindGlobalDrop(); bindWebSearchControls(); bindStudioControls(); bindAgentControls(); bindApiKeyControls(); bindDialogCloseAttr(); bindEmbedMessageBridge();
 document.getElementById("download-local-model-btn").addEventListener("click", installRecommendedLocalAI); bindDialogFallbacks(); bindDestination("upload"); bindCardMoveDialog();
 document.getElementById("cfg-anonymize-uploads").addEventListener("change", function () { if (stagedFiles.length) { previewUploads(); } });
 providerEl.addEventListener("change", function () { document.getElementById("onboarding-provider").value = providerEl.value; keyReplaceMode = false; onboardingReplaceMode = false; syncProviderPrivacyUI(providerEl.value, "settings-privacy-notice", "settings-api-key-group"); syncProviderPrivacyUI(providerEl.value, "onboarding-privacy-notice", "onboarding-api-key-group"); apiKeyEl.value = ""; setSecretVisibility("api-key", "toggle-api-key-visibility", false); syncKeyStatusUI(); loadModels(); });

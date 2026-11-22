@@ -50,6 +50,8 @@ function syncActiveAgentBadge() {
   for (const id of ["agent-sync-palette-toggle", "onboarding-sync-agent-palette"]) {
     const chk = document.getElementById(id); if (chk) { chk.checked = Boolean(syncAgentPalette); }
   }
+  if (typeof renderDrawerDynamicLists === "function") { renderDrawerDynamicLists(); }
+  if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
 }
 function resolveSessionAgentId(session) {
   if (!session || !agentTeam.length) { return defaultAgentId; }
@@ -234,9 +236,9 @@ async function openAgentStudio(tab) {
   if (modal && !modal.open) { modal.showModal(); }
 }
 async function selectAgentUI(agentId) {
-  const inOpenChat = isInsideChat();
+  const inOpenChat = isInsideChat(), embedded = typeof IS_EMBED !== "undefined" && IS_EMBED;
   try {
-    if (!inOpenChat) {
+    if (!inOpenChat && !embedded) {
       const res = await fetch("/api/agents/select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agent_id: agentId }) });
       const d = await safeJson(res);
       if (!res.ok) { throw new Error(d.detail || "Could not switch agent."); }
@@ -248,9 +250,10 @@ async function selectAgentUI(agentId) {
     activeAgentId = agentId;
     syncActiveAgentBadge(); renderAgentRoster();
     const chosen = activeAgentObj();
-    applyPaletteForAgent(chosen, !inOpenChat);
+    if (!embedded) { applyPaletteForAgent(chosen, !inOpenChat); }
+    else if (typeof notifyParentFrame === "function") { notifyParentFrame({ type: "realm:chat-state", agentId: agentId }); }
     const modal = document.getElementById("agent-studio-modal"); if (modal && modal.open) { modal.close(); }
-    if (chosen) { showToast(t(inOpenChat ? "toast_next_agent" : "toast_default_agent", { name: chosen.name, role: chosen.role })); }
+    if (chosen && !embedded) { showToast(t(inOpenChat ? "toast_next_agent" : "toast_default_agent", { name: chosen.name, role: chosen.role })); }
     if (typeof refreshContextUsage === "function" && currentChatId) { refreshContextUsage(); }
   } catch (err) { showToast(err.message || t("err_switch_agent")); }
 }

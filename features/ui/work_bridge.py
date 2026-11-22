@@ -8,14 +8,14 @@ from fastapi import HTTPException
 from core.contracts import KnowledgeChunk, WorkspaceConfig
 from core.db import atomic_write_text
 from core.linked_vaults import is_linked_vault
-from features.ui import chat_store, workspace
+from features.ui import chat_store, selection, workspace
 
 
 def build_work_source_resolver(
     get_config: Callable[[], WorkspaceConfig],
     get_index: Callable[[], list[KnowledgeChunk]],
 ) -> Callable[[str, int | None, str, str], str]:
-    """Resolve chat turn, full chat, Library guide, or raw text into Markdown for task extraction."""
+    """Resolve chat turn, full chat, Library document, or raw text into Markdown for task extraction."""
 
     def _resolve(chat_id: str, turn_index: int | None, doc_id: str, text: str) -> str:
         if text.strip():
@@ -28,10 +28,11 @@ def build_work_source_resolver(
                     if not area:
                         continue
                     try:
-                        session = chat_store.get_chat_session(chat_id, chat_store.area_chat_path(area))
+                        cand = chat_store.get_chat_session(chat_id, chat_store.area_chat_path(area))
                     except (ValueError, HTTPException):
-                        session = None
-                    if session is not None:
+                        cand = None
+                    if cand is not None and (area == chat_store.FREE_CHAT_AREA or selection.chat_matches(cand, active)):
+                        session = cand
                         break
                 if session is None:
                     raise HTTPException(status_code=404, detail="Chat session not found")

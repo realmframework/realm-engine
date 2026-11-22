@@ -66,7 +66,7 @@ FOCUS_MODALS_HTML: str = r"""<dialog id="deep-focus-modal" closedby="any" aria-l
         <button type="button" data-df-sound="drone" aria-pressed="false" data-i18n="foc_snd_drone" class="wb-pill-btn">Warm Drone</button>
       </div>
       <div style="display:flex;align-items:center;gap:0.4rem">
-        <label for="df-vol" data-i18n="foc_vol" style="font-size:0.78rem;color:var(--text-muted)">Vol</label>
+        <label for="df-vol" data-i18n="foc_vol" style="font-size:calc(0.78rem * var(--ui-scale,1));color:var(--text-muted)">Vol</label>
         <input id="df-vol" type="range" min="0" max="100" value="35" style="width:5.5rem" />
       </div>
     </div>
@@ -94,8 +94,8 @@ FOCUS_MODALS_HTML: str = r"""<dialog id="deep-focus-modal" closedby="any" aria-l
 
 <dialog id="goal-season-modal" closedby="any" aria-labelledby="gs-modal-title" class="wb-dialog">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;border-bottom:1px solid var(--border-subtle);padding-bottom:0.7rem">
-    <h2 id="gs-modal-title" data-i18n="foc_new_goal" style="margin:0;font-size:calc(1.125rem * var(--ui-scale,1));font-weight:600">New Goal Season</h2>
-    <button type="button" data-m4-close="goal-season-modal" aria-label="Close goal dialog" class="wb-icon-btn">✕</button>
+    <h2 id="gs-modal-title" data-i18n="foc_goal_modal_new" style="margin:0;font-size:calc(1.125rem * var(--ui-scale,1));font-weight:600">New Goal Season</h2>
+    <button type="button" data-close-dialog="goal-season-modal" aria-label="Close goal dialog" class="wb-icon-btn">✕</button>
   </div>
   <form id="gs-form" style="display:flex;flex-direction:column;gap:0.8rem">
     <input id="gs-id" type="hidden" value="" />
@@ -111,7 +111,7 @@ FOCUS_MODALS_HTML: str = r"""<dialog id="deep-focus-modal" closedby="any" aria-l
     <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;padding-top:0.65rem;border-top:1px solid var(--border-subtle)">
       <button id="gs-delete" type="button" hidden data-i18n="delete_btn" class="wb-btn wb-btn-danger">Delete</button>
       <div style="display:flex;gap:0.5rem;margin-inline-start:auto">
-        <button type="button" data-m4-close="goal-season-modal" data-i18n="cancel" class="wb-btn">Cancel</button>
+        <button type="button" data-close-dialog="goal-season-modal" data-i18n="cancel" class="wb-btn">Cancel</button>
         <button type="submit" data-i18n="save" class="wb-btn wb-btn-primary">Save</button>
       </div>
     </div>

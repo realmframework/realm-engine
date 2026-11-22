@@ -81,7 +81,6 @@ html, body { background-color: var(--background) !important; color: var(--text) 
 .ambient-stage.is-dimmed { opacity: 0.22; }
 .ambient-stage.is-dimmed.is-speaking { opacity: 0.44; }
 .ambient-stage.is-off { display: none; }
-.stream-cursor { display: inline-block; width: 0.48em; height: 0.48em; margin-inline-start: 0.35em; vertical-align: 0.08em; border-radius: 9999px; background: var(--turn-accent, var(--accent)); opacity: 0.85; }
 .turn-themed { --turn-accent: color-mix(in oklab, var(--turn-seed, var(--accent-seed)) 50%, #04060F); }
 .turn-author-heading { color: var(--turn-accent, var(--accent)); }
 .turn-themed .md-list-marker { color: var(--turn-accent, var(--accent)) !important; }
@@ -94,7 +93,7 @@ html, body { background-color: var(--background) !important; color: var(--text) 
 .md-body.is-streaming > :is(p, h1, h2, h3, h4, h5, h6, blockquote):last-child::after,
 .md-body.is-streaming > :is(ul, ol):last-child > li:last-child::after { content: ""; display: inline-block; width: 0.48em; height: 0.48em; margin-inline-start: 0.35em; vertical-align: 0.08em; border-radius: 9999px; background: var(--turn-accent, var(--accent)); box-shadow: 0 0 8px color-mix(in oklab, var(--turn-accent, var(--accent)) 52%, transparent); }
 @media (prefers-reduced-motion: no-preference) {
-  .stream-cursor, .md-body.is-streaming > :is(p, h1, h2, h3, h4, h5, h6, blockquote):last-child::after, .md-body.is-streaming > :is(ul, ol):last-child > li:last-child::after { animation: realm-stream-dot 1.15s ease-in-out infinite; }
+  .md-body.is-streaming > :is(p, h1, h2, h3, h4, h5, h6, blockquote):last-child::after, .md-body.is-streaming > :is(ul, ol):last-child > li:last-child::after { animation: realm-stream-dot 1.15s ease-in-out infinite; }
 }
 @keyframes realm-stream-dot { 0%, 100% { opacity: 0.92; transform: scale(1); } 50% { opacity: 0.32; transform: scale(0.8); } }
 #global-drop-overlay { background: color-mix(in oklab, var(--background) 74%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
@@ -114,13 +113,13 @@ html, body { background-color: var(--background) !important; color: var(--text) 
 #sidebar-backdrop[hidden] { display: none !important; }
 @media (max-width: 900px) { #main-shell { padding-left: 0 !important; } }
 #prompt-container { background-color: color-mix(in oklab, var(--surface-raised) 86%, transparent) !important; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: inset 0 0 0 1px var(--border-control), var(--dialog-shadow) !important; }
-#prompt-container:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 28px color-mix(in oklab, var(--accent) 26%, transparent) !important; }
+#prompt-container:focus-within, #prompt-container.is-loading { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 28px color-mix(in oklab, var(--accent) 26%, transparent) !important; }
 .chat-dock { background: transparent !important; }
 .chat-dock #prompt-container { background-color: color-mix(in oklab, var(--surface-raised) 92%, transparent) !important; }
 .chat-scroll-mask { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%); mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%); }
 dialog { background-color: var(--surface-raised) !important; color: var(--text) !important; border-color: var(--border) !important; box-shadow: var(--dialog-shadow) !important; }
 dialog::backdrop { background: light-dark(rgba(11, 16, 32, 0.28), rgba(4, 6, 15, 0.54)) !important; }
-#onboarding-modal [hidden], #agent-studio-modal [hidden], #reset-logo-btn[hidden], #reset-agent-name-btn[hidden], #global-drop-overlay[hidden], #web-search-options [hidden], #web-search-lock-note[hidden] { display: none !important; }
+#onboarding-modal [hidden], #agent-studio-modal [hidden], #reset-logo-btn[hidden], #global-drop-overlay[hidden], #web-search-options [hidden], #web-search-lock-note[hidden] { display: none !important; }
 .settings-body { --scrollbar-thumb: light-dark(#4B5563, #8A99AE); --scrollbar-track: var(--surface-raised); }
 #upload-redaction-inspector { scrollbar-color: var(--scrollbar-thumb) var(--background) !important; }
 #upload-redaction-inspector::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb) !important; }

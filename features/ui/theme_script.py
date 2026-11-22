@@ -33,12 +33,6 @@ function activeAgentName() {
 }
 function syncAgentNameUI(name) {
   activeAgentLabel = String(name || "").trim().slice(0, 40) || "Saga";
-  for (const id of ["agent-name-input", "onboarding-agent-name"]) {
-    const inp = document.getElementById(id);
-    if (inp && document.activeElement !== inp && inp.value !== activeAgentLabel) { inp.value = activeAgentLabel; }
-  }
-  const resetBtn = document.getElementById("reset-agent-name-btn");
-  if (resetBtn) { resetBtn.hidden = activeAgentLabel === "Saga"; }
 }
 function hexToHsl(hex) {
   const clean = /^#[0-9a-f]{6}$/i.test(hex || "") ? hex : "#4BB8E8";
@@ -89,6 +83,7 @@ function applyThemeTokens(mode, accent, glow, persistLocal) {
   }
   syncThemeControlsUI(safeMode, safeAccent, safeGlow);
   if (typeof refreshAmbientPalette === "function") { refreshAmbientPalette(); }
+  if (typeof broadcastToEmbedFrames === "function") { broadcastToEmbedFrames({ type: "realm:sync-theme", mode: safeMode, accent: safeAccent, glow: safeGlow }); }
 }
 function syncThemeControlsUI(mode, accent, glow) {
   const sysNow = systemDarkQuery.matches ? t("theme_dark") : t("theme_light");
@@ -260,34 +255,6 @@ function bindAppearanceControls() {
       if (typeof applyReadingComfort === "function") { applyReadingComfort({ reading_font: "default", reading_scale: "md", reading_width: "standard", high_contrast_focus: false, reduce_motion: false }, true); }
       persistAppearancePatch({ theme_mode: "system", theme_accent: "#4BB8E8", theme_glow: "#6366F1", ambient_effects: true, agent_name: "Saga", reading_font: "default", reading_scale: "md", reading_width: "standard", high_contrast_focus: false, reduce_motion: false });
       await resetCustomLogo();
-    });
-  }
-  for (const id of ["agent-name-input", "onboarding-agent-name"]) {
-    const inp = document.getElementById(id);
-    if (inp) {
-      inp.addEventListener("input", function () {
-        const clean = inp.value.trim().slice(0, 40) || "Saga";
-        activeAgentLabel = clean;
-        for (const otherId of ["agent-name-input", "onboarding-agent-name"]) {
-          const other = document.getElementById(otherId); if (other && other !== inp) { other.value = inp.value; }
-        }
-        const rBtn = document.getElementById("reset-agent-name-btn"); if (rBtn) { rBtn.hidden = clean === "Saga"; }
-        if (typeof workspaceConfig === "object" && workspaceConfig) { workspaceConfig.agent_name = clean; }
-        if (typeof agentTeam !== "undefined" && Array.isArray(agentTeam)) { const sg = agentTeam.find(a => a.id === "saga"); if (sg) { sg.name = clean; } if (typeof syncActiveAgentBadge === "function") { syncActiveAgentBadge(); } }
-        if (typeof currentTurns !== "undefined" && currentTurns.length && typeof renderChatStream === "function") { renderChatStream(); }
-        persistAppearancePatch({ agent_name: clean });
-      });
-    }
-  }
-  const resetAgentBtn = document.getElementById("reset-agent-name-btn");
-  if (resetAgentBtn) {
-    resetAgentBtn.addEventListener("click", function () {
-      syncAgentNameUI("Saga");
-      const inp = document.getElementById("agent-name-input"); if (inp) { inp.value = "Saga"; }
-      if (typeof workspaceConfig === "object" && workspaceConfig) { workspaceConfig.agent_name = "Saga"; }
-      if (typeof agentTeam !== "undefined" && Array.isArray(agentTeam)) { const sg = agentTeam.find(a => a.id === "saga"); if (sg) { sg.name = "Saga"; } if (typeof syncActiveAgentBadge === "function") { syncActiveAgentBadge(); } }
-      if (typeof currentTurns !== "undefined" && currentTurns.length && typeof renderChatStream === "function") { renderChatStream(); }
-      persistAppearancePatch({ agent_name: "Saga" });
     });
   }
   const resetAllBtn = document.getElementById("reset-all-settings-btn");

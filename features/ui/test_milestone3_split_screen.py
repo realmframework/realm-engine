@@ -1,4 +1,4 @@
-"""Integration tests for Milestone 3 Split Screen (Dual Chat, Board <-> Chat, and Guide Split)."""
+"""Integration tests for True-DRY VS Code 4-Zone Split Workbench & Same-Origin Embed Security."""
 
 from pathlib import Path
 
@@ -26,26 +26,49 @@ def _client(tmp_path: Path, monkeypatch: object) -> TestClient:
     return TestClient(ui_app._build_local_app())
 
 
-def test_split_screen_markup_a11y_and_ime_guards(tmp_path: Path, monkeypatch: object) -> None:
+def test_true_dry_four_zone_workbench_and_embed_framing_headers(tmp_path: Path, monkeypatch: object) -> None:
     client = _client(tmp_path, monkeypatch)
-    html = client.get("/").text
+    res = client.get("/")
+    assert res.status_code == 200
+    assert res.headers.get("x-frame-options") == "SAMEORIGIN"
+    csp = res.headers.get("content-security-policy", "")
+    assert "frame-ancestors 'self'" in csp and "frame-src 'self'" in csp
+    api_res = client.get("/api/workspace")
+    assert api_res.headers.get("x-frame-options") == "DENY"
+    html = res.text
     for needle in (
-        'id="split-toggle-btn"',
-        'id="split-mode-menu"',
-        'id="split-resizer"',
+        'id="workbench-grid"',
+        'id="center-tabbar"',
+        'id="center-tablist"',
+        'id="center-split-btn"',
+        'id="center-split-resizer"',
         'role="separator"',
-        'id="split-pane-b"',
-        'id="split-agent-select"',
-        'id="split-thread-select"',
-        'id="split-flip-btn"',
-        'id="split-query"',
-        'id="wb-split-chat-btn"',
+        'id="center-split-pane"',
+        'id="center-split-frame"',
+        'id="bottom-panel-resizer"',
+        'id="bottom-panel"',
+        'id="bottom-panel-frame"',
+        'id="bottom-panel-more-menu"',
+        'id="right-sidebar-resizer"',
+        'id="inspector-sidebar"',
+        'id="right-tab-inspector"',
+        'id="right-tab-doc"',
         'id="wb-tf-ask-chat"',
         "e.isComposing || e.keyCode === 229",
-        "abortSplitRequest",
         "resetSplitOnAreaChange",
     ):
         assert needle in html
+    for removed in (
+        'id="split-toggle-btn"',
+        'id="split-mode-menu"',
+        'id="wb-split-chat-btn"',
+        'id="split-chat-body"',
+        'id="split-tasks-body"',
+        'id="split-focus-body"',
+        'id="split-impact-body"',
+        'id="split-guide-body"',
+    ):
+        assert removed not in html
 
 
 def test_parallel_chat_threads_stay_isolated_in_store(tmp_path: Path, monkeypatch: object) -> None:

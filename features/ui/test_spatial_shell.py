@@ -1,4 +1,4 @@
-"""Integration tests for v0.9.0 Codex-inspired Two-Tier Spatial Shell & Multi-Tab Workbench."""
+"""Integration tests for Two-Tier Spatial Shell & True-DRY VS Code 4-Zone Workbench."""
 
 from fastapi.testclient import TestClient
 
@@ -13,6 +13,7 @@ def test_spatial_shell_activity_rail_drawer_panels_and_topbar(area_client: TestC
         'id="rail-work-btn"',
         'id="rail-workflows-btn"',
         'id="rail-studio-btn"',
+        'id="mobile-rail-strip"',
         'id="rail-more-menu" popover="auto"',
         'id="rail-status-popover" popover="auto"',
         'id="drawer-panel-chat"',
@@ -26,24 +27,47 @@ def test_spatial_shell_activity_rail_drawer_panels_and_topbar(area_client: TestC
         'id="topbar-more-menu" popover="auto"',
     ):
         assert needle in html
+    assert 'id="sidebar-collapse-btn"' not in html
 
 
-def test_multi_tab_side_workbench_and_launcher_tiles(area_client: TestClient) -> None:
+def test_four_zone_workbench_controls_and_zero_fake_mini_widgets(area_client: TestClient) -> None:
     html = area_client.get("/").text
     for needle in (
-        'id="wb-side-tablist"',
-        'id="wb-side-add-tab"',
+        'id="layout-left-btn"',
+        'id="layout-bottom-btn"',
+        'id="layout-right-btn"',
+        'id="inspector-token-label"',
+        'id="center-tablist"',
+        'id="center-add-tab-btn"',
+        'id="center-split-btn"',
+        'id="split-chat-tablist"',
+        'id="split-agent-select"',
+        'id="bottom-panel-tablist"',
+        'id="bottom-panel-more-btn"',
+        'id="bottom-panel-max-btn"',
+        'id="bottom-panel-close-btn"',
+        'data-bp-tool="work"',
+        'data-bp-tool="focus"',
+        'data-bp-tool="impact"',
+        'data-bp-tool="workflows"',
+        'data-bp-tool="library"',
+        'data-bp-vis="work"',
+        'role="menuitemcheckbox"',
+        'id="right-sidebar-tablist"',
+        'id="right-doc-select"',
+        "syncCenterChatTab",
+        "toggleContextDrawer",
+        "openChatInSplit",
+        "toggleBottomPanel",
+        "setRightSidebarOpen",
+    ):
+        assert needle in html
+    for removed in (
+        'id="split-toggle-btn"',
+        'id="split-mode-menu"',
         'id="split-launcher-body"',
-        'id="wb-launcher-search"',
-        'data-open-side-tile="chat"',
-        'data-open-side-tile="guide"',
-        'data-open-side-tile="tasks"',
-        'data-open-side-tile="focus"',
-        'data-open-side-tile="impact"',
         'id="split-tasks-body"',
         'id="split-focus-body"',
         'id="split-impact-body"',
-        "openSideWorkbenchTab",
-        "toggleContextDrawer",
     ):
-        assert needle in html
+        assert removed not in html

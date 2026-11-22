@@ -40,19 +40,8 @@ async function runStreamingTurn(chatId, bodyObj, headers, signal, pendingTurn, t
   if (!res.body || !res.body.getReader) {
     return { fallback: true };
   }
-  const reader = res.body.getReader(), decoder = new TextDecoder();
-  let buffer = "", doneSession = null, stoppedFlag = false;
-  const handleEvent = function (rawEvent) {
-    if (stale()) { return; }
-    const lines = rawEvent.split(/\r?\n/);
-    let evName = "message", dataLines = [];
-    for (const ln of lines) {
-      if (ln.startsWith("event:")) { evName = ln.slice(6).trim(); }
-      else if (ln.startsWith("data:")) { dataLines.push(ln.slice(5).trim()); }
-    }
-    if (!dataLines.length) { return; }
-    let payload = null;
-    try { payload = JSON.parse(dataLines.join("\n")); } catch (_e) { return; }
+  let doneSession = null, stoppedFlag = false;
+  const completed = await readSseStream(res, function (evName, payload) {
     if (evName === "retrieval") {
       pendingTurn.results = payload.results || [];
       pendingTurn.router_label = (payload.rag_config && payload.rag_config.router_label) || (payload.router_decision && payload.router_decision.label) || "";
@@ -80,22 +69,8 @@ async function runStreamingTurn(chatId, bodyObj, headers, signal, pendingTurn, t
     } else if (evName === "error") {
       throw new Error((payload && payload.detail) || "Streaming request failed.");
     }
-  };
-  while (true) {
-    const step = await reader.read();
-    if (step.done) { break; }
-    if (stale()) { try { await reader.cancel(); } catch (_e) {} return { stopped: true }; }
-    buffer += decoder.decode(step.value, { stream: true });
-    let idx;
-    while ((idx = buffer.indexOf("\n\n")) !== -1) {
-      const chunk = buffer.slice(0, idx);
-      buffer = buffer.slice(idx + 2);
-      if (chunk.trim()) { handleEvent(chunk); }
-    }
-  }
-  buffer += decoder.decode();
-  if (buffer.trim()) { handleEvent(buffer); }
-  if (stale()) { return { stopped: true }; }
+  }, stale);
+  if (!completed || stale()) { return { stopped: true }; }
   if (doneSession) {
     const rLabel = (doneSession.router_decision && doneSession.router_decision.label) || pendingTurn.router_label || "";
     currentTurns = (doneSession.turns || []).map(function (t, i) {
@@ -196,33 +171,17 @@ async function importNativeFolder() {
       body: JSON.stringify({ subfolder: subfolder, area: saveArea, anonymize: anon })
     });
     if (!res.ok) { const err = await safeJson(res); throw new Error(err.detail || "Folder import failed."); }
-    if (!res.body || !res.body.getReader) { throw new Error("Streaming folder import is unavailable in this browser."); }
-    const reader = res.body.getReader(), decoder = new TextDecoder();
-    let buf = "";
-    const handle = function (rawEv) {
-      let ev = "message", lines = [];
-      for (const ln of rawEv.split(/\r?\n/)) { if (ln.startsWith("event:")) { ev = ln.slice(6).trim(); } else if (ln.startsWith("data:")) { lines.push(ln.slice(5).trim()); } }
-      if (!lines.length) { return; }
-      let p = null; try { p = JSON.parse(lines.join("\n")); } catch (_e) { return; }
+    await readSseStream(res, function (ev, p) {
       if (ev === "stage") { setUploadProgress(true, p.message || "Working…", p.stage === "indexing" ? "Indexing…" : "", p.stage === "indexing" ? 95 : 10, p.stage === "indexing" ? "Building search index & vectors — almost done" : "Waiting for folder selection"); }
       else if (ev === "start") { folderName = p.folder_name || "folder"; setUploadProgress(true, "Importing “" + folderName + "”…", "0 / " + (p.total || 0), 12, "Scanning files…"); }
       else if (ev === "progress") {
         const pct = p.total ? Math.round(12 + (p.done / p.total) * 78) : 50;
         setUploadProgress(true, "Importing “" + folderName + "”…", p.done + " / " + p.total, pct, p.current || "");
-        if (statusEl) { statusEl.textContent = "Converted " + (p.imported || 0) + " guides (" + p.done + "/" + p.total + ")…"; }
+        if (statusEl) { statusEl.textContent = "Converted " + (p.imported || 0) + " documents (" + p.done + "/" + p.total + ")…"; }
       } else if (ev === "cancelled") { cancelled = true; }
-      else if (ev === "done") { donePayload = p; setUploadProgress(true, "Import complete!", (p.imported_count || 0) + " guides", 100, ""); }
+      else if (ev === "done") { donePayload = p; setUploadProgress(true, "Import complete!", (p.imported_count || 0) + " documents", 100, ""); }
       else if (ev === "error") { throw new Error((p && p.detail) || "Could not import folder."); }
-    };
-    while (true) {
-      const step = await reader.read();
-      if (step.done) { break; }
-      buf += decoder.decode(step.value, { stream: true });
-      let idx;
-      while ((idx = buf.indexOf("\n\n")) !== -1) { const chunk = buf.slice(0, idx); buf = buf.slice(idx + 2); if (chunk.trim()) { handle(chunk); } }
-    }
-    buf += decoder.decode();
-    if (buf.trim()) { handle(buf); }
+    });
     if (version !== areaVersion) { return; }
     if (cancelled || !donePayload) { if (statusEl) { statusEl.textContent = ""; } return; }
     uploadModal.close(); stageUploadFiles([]); applyWorkspacePayload(donePayload);

@@ -1,5 +1,6 @@
 param(
-    [switch]$RequireInstaller
+    [switch]$RequireInstaller,
+    [switch]$SkipPackages
 )
 
 $ErrorActionPreference = "Stop"
@@ -51,6 +52,16 @@ try {
     Write-Host "    Smoke test passed (server, /healthz, /, /static/ui.css, WebView2 backend, starter vault)"
 } finally {
     Remove-Item -Recurse -Force $SmokeDir -ErrorAction SilentlyContinue
+}
+
+Get-ChildItem -Path (Join-Path $Root "dist") -Filter "REALM-Engine-*-windows-*.zip" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+Get-ChildItem -Path (Join-Path $Root "dist") -Filter "REALM-Engine-*-windows-*-setup.exe" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+
+if ($SkipPackages) {
+    Write-Host ""
+    Write-Host "Build complete (local test mode, skipped ZIP & installer):"
+    Write-Host "  App EXE: $ExePath"
+    exit 0
 }
 
 Write-Host "==> Creating portable ZIP (with top-level folder): $ZipPath"

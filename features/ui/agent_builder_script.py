@@ -13,10 +13,7 @@ async function exportSlidesRequest(payload, filenameFallback, fmt) {
       body: JSON.stringify(Object.assign({}, payload, { format: fmt || "pptx" })),
     });
     if (!res.ok) { const e = await safeJson(res); throw new Error(e.detail || t("err_export_slides")); }
-    const blob = await res.blob(), url = URL.createObjectURL(blob), a = document.createElement("a");
-    a.href = url; a.download = (filenameFallback || "realm-slides") + "-slides" + ext;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    downloadBlob(await res.blob(), (filenameFallback || "realm-slides") + "-slides" + ext);
     showToast(t("toast_exp_slides_ok"));
   } catch (err) { showToast(err.message || t("err_export_slides")); }
 }

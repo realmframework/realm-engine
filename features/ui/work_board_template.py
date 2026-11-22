@@ -10,9 +10,8 @@ WORK_BOARD_HTML: str = r"""<section id="work-board-view" class="wb-view hidden" 
       <select id="wb-project-filter" aria-label="Filter by project" data-i18n-aria-label="wb_filter_project" class="wb-select">
         <option value="" data-i18n="wb_all_projects">All Projects</option>
       </select>
-      <button id="wb-split-chat-btn" type="button" data-i18n="sp_split_chat_btn" class="wb-btn">Split Chat</button>
-      <button id="wb-more-btn" type="button" popovertarget="wb-more-menu" aria-label="More actions" title="More actions" data-i18n-aria-label="wb_more_actions" data-i18n-title="wb_more_actions" class="wb-btn">···</button>
-      <div id="wb-more-menu" popover="auto" class="rail-popover" style="right:1.5rem;top:6.5rem" aria-label="Board actions">
+      <button id="wb-more-btn" type="button" popovertarget="wb-more-menu" aria-expanded="false" aria-label="More actions" title="More actions" data-i18n-aria-label="wb_more_actions" data-i18n-title="wb_more_actions" class="wb-btn">···</button>
+      <div id="wb-more-menu" popover="auto" class="rail-popover" aria-label="Board actions">
         <button id="wb-extract-open-btn" type="button" data-i18n="wb_extract_btn" class="shell-pop-item">Extract Tasks</button>
         <button id="wb-sync-vault-btn" type="button" data-i18n="wb_sync_btn" class="shell-pop-item">Sync to Library</button>
       </div>

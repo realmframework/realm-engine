@@ -20,7 +20,6 @@ REPO_ROOT = data_root()
 WORKSPACE_FILE = REPO_ROOT / "workspace.json"
 STATE_LOCK = RLock()
 ALLOWED_UPLOAD_EXTENSIONS = {".md", ".txt", ".html", ".pdf", ".docx", ".csv", ".tsv", ".xlsx", ".pptx"}
-EXCLUDED_REPO_DIRS = {"agents", "core", "features", "docs", "tests", "node_modules", "__pycache__"}
 OLLAMA_TAGS_URL = f"{ollama_base_url()}/api/tags"
 _ORIG_HTTPX_GET = httpx.get
 
@@ -53,9 +52,6 @@ def resolve_guide_file(target_dir: Path, doc_id: str) -> Path:
         return resolve_document(target_dir, doc_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail="Guide not found") from exc
-def list_available_dirs(current_dir: str = "", repo_root: Path | None = None) -> list[str]:
-    names = [a.name for a in list_areas(repo_root or REPO_ROOT, current_dir)]
-    return list(dict.fromkeys([*names, *([current_dir] if current_dir else [])]))
 
 def _get_ollama_tags() -> httpx.Response:
     url = OLLAMA_TAGS_URL if httpx.get is not _ORIG_HTTPX_GET else f"{ollama_base_url()}/api/tags"

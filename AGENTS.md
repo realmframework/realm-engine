@@ -18,3 +18,8 @@ You are forbidden from finishing your turn until all three tools return 0 errors
 2. **Fixed Prompt Pill Anatomy:** The pill may ONLY contain the circular `+` on the left; the text input in the center, plus a compact removable `[Folder/File SVG] <Name> ✕` chip ONLY for an actively selected non-default scope; and `Model ⌄`, microphone and submit-arrow controls on the right. The scope chip MUST be completely hidden (`display: none`) in default `Entire Area` mode.
 3. **Progressive Disclosure Over Clutter:** Configuration, folder scoping, voice settings and diagnostics MUST live in the left sidebar, Library or native `<dialog>` modals—NEVER on the primary chat canvas.
 4. **Zero Raw Tokens or Emojis:** NEVER expose raw `[REDACTED_*]` tokens or generic `Page N` labels in hero starter prompts. Use crisp 1.5px stroke monochrome SVG icons, NEVER cartoon emojis.
+
+## Release, Packaging & DRY Discipline
+1. **Manual-Test-First Release Gate:** Local `git commit` checkpoints are welcome to keep history clean and reversible, but NEVER run `git tag`, `git push`, bump versions (`pyproject.toml`, `core/version.py`, `packaging/realm-engine.iss`), or create GitHub Releases until the user has manually tested the rebuilt local app and explicitly approved releasing.
+2. **Clean Local Build After Desktop/UI Changes:** Rebuild ONLY the signed local macOS bundle via `./packaging/build_macos.sh --auto-sign --require-signed --skip-dmg` and keep `dist/` spotless (zero stale `.dmg` installers and zero duplicate `dist/REALM Engine/` folder).
+3. **True DRY Reuse:** Always reuse real shared views, APIs, SSE readers, and modal/popover helpers rather than creating parallel custom mini-widgets or duplicated boilerplate.

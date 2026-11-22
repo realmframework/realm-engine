@@ -84,7 +84,7 @@ WORKFLOWS_VIEW_HTML: str = r"""<section id="workflows-view" class="wb-view hidde
 WORKFLOWS_MODALS_HTML: str = r"""<dialog id="wf-templates-modal" closedby="any" aria-labelledby="wf-tpl-title" class="wb-dialog" style="max-width:48rem">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem;border-bottom:1px solid var(--border-subtle);padding-bottom:0.65rem">
     <h2 id="wf-tpl-title" data-i18n="wf_tpl_modal_title" style="margin:0;font-size:calc(1.15rem * var(--ui-scale,1));font-weight:600">Starter Workflow Templates</h2>
-    <button type="button" data-m5-close="wf-templates-modal" aria-label="Close templates" class="wb-icon-btn">✕</button>
+    <button type="button" data-close-dialog="wf-templates-modal" aria-label="Close templates" class="wb-icon-btn">✕</button>
   </div>
   <div id="wf-tpl-grid" class="wf-tpl-grid"></div>
 </dialog>
@@ -92,12 +92,12 @@ WORKFLOWS_MODALS_HTML: str = r"""<dialog id="wf-templates-modal" closedby="any" 
 <dialog id="wf-run-modal" closedby="any" aria-labelledby="wf-run-title" class="wb-dialog" style="max-width:34rem">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.85rem;border-bottom:1px solid var(--border-subtle);padding-bottom:0.6rem">
     <h2 id="wf-run-title" data-i18n="wf_run_modal_title" style="margin:0;font-size:calc(1.1rem * var(--ui-scale,1));font-weight:600">Run Workflow Pipeline</h2>
-    <button type="button" data-m5-close="wf-run-modal" aria-label="Close run dialog" class="wb-icon-btn">✕</button>
+    <button type="button" data-close-dialog="wf-run-modal" aria-label="Close run dialog" class="wb-icon-btn">✕</button>
   </div>
   <form id="wf-run-form" style="display:flex;flex-direction:column;gap:0.8rem">
     <div class="wb-field"><label for="wf-run-input" data-i18n="wf_run_input_lbl">Topic, Report, or Notes Input (used as {{input}})</label><textarea id="wf-run-input" rows="4" maxlength="8000" placeholder="e.g. Q4 Client Strategy Review..." class="wb-textarea"></textarea></div>
     <div style="display:flex;justify-content:flex-end;gap:0.5rem">
-      <button type="button" data-m5-close="wf-run-modal" data-i18n="cancel" class="wb-btn">Cancel</button>
+      <button type="button" data-close-dialog="wf-run-modal" data-i18n="cancel" class="wb-btn">Cancel</button>
       <button type="submit" data-i18n="wf_start_run" class="wb-btn wb-btn-primary">Start Pipeline</button>
     </div>
   </form>

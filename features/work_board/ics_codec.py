@@ -3,12 +3,13 @@
 import re
 from datetime import UTC, date, datetime, timedelta
 
+from core.json_store import validate_iso_date
 from core.work_contracts import CalendarEvent, WorkBoardState
 from features.work_board.store import done_column_ids, new_id
 
 
 def _ics_escape(value: str) -> str:
-    return value.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\r\n", "\\n").replace("\n", "\\n")
+    return value.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\r\n", "\\n").replace("\r", "\\n").replace("\n", "\\n")
 
 
 def _ics_unescape(value: str) -> str:
@@ -98,11 +99,17 @@ def _parse_dt(raw_val: str) -> tuple[str, str]:
     m_dt = re.match(r"^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})", val)
     if m_dt:
         y, mo, d, hh, mm = m_dt.groups()
-        return f"{y}-{mo}-{d}", f"{hh}:{mm}"
+        try:
+            return validate_iso_date(f"{y}-{mo}-{d}", allow_empty=False), f"{hh}:{mm}"
+        except ValueError:
+            return "", ""
     m_d = re.match(r"^(\d{4})(\d{2})(\d{2})$", val)
     if m_d:
         y, mo, d = m_d.groups()
-        return f"{y}-{mo}-{d}", ""
+        try:
+            return validate_iso_date(f"{y}-{mo}-{d}", allow_empty=False), ""
+        except ValueError:
+            return "", ""
     return "", ""
 
 

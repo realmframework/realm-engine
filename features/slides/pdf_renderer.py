@@ -1,60 +1,27 @@
 """Render a DeckSpec into a 16:9 widescreen PDF presentation via fpdf2."""
 
-import os
 from pathlib import Path
 
 from fpdf import FPDF
 
+from core.pdf_fonts import draw_pdf_logo, hex_to_rgb, pdf_encode, setup_pdf_unicode_font
 from core.work_contracts import DeckSpec, SlideItem
-
-_WIN_FONTS = Path(os.environ.get("WINDIR") or os.environ.get("SYSTEMROOT") or "C:/Windows") / "Fonts"
-_FONT_CANDIDATES = (
-    "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
-    "/Library/Fonts/Arial Unicode.ttf",
-    "/System/Library/Fonts/Supplemental/Arial.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-    str(_WIN_FONTS / "arial.ttf"),
-)
-_BOLD_CANDIDATES = (
-    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-    str(_WIN_FONTS / "arialbd.ttf"),
-)
-
-
-def _rgb_tuple(hex_color: str) -> tuple[int, int, int]:
-    c = hex_color.lstrip("#")
-    return (int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16))
 
 
 def _enc(text: str, uni: bool) -> str:
-    return text if uni else text.encode("latin-1", errors="replace").decode("latin-1")
+    return pdf_encode(text, uni)
 
 
 def _init_pdf() -> tuple[FPDF, str, bool]:
     pdf = FPDF(orientation="L", unit="mm", format=(167.0, 297.0))
     pdf.set_auto_page_break(auto=False)
     pdf.set_margins(18, 14, 18)
-    regular = next((Path(p) for p in _FONT_CANDIDATES if Path(p).is_file()), None)
-    bold = next((Path(p) for p in _BOLD_CANDIDATES if Path(p).is_file()), None)
-    if regular is not None:
-        try:
-            pdf.add_font("SlideSans", "", str(regular))
-            pdf.add_font("SlideSans", "B", str(bold or regular))
-            return pdf, "SlideSans", True
-        except (RuntimeError, OSError, ValueError):
-            pass
-    return pdf, "Helvetica", False
+    fam, uni = setup_pdf_unicode_font(pdf, "SlideSans")
+    return pdf, fam, uni
 
 
 def _draw_logo(pdf: FPDF, logo_path: Path | None, x: float, y: float, h: float) -> None:
-    if logo_path and logo_path.is_file() and logo_path.suffix.lower() in {".png", ".jpg", ".jpeg"}:
-        try:
-            pdf.image(str(logo_path), x=x, y=y, h=h)
-        except (RuntimeError, OSError, ValueError):
-            return
+    draw_pdf_logo(pdf, logo_path, x, y, h)
 
 
 def _draw_title(pdf: FPDF, deck: DeckSpec, fam: str, uni: bool, acc: tuple[int, int, int], glow: tuple[int, int, int], logo: Path | None) -> None:
@@ -138,7 +105,7 @@ def _draw_content(pdf: FPDF, item: SlideItem, idx: int, total: int, fam: str, un
 def render_slides_pdf(deck: DeckSpec, logo_path: Path | None = None) -> bytes:
     """Render a 16:9 landscape PDF slide deck matching the PowerPoint layout."""
     pdf, fam, uni = _init_pdf()
-    acc, glow = _rgb_tuple(deck.accent_hex), _rgb_tuple(deck.glow_hex)
+    acc, glow = hex_to_rgb(deck.accent_hex), hex_to_rgb(deck.glow_hex)
     total = len(deck.slides)
     for idx, item in enumerate(deck.slides, 1):
         if item.is_title_slide:

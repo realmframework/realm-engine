@@ -28,7 +28,7 @@ function areaButtons() {
     const rmLabel = area.linked ? "Unlink vault " + title + " (keeps files on disk)" : "Delete area " + title;
     return "<div class='flex items-center gap-1'>"
       + "<label for='area-check-" + index + "' class='inline-flex items-center justify-center shrink-0' style='width:38px;height:38px;cursor:pointer'>"
-      + "<input id='area-check-" + index + "' type='checkbox' name='active_dirs' value='" + escapeHtml(area.name) + "' data-area-toggle='" + escapeHtml(area.name) + "' style='accent-color:#4BB8E8' " + (selected ? "checked " : "") + (disabled ? "disabled " : "") + ">"
+      + "<input id='area-check-" + index + "' type='checkbox' name='active_dirs' value='" + escapeHtml(area.name) + "' data-area-toggle='" + escapeHtml(area.name) + "' style='accent-color:var(--accent)' " + (selected ? "checked " : "") + (disabled ? "disabled " : "") + ">"
       + "<span class='visually-hidden'>Include " + escapeHtml(title) + " in search</span></label>"
       + "<button type='button' data-area='" + escapeHtml(area.name) + "' aria-current='" + (area.name === activeKnowledgeArea ? "page" : "false") + "' " + (areaSwitching ? "disabled " : "")
       + "class='flex-1 min-w-0 flex items-center gap-2 px-2 py-2 rounded-lg text-xs text-left " + (selected ? "bg-white/10 text-[#EEF2F8]" : "text-[#A0B0C8] hover:bg-white/5") + "'>"
@@ -56,7 +56,7 @@ function renderKnowledgeAreas() {
   if (!knowledgeAreas.length && typeof freeChatMode !== "undefined") { freeChatMode = true; }
   const label = !knowledgeAreas.length ? t("free_chat_short") : (dirs.length > 1 ? (all ? t("all_areas_n", { n: dirs.length }) : t("areas_active_n", { n: dirs.length })) : areaTitle(activeKnowledgeArea || t("workspaces_lbl")));
   document.getElementById("brand-title").textContent = label;
-  document.getElementById("brand-title").style.fontSize = dirs.length > 1 ? ".875rem" : "";
+  document.getElementById("brand-title").style.fontSize = dirs.length > 1 ? "calc(.875rem * var(--ui-scale, 1))" : "";
   document.getElementById("workspace-color-dot").style.gap = dirs.length > 3 ? ".125rem" : "";
   document.getElementById("workspace-switcher-btn").setAttribute("aria-label", "Switch workspace: " + label);
   document.getElementById("workspace-color-dot").innerHTML = dirs.slice(0, 6).map(name => {
@@ -110,6 +110,7 @@ async function switchKnowledgeArea(name, showLibrary = null, template = null, di
     if (!response.ok) { throw new Error(data.detail || t("st_switch_err")); }
     if (version !== areaVersion) { return false; }
     activeKnowledgeArea = null; applyWorkspacePayload(data); await Promise.all([loadGuidesCatalog(null), loadRecentChats(), loadModels()]);
+    if (typeof resetCenterChatTabsOnAreaChange === "function") { resetCenterChatTabsOnAreaChange(); }
     areaStatus(dirs.length > 1 ? t("st_searching_multi", { n: dirs.length }) : t("st_current_ws", { name: areaLabel(name) }));
     if (navigation === currentScrollId) { await restoreWorkspaceView(view); }
     return true;
@@ -195,7 +196,10 @@ for (const linkId of ["link-vault-btn", "settings-link-vault-btn"]) {
   if (el) { el.addEventListener("click", linkExistingFolder); }
 }
 async function initializeWorkspace() {
-  try { await loadWorkspace(); await Promise.all([loadKeyStatus().then(loadModels), loadSystemStatus(), loadRecentChats(), loadGuidesCatalog(null), typeof loadWorkBoardSummary === "function" ? loadWorkBoardSummary(true) : Promise.resolve(), typeof loadFocusSummary === "function" ? loadFocusSummary() : Promise.resolve(), typeof loadImpactSummary === "function" ? loadImpactSummary() : Promise.resolve(), typeof loadWorkflowsSummary === "function" ? loadWorkflowsSummary() : Promise.resolve()]); }
-  catch (error) { areaStatus(t("st_ws_load_err")); }
+  try {
+    await loadWorkspace();
+    await Promise.all([loadKeyStatus().then(loadModels), loadSystemStatus(), loadRecentChats(), loadGuidesCatalog(null), typeof loadWorkBoardSummary === "function" ? loadWorkBoardSummary(true) : Promise.resolve(), typeof loadFocusSummary === "function" ? loadFocusSummary() : Promise.resolve(), typeof loadImpactSummary === "function" ? loadImpactSummary() : Promise.resolve(), typeof loadWorkflowsSummary === "function" ? loadWorkflowsSummary() : Promise.resolve()]);
+    if (typeof bootstrapEmbeddedPane === "function") { await bootstrapEmbeddedPane(); }
+  } catch (error) { areaStatus(t("st_ws_load_err")); }
 }
 """

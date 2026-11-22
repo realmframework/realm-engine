@@ -1,6 +1,5 @@
 """Cross-platform vector PDF export for individual AI outputs, blueprints, and full chats."""
 
-import os
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -8,24 +7,16 @@ from pathlib import Path
 from fpdf import FPDF
 
 from core.contracts import ChatSession
+from core.pdf_fonts import draw_pdf_logo, pdf_encode, setup_pdf_unicode_font
 
-_WIN_FONTS = Path(os.environ.get("WINDIR") or os.environ.get("SYSTEMROOT") or "C:/Windows") / "Fonts"
-_FONT_CANDIDATES = ("/System/Library/Fonts/Supplemental/Arial Unicode.ttf", "/Library/Fonts/Arial Unicode.ttf", "/System/Library/Fonts/Supplemental/Arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", str(_WIN_FONTS / "arial.ttf"))
-_BOLD_CANDIDATES = ("/System/Library/Fonts/Supplemental/Arial Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", str(_WIN_FONTS / "arialbd.ttf"))
 _TABLE_SPLIT_RE = re.compile(r"(?<!\\)\|")
-
-def _find_font(paths: tuple[str, ...]) -> Path | None:
-    return next((Path(p) for p in paths if Path(p).is_file()), None)
-
-def _encode(text: str, uni: bool) -> str:
-    return text if uni else text.encode("latin-1", errors="replace").decode("latin-1")
 
 def _clean(text: str, uni: bool, *, raw_code: bool = False) -> str:
     if raw_code:
-        return _encode(text, uni)
+        return pdf_encode(text, uni)
     c = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"\1 (\2)", text)
     c = re.sub(r"(^|[\s(])_([^_\n]+)_(?=$|[\s.,;:!?)\]])", r"\1\2", re.sub(r"(^|[^*])\*([^*\n]+)\*(?!\*)", r"\1\2", re.sub(r"\*\*([^*]+)\*\*", r"\1", c))).replace("`", "")
-    return _encode(c, uni)
+    return pdf_encode(c, uni)
 
 def _mc(pdf: FPDF, h: float, text: str, fill: bool = False) -> None:
     pdf.set_x(pdf.l_margin)
@@ -36,22 +27,9 @@ def _new_pdf(title: str, subtitle: str, logo_path: Path | None) -> tuple[FPDF, s
     pdf = FPDF(format="A4", unit="mm")
     pdf.set_auto_page_break(auto=True, margin=18)
     pdf.set_margins(16, 16, 16)
-    regular, bold, family, uni = _find_font(_FONT_CANDIDATES), _find_font(_BOLD_CANDIDATES), "Helvetica", False
-    if regular is not None:
-        try:
-            pdf.add_font("RealmSans", "", str(regular))
-            pdf.add_font("RealmSans", "B", str(bold or regular))
-            family, uni = "RealmSans", True
-        except (RuntimeError, OSError, ValueError):
-            family, uni = "Helvetica", False
+    family, uni = setup_pdf_unicode_font(pdf, "RealmSans")
     pdf.add_page()
-    x_text = 16
-    if logo_path and logo_path.is_file() and logo_path.suffix.lower() in {".png", ".jpg", ".jpeg"}:
-        try:
-            pdf.image(str(logo_path), x=16, y=14, h=11)
-            x_text = 31
-        except (RuntimeError, OSError, ValueError):
-            x_text = 16
+    x_text = 31 if draw_pdf_logo(pdf, logo_path, x=16, y=14, h=11) else 16
     pdf.set_xy(x_text, 14)
     pdf.set_text_color(15, 23, 42)
     pdf.set_font(family, "B", 15.5)

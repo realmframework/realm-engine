@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from core.contracts import WorkspaceConfig
 from core.db import atomic_write_bytes
 from core.impact_contracts import FocusState, ImpactLedgerState
+from core.json_store import store_lock
 from core.linked_vaults import cache_index_for_dir, cache_study_path, is_linked_vault
 from core.work_contracts import WorkBoardState
 from core.workflow_contracts import WorkflowState
@@ -61,7 +62,8 @@ def apply_restore(entries: dict[str, bytes], active: WorkspaceConfig, activate: 
                 handle.write(raw)
         chat_store.save_chats(chats, chat_path)
         for extra_path, extra_model in extra_restores:
-            atomic_write_bytes(extra_path, extra_model.model_dump_json(indent=2).encode("utf-8"))
+            with store_lock(extra_path):
+                atomic_write_bytes(extra_path, extra_model.model_dump_json(indent=2).encode("utf-8"))
         payload = activate(config)
     except Exception:
         for path in reversed(created):

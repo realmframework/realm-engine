@@ -1,12 +1,16 @@
-"""Async DAG executor with conditional branching, live SSE events, cancellation & scheduler."""
+"""Async DAG executor with conditional branching, live SSE events, thread-safe cancel & scheduler."""
 
 import asyncio
+import threading
 import time
 from collections.abc import AsyncIterator, Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from core.ai_stream import build_workspace_tutor_config
 from core.contracts import TutorConfig, WorkspaceConfig
+from core.json_store import store_lock
+from core.net_security import scrub_secrets
 from core.workflow_contracts import (
     WorkflowDefinition,
     WorkflowEdge,
@@ -15,7 +19,7 @@ from core.workflow_contracts import (
 )
 from features.workflows import nodes, store
 
-ACTIVE_RUNS: dict[str, asyncio.Event] = {}
+ACTIVE_RUNS: dict[str, threading.Event] = {}
 
 
 def cancel_run(run_id: str) -> bool:
@@ -29,11 +33,8 @@ def cancel_run(run_id: str) -> bool:
 def _edge_is_active(edge: WorkflowEdge, active: set[str], conds: dict[str, bool]) -> bool:
     if edge.source not in active:
         return False
-    if edge.source in conds:
-        if edge.branch == "true":
-            return conds[edge.source] is True
-        if edge.branch == "false":
-            return conds[edge.source] is False
+    if edge.source in conds and edge.branch in ("true", "false"):
+        return conds[edge.source] is (edge.branch == "true")
     return True
 
 
@@ -49,7 +50,7 @@ async def run_workflow_stream(
 ) -> AsyncIterator[dict[str, object]]:
     """Execute workflow DAG, yielding live SSE dicts and ending with run_done/run_error."""
     ordered = store.topological_order(wf.nodes, wf.edges)
-    run_id, cancel_ev, started_at = store.new_id("run"), asyncio.Event(), store.utc_now()
+    run_id, cancel_ev, started_at = store.new_id("run"), threading.Event(), store.utc_now()
     ACTIVE_RUNS[run_id] = cancel_ev
     inc: dict[str, list[WorkflowEdge]] = {}
     for edge in wf.edges:
@@ -90,7 +91,7 @@ async def run_workflow_stream(
     except asyncio.CancelledError:
         status = "cancelled"
     except Exception as exc:
-        status, err_msg = "failed", str(exc)[:580]
+        status, err_msg = "failed", scrub_secrets(str(exc))[:580]
         yield {"event": "run_error", "run_id": run_id, "error": err_msg}
     finally:
         ACTIVE_RUNS.pop(run_id, None)
@@ -127,18 +128,22 @@ async def run_workflow_silent(
     async for ev in run_workflow_stream(wf, user_input, trigger_source, cfg, tutor_cfg, None, callbacks, root):
         if ev.get("event") == "run_done" and isinstance(ev.get("run"), dict):
             final_run = WorkflowRun.model_validate(ev["run"])
-            save_run(final_run)
+            await asyncio.to_thread(save_run, final_run)
     return final_run
 
 
 async def tick_scheduled_workflows(cfg: WorkspaceConfig, callbacks: dict[str, object], root: Path | None = None) -> int:
     """Run any locally scheduled workflows that are due for the active workspace."""
     path = store.workflows_path(cfg.knowledge_dir, root)
-    state = store.load_workflows(path)
-    due = due_scheduled_workflows(state.workflows, state.runs)
+    with store_lock(path):
+        st = store.load_workflows(path)
+        due = due_scheduled_workflows(st.workflows, st.runs)
+    tcfg = build_workspace_tutor_config(cfg, "ollama", "qwen3:8b", temperature=0.2)
     for wf in due:
-        await run_workflow_silent(
-            wf, wf.name, "schedule", cfg, TutorConfig(provider="ollama", model="qwen3:8b", temperature=0.2),
-            callbacks, lambda run: store.save_workflows(store.record_run(store.load_workflows(path), run), path), root,
-        )
+        await run_workflow_silent(wf, wf.name, "schedule", cfg, tcfg, callbacks, lambda run: _save_locked(path, run), root)
     return len(due)
+
+
+def _save_locked(path: Path, run: WorkflowRun) -> None:
+    with store_lock(path):
+        store.save_workflows(store.record_run(store.load_workflows(path), run), path)

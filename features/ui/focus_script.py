@@ -95,37 +95,20 @@ function applyFocusState(data) {
   if (focViewOpen) { renderFocusView(); }
 }
 async function focApi(path, opts) {
-  const version = areaVersion, cfg = Object.assign({ headers: {} }, opts || {});
-  if (cfg.body && !cfg.headers["Content-Type"]) { cfg.headers["Content-Type"] = "application/json"; }
-  try {
-    const res = await areaFetch(path, cfg), data = await safeJson(res);
-    if (version !== areaVersion) { return null; }
-    if (!res.ok) { throw new Error(data.detail || "Focus request failed"); }
+  return jsonAreaApi(path, opts, "Focus request failed", function (data) {
     if (Array.isArray(data.goals)) { applyFocusState(data); }
-    return data;
-  } catch (err) {
-    if (version === areaVersion) { showToast(err.message || "Focus error", 3500); }
-    return null;
-  }
+    if (opts && opts.method && opts.method !== "GET" && typeof notifyParentFrame === "function") { notifyParentFrame({ type: "realm:work-updated", kind: "focus" }); }
+  });
 }
 async function loadFocusSummary() { await focApi("/api/focus"); }
 function closeFocusView() {
   focViewOpen = false;
   const v = document.getElementById("focus-view"); if (v) { v.classList.add("hidden"); }
-  const b = document.getElementById("sidebar-focus-btn"); if (b) { b.classList.remove("bg-[#4BB8E8]/15", "text-[#4BB8E8]"); }
+  const b = document.getElementById("sidebar-focus-btn"); if (b) { b.classList.remove("is-active"); }
 }
 async function openFocusView() {
-  abortActiveRequest(); stopActiveAudio(); stopGraphSimulation();
-  if (typeof closeWorkBoardView === "function") { closeWorkBoardView(); }
-  if (typeof closeImpactView === "function") { closeImpactView(); }
-  if (typeof closeWorkflowsView === "function") { closeWorkflowsView(); }
-  if (typeof syncInspectorSidebar === "function") { inspectorOpen = false; syncInspectorSidebar(); }
   focViewOpen = true;
-  if (typeof setAmbientDimmed === "function") { setAmbientDimmed(true); }
-  const shell = document.getElementById("workspace-shell"), gv = document.getElementById("graph-view"), v = document.getElementById("focus-view");
-  if (shell) { shell.classList.add("hidden"); } if (gv) { gv.classList.add("hidden"); } if (v) { v.classList.remove("hidden"); }
-  const b = document.getElementById("sidebar-focus-btn"); if (b) { b.classList.add("bg-[#4BB8E8]/15", "text-[#4BB8E8]"); }
-  if (typeof setActiveRailSection === "function") { setActiveRailSection("work", false); }
+  activateWorkspaceView("focus-view", { sidebarBtnId: "sidebar-focus-btn", railSection: "work" });
   await focApi("/api/focus");
   renderFocusView();
   if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
@@ -145,11 +128,11 @@ function renderFocusView() {
       grid.innerHTML = focState.goals.map(function (g) {
         const tr = trajs[g.id] || { logged_hours: 0, pct_hours: 0, pace: "on_track", days_left: 0 };
         const paceKey = FOC_PACE_KEYS[tr.pace] || "foc_pace_on_track";
-        const msHtml = (g.weekly_milestones || []).slice(0, 3).map(function (m) { return "<li style='font-size:0.82rem;color:var(--text-muted)'>• " + escapeHtml(m) + "</li>"; }).join("");
+        const msHtml = (g.weekly_milestones || []).slice(0, 3).map(function (m) { return "<li style='font-size:calc(0.82rem * var(--ui-scale,1));color:var(--text-muted)'>• " + escapeHtml(m) + "</li>"; }).join("");
         return "<article class='goal-card'>"
           + "<div style='display:flex;align-items:center;justify-content:space-between;gap:0.5rem'><h3 style='margin:0;font-size:calc(1rem * var(--ui-scale,1));font-weight:600'>" + escapeHtml(g.title) + "</h3><span class='wb-chip goal-pace-" + escapeHtml(tr.pace) + "'>" + escapeHtml(t(paceKey)) + "</span></div>"
-          + (g.why ? "<p style='margin:0;font-size:0.85rem;color:var(--text-muted)'>" + escapeHtml(g.why) + "</p>" : "")
-          + "<div style='display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-muted)'><span>" + tr.logged_hours + "h / " + g.target_hours + "h (" + tr.pct_hours + "%)</span><span>" + escapeHtml(g.start_date + " → " + g.end_date) + "</span></div>"
+          + (g.why ? "<p style='margin:0;font-size:calc(0.85rem * var(--ui-scale,1));color:var(--text-muted)'>" + escapeHtml(g.why) + "</p>" : "")
+          + "<div style='display:flex;justify-content:space-between;font-size:calc(0.8rem * var(--ui-scale,1));color:var(--text-muted)'><span>" + tr.logged_hours + "h / " + g.target_hours + "h (" + tr.pct_hours + "%)</span><span>" + escapeHtml(g.start_date + " → " + g.end_date) + "</span></div>"
           + "<progress class='goal-progress' value='" + tr.pct_hours + "' max='100' aria-label='" + escapeHtml(g.title + " progress") + "'></progress>"
           + (msHtml ? "<ul style='margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:0.2rem'>" + msHtml + "</ul>" : "")
           + "<div style='display:flex;gap:0.45rem;margin-top:0.2rem'><button type='button' data-foc-start-goal='" + escapeHtml(g.id) + "' class='wb-btn wb-btn-sm wb-btn-primary'>" + escapeHtml(t("foc_focus_this")) + "</button><button type='button' data-foc-edit-goal='" + escapeHtml(g.id) + "' class='wb-btn wb-btn-sm'>" + escapeHtml(t("foc_edit_goal")) + "</button></div>"
@@ -169,7 +152,7 @@ function renderFocusView() {
     else {
       list.innerHTML = focState.sessions.slice(0, 20).map(function (s) {
         return "<div class='wb-task-row'><span class='wb-chip'>" + escapeHtml(s.date) + "</span>"
-          + "<div style='min-width:0'><div style='font-weight:500'>" + escapeHtml(s.label) + "</div>" + (s.reflection ? "<div style='font-size:0.82rem;color:var(--text-muted)'>" + escapeHtml(s.reflection) + "</div>" : "") + "</div>"
+          + "<div style='min-width:0'><div style='font-weight:500'>" + escapeHtml(s.label) + "</div>" + (s.reflection ? "<div style='font-size:calc(0.82rem * var(--ui-scale,1));color:var(--text-muted)'>" + escapeHtml(s.reflection) + "</div>" : "") + "</div>"
           + "<div style='display:flex;align-items:center;gap:0.4rem'><span class='wb-chip'>" + Math.round(s.actual_minutes) + " min</span><span class='wb-chip'>" + escapeHtml(t(FOC_SND_KEYS[s.soundscape] || "foc_snd_off")) + "</span><span class='wb-chip'>" + s.quality_rating + "/5</span></div></div>";
       }).join("");
     }
@@ -178,7 +161,7 @@ function renderFocusView() {
 function openGoalSeasonModal(goalId) {
   const modal = document.getElementById("goal-season-modal"); if (!modal) { return; }
   const g = goalId ? focState.goals.find(function (x) { return x.id === goalId; }) : null;
-  document.getElementById("gs-modal-title").textContent = g ? t("foc_edit_goal") : t("foc_new_goal");
+  document.getElementById("gs-modal-title").textContent = g ? t("foc_edit_goal") : t("foc_goal_modal_new");
   document.getElementById("gs-id").value = g ? g.id : "";
   document.getElementById("gs-title").value = g ? g.title : "";
   document.getElementById("gs-why").value = g ? (g.why || "") : "";
@@ -197,7 +180,6 @@ function bindFocusUX() {
   const startDeep = document.getElementById("foc-start-deep-btn"), newGoal = document.getElementById("foc-new-goal-btn");
   if (startDeep) { startDeep.addEventListener("click", function () { openDeepFocusModal("", ""); }); }
   if (newGoal) { newGoal.addEventListener("click", function () { openGoalSeasonModal(null); }); }
-  document.querySelectorAll("[data-m4-close]").forEach(function (b) { b.addEventListener("click", function () { const d = document.getElementById(b.getAttribute("data-m4-close")); if (d && d.open) { d.close(); } }); });
   const dfModal = document.getElementById("deep-focus-modal"), dfClose = document.getElementById("df-close-btn");
   if (dfClose && dfModal) { dfClose.addEventListener("click", function () { stopDeepFocusTick(); stopFocusSoundscape(); dfModal.close(); }); }
   if (dfModal) { dfModal.addEventListener("close", function () { stopDeepFocusTick(); stopFocusSoundscape(); }); }
@@ -264,7 +246,7 @@ function bindFocusUX() {
       if (data && Array.isArray(data.blocks)) {
         focPlanBlocks = data.blocks;
         document.getElementById("foc-plan-list").innerHTML = focPlanBlocks.map(function (b) {
-          return "<div class='wb-task-row' style='margin-bottom:0'><span class='wb-chip'>" + escapeHtml(b.date + " " + b.start_time + "–" + b.end_time) + "</span><span style='font-weight:500'>" + escapeHtml(b.title) + "</span><span style='font-size:0.8rem;color:var(--text-muted)'>" + escapeHtml(b.notes || "") + "</span></div>";
+          return "<div class='wb-task-row' style='margin-bottom:0'><span class='wb-chip'>" + escapeHtml(b.date + " " + b.start_time + "–" + b.end_time) + "</span><span style='font-weight:500'>" + escapeHtml(b.title) + "</span><span style='font-size:calc(0.8rem * var(--ui-scale,1));color:var(--text-muted)'>" + escapeHtml(b.notes || "") + "</span></div>";
         }).join("");
         document.getElementById("foc-plan-box").hidden = false;
       }

@@ -3,8 +3,22 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
+      - "docs/**"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
+      - "docs/**"
+  workflow_dispatch:
+    inputs:
+      full_matrix:
+        description: "Also run pytest on macOS and Windows runners"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -15,12 +29,8 @@ concurrency:
 
 jobs:
   verify:
-    name: Verify (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-15, windows-latest]
+    name: Verify (ubuntu-latest)
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -36,23 +46,45 @@ jobs:
       - name: Run Ruff lint check
         run: uv run ruff check .
 
-      - name: Run Pyright type check
-        run: uv run pyright
+      - name: Run Pyright type check (Linux & Windows)
+        run: |
+          uv run pyright
+          uv run pyright --pythonplatform Windows
 
       - name: Run Pytest suite
         run: uv run pytest
 
       - name: Verify assembled client JS syntax
-        if: runner.os == 'Linux'
         shell: bash
         run: |
           uv run python -c "import re; from pathlib import Path; from features.ui.script import CLIENT_SCRIPT; js = re.sub(r'^\s*<script>\s*|\s*</script>\s*$', '', CLIENT_SCRIPT); Path('/tmp/realm_ci_check.js').write_text(js, encoding='utf-8')"
           node --check /tmp/realm_ci_check.js
 
       - name: Verify Python wheel build
-        if: runner.os == 'Linux'
         run: uv build --wheel
 
       - name: Verify Docker image build
-        if: runner.os == 'Linux'
         run: docker build --tag realm-engine:ci .
+
+  verify-desktop-os:
+    name: Verify (${{ matrix.os }})
+    if: github.event_name == 'workflow_dispatch' && inputs.full_matrix
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install Python and locked dependencies
+        run: uv sync --frozen
+
+      - name: Run Pytest suite
+        run: uv run pytest

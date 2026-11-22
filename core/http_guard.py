@@ -18,13 +18,28 @@ _BASE_HEADERS = (
     (b"x-frame-options", b"DENY"),
     (b"referrer-policy", b"no-referrer"),
 )
+_LOCAL_EMBED_BASE_HEADERS = (
+    (b"x-content-type-options", b"nosniff"),
+    (b"x-frame-options", b"SAMEORIGIN"),
+    (b"referrer-policy", b"no-referrer"),
+)
 _LOCAL_CSP = (
     b"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
     b"img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; font-src 'self' data:; "
     b"object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
 )
+_LOCAL_UI_CSP = (
+    b"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+    b"img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; font-src 'self' data:; "
+    b"frame-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'self'"
+)
 _LOCAL_EXTRA_HEADERS = (
     (b"content-security-policy", _LOCAL_CSP),
+    (b"cross-origin-resource-policy", b"same-origin"),
+    (b"cross-origin-opener-policy", b"same-origin"),
+)
+_LOCAL_UI_EXTRA_HEADERS = (
+    (b"content-security-policy", _LOCAL_UI_CSP),
     (b"cross-origin-resource-policy", b"same-origin"),
     (b"cross-origin-opener-policy", b"same-origin"),
 )
@@ -105,9 +120,11 @@ def validate_local_request(scope: Scope, headers: dict[bytes, bytes], has_dup: b
 
 
 def security_headers_for(path: str, *, local_mode: bool) -> tuple[tuple[bytes, bytes], ...]:
-    """Return baseline security headers plus CSP/CORP/COOP and no-store cache headers in local mode."""
+    """Return baseline security headers plus CSP/CORP/COOP; allow same-origin framing on local UI root only."""
     if not local_mode:
         return _BASE_HEADERS
+    if path == "/":
+        return _LOCAL_EMBED_BASE_HEADERS + _LOCAL_UI_EXTRA_HEADERS
     extra = ((b"cache-control", b"no-store"),) if path.startswith(("/api/", "/v1/")) else ()
     return _BASE_HEADERS + _LOCAL_EXTRA_HEADERS + extra
 
