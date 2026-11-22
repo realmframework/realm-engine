@@ -88,9 +88,19 @@ function setActiveRailSection(section, navigate) {
         if (typeof closeWorkflowsView === "function") { closeWorkflowsView(); }
         if (typeof stopGraphSimulation === "function") { stopGraphSimulation(); }
         if (document.getElementById("library-view") || document.getElementById("reader-heading")) { resultsEl.innerHTML = ""; }
+        const fv = document.getElementById("center-file-view");
+        if (fv) { fv.hidden = true; }
         const curTab = typeof centerChatTabs !== "undefined" ? centerChatTabs.find(function (tb) { return tb.id === activeCenterTabId; }) : null;
-        if (curTab && curTab.kind === "file" && typeof activateCenterChatTab === "function") { activateCenterChatTab(curTab.id); }
-        else if (typeof setViewMode === "function") { setViewMode(Boolean(currentTurns && currentTurns.length)); }
+        if (curTab && curTab.kind === "file" && typeof activateCenterChatTab === "function") {
+          let chatTab = centerChatTabs.slice().reverse().find(function (tb) { return tb.kind !== "file"; });
+          if (!chatTab) {
+            chatTab = { id: "ct_" + (++wbTabSeq), kind: "chat", chatId: "", title: "", agentId: typeof defaultAgentId !== "undefined" ? defaultAgentId : "", draft: "" };
+            centerChatTabs.unshift(chatTab);
+          }
+          activateCenterChatTab(chatTab.id);
+        } else if (typeof setViewMode === "function") {
+          setViewMode(Boolean(currentTurns && currentTurns.length));
+        }
       } else if (safe === "work" && typeof openWorkBoardView === "function") {
         if (!(typeof wbViewOpen !== "undefined" && wbViewOpen) && !(typeof focViewOpen !== "undefined" && focViewOpen) && !(typeof impViewOpen !== "undefined" && impViewOpen)) {
           openWorkBoardView("kanban");

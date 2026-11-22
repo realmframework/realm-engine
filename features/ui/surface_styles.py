@@ -53,10 +53,8 @@ progress.focus-ring { filter: drop-shadow(0 0 18px color-mix(in oklab, var(--acc
 
 /* Right Sidebar Context-Aware Copilot Pane, Diff Previews & Action Cards */
 .right-copilot-pane { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-.cp-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; padding: 0.48rem 0.65rem; border-bottom: 1px solid var(--border-subtle); }
-.cp-head-actions { display: inline-flex; align-items: center; gap: 0.32rem; flex-shrink: 0; }
-.cp-agent-select { max-width: 7.4rem; height: 1.75rem; font-size: calc(0.76rem * var(--ui-scale, 1)); }
-.cp-ctx-badge { display: inline-flex; align-items: center; gap: 0.35rem; min-width: 0; flex: 0 1 auto; padding: 0.2rem 0.55rem; border-radius: 999px; background: color-mix(in oklab, var(--accent) 13%, var(--surface-glass)); border: 1px solid color-mix(in oklab, var(--accent) 34%, transparent); color: var(--accent); font-family: ui-monospace, monospace; font-size: calc(0.72rem * var(--ui-scale, 1)); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cp-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 0.45rem; padding: 0.48rem 0.65rem; border-bottom: 1px solid var(--border-subtle); }
+.cp-agent-select { max-width: 11.5rem; height: 1.78rem; font-size: calc(0.78rem * var(--ui-scale, 1)); }
 .cp-msg-meta { font-family: ui-monospace, monospace; font-size: calc(0.68rem * var(--ui-scale, 1)); color: var(--text-muted); letter-spacing: 0.02em; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
 .cp-messages { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0.75rem 0.7rem 1rem; display: flex; flex-direction: column; gap: 0.65rem; }
 .cp-empty { margin: auto 0; padding: 1.15rem 0.9rem; border-radius: 0.95rem; background: var(--surface-glass); background-image: var(--accent-sheen); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow); display: flex; flex-direction: column; gap: 0.65rem; }

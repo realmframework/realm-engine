@@ -37,13 +37,19 @@ function renderChatTabStrip(listId, tabs, activeId, attrPrefix, onActivate, onCl
     const closeX = tabs.length > 1
       ? "<span class='wb-tab-x' data-" + attrPrefix + "-close='" + escapeHtml(tb.id) + "' role='button' aria-label='" + closeAria + "'>✕</span>"
       : "";
-    return "<button type='button' role='tab' aria-selected='" + String(sel) + "' tabindex='" + (sel ? "0" : "-1") + "' data-" + attrPrefix + "-tab='" + escapeHtml(tb.id) + "' class='wb-zone-tab'>" + iconHtml + "<span>" + escapeHtml(label) + "</span>" + dirtyHtml + closeX + "</button>";
+    const pvCls = isFile && tb.preview ? " is-preview" : "";
+    return "<button type='button' role='tab' aria-selected='" + String(sel) + "' tabindex='" + (sel ? "0" : "-1") + "' data-" + attrPrefix + "-tab='" + escapeHtml(tb.id) + "' class='wb-zone-tab" + pvCls + "'>" + iconHtml + "<span>" + escapeHtml(label) + "</span>" + dirtyHtml + closeX + "</button>";
   }).join("");
   list.querySelectorAll("[data-" + attrPrefix + "-tab]").forEach(function (btn) {
     btn.addEventListener("click", function (e) {
       const x = e.target.closest("[data-" + attrPrefix + "-close]");
       if (x) { e.stopPropagation(); onClose(x.getAttribute("data-" + attrPrefix + "-close")); return; }
       onActivate(btn.getAttribute("data-" + attrPrefix + "-tab"));
+    });
+    btn.addEventListener("dblclick", function () {
+      const tid = btn.getAttribute("data-" + attrPrefix + "-tab");
+      const tb = tabs.find(function (item) { return item.id === tid; });
+      if (tb && tb.preview) { tb.preview = false; renderChatTabStrip(listId, tabs, selId, attrPrefix, onActivate, onClose); }
     });
   });
   if (typeof bindRovingTablist === "function") {
@@ -185,6 +191,7 @@ function activateCenterChatTab(tabId) {
     syncCenterTabbarVisibility(true);
     if (typeof renderCenterFileTab === "function") { renderCenterFileTab(tb); }
     renderCenterChatTabs();
+    if (typeof ftPrefs !== "undefined" && ftPrefs.autoReveal && typeof ftRevealDocInTree === "function") { ftRevealDocInTree(tb.docId, true); }
     if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }
     return;
   }
@@ -209,9 +216,18 @@ function activateCenterChatTab(tabId) {
   if (typeof syncCopilotContextUI === "function") { syncCopilotContextUI(); }
 }
 
-function closeCenterChatTab(tabId) {
+async function closeCenterChatTab(tabId, force) {
+  const tb = centerChatTabs.find(function (item) { return item.id === tabId; });
+  if (!force && tb && tb.kind === "file" && tb.dirty && typeof confirmUnsavedChanges === "function") {
+    const ch = await confirmUnsavedChanges({ name: tb.filename || tb.title, canSave: !tb.readOnly });
+    if (ch === "cancel") { return; }
+    if (ch === "save" && typeof saveCenterFileTab === "function") {
+      await saveCenterFileTab(tb);
+      if (tb.dirty) { return; }
+    }
+  }
   const wasActive = activeCenterTabId === tabId;
-  centerChatTabs = centerChatTabs.filter(function (tb) { return tb.id !== tabId; });
+  centerChatTabs = centerChatTabs.filter(function (item) { return item.id !== tabId; });
   if (!centerChatTabs.length) {
     centerChatTabs = [{ id: "ct_" + (++wbTabSeq), kind: "chat", chatId: "", title: "", agentId: "", draft: "" }];
   }

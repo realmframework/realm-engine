@@ -7,6 +7,7 @@ from features.ui.copilot_controls_script import COPILOT_CONTROLS_SCRIPT
 from features.ui.copilot_script import COPILOT_SCRIPT
 from features.ui.eco_sync_script import ECO_SYNC_SCRIPT
 from features.ui.editor_script import EDITOR_SCRIPT
+from features.ui.file_explorer_script import FILE_EXPLORER_SCRIPT
 from features.ui.file_tab_script import FILE_TAB_SCRIPT
 from features.ui.focus_script import FOCUS_SCRIPT
 from features.ui.guide_script import GUIDE_SCRIPT
@@ -17,6 +18,7 @@ from features.ui.power_script import POWER_SCRIPT
 from features.ui.shell_script import SHELL_SCRIPT
 from features.ui.split_script import SPLIT_SCRIPT
 from features.ui.study_script import STUDY_SCRIPT
+from features.ui.unsaved_guard_script import UNSAVED_GUARD_SCRIPT
 from features.ui.work_board_script import WORK_BOARD_SCRIPT
 from features.ui.workbench_tabs_script import WORKBENCH_TABS_SCRIPT
 from features.ui.workflow_canvas_script import WORKFLOW_CANVAS_SCRIPT
@@ -42,7 +44,9 @@ UX_BUNDLE_SCRIPT: str = (
     + WORKFLOW_RUN_SCRIPT
     + SHELL_SCRIPT
     + WORKBENCH_TABS_SCRIPT
+    + FILE_EXPLORER_SCRIPT
     + FILE_TAB_SCRIPT
+    + UNSAVED_GUARD_SCRIPT
     + COPILOT_CONTROLS_SCRIPT
     + COPILOT_SCRIPT
     + LOCAL_AI_SCRIPT
@@ -66,7 +70,9 @@ function bindAllUXBundles() {
     typeof bindWorkflowStudioUX === "function" && bindWorkflowStudioUX,
     typeof bindSpatialShellUX === "function" && bindSpatialShellUX,
     typeof bindWorkbenchTabsUX === "function" && bindWorkbenchTabsUX,
+    typeof bindFileExplorerUX === "function" && bindFileExplorerUX,
     typeof bindFileTabUX === "function" && bindFileTabUX,
+    typeof bindUnsavedGuardUX === "function" && bindUnsavedGuardUX,
     typeof bindCopilotControlsUX === "function" && bindCopilotControlsUX,
     typeof bindCopilotUX === "function" && bindCopilotUX,
     typeof bindLocalAiUX === "function" && bindLocalAiUX,

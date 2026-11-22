@@ -35,6 +35,7 @@ SPLIT_STYLES_CSS: str = r"""<style id="realm-split-styles">
 .wb-zone-tab[aria-selected="true"] { color: var(--text); }
 .wb-zone-tab[aria-selected="true"]::after { content: ""; position: absolute; inset: auto 0 0; border-block-end: 2px solid var(--accent); }
 .wb-zone-tab[hidden] { display: none !important; }
+.wb-zone-tab.is-preview > span { font-style: italic; opacity: 0.92; }
 .wb-tab-dirty { color: var(--accent); font-size: 0.9rem; line-height: 1; }
 .wb-tab-x { width: 1.15rem; height: 1.15rem; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: calc(0.7rem * var(--ui-scale, 1)); color: var(--text-subtle); flex-shrink: 0; }
 .wb-tab-x:hover { background: var(--hover-tint); color: var(--text); }
@@ -79,6 +80,15 @@ body.is-resizing-panes iframe { pointer-events: none !important; }
 .ft-chev { width: 0.85rem; height: 0.85rem; flex-shrink: 0; opacity: 0.65; transition: transform 0.12s ease; }
 .ft-folder[aria-expanded="true"] .ft-chev { transform: rotate(90deg); }
 .ft-icon { width: 0.95rem; height: 0.95rem; flex-shrink: 0; opacity: 0.82; }
+.ft-row-wrap { position: relative; display: flex; align-items: center; border-radius: 0.48rem; }
+.ft-row-wrap:hover { background: var(--hover-tint); }
+.ft-row-wrap .ft-row { flex: 1; min-width: 0; }
+.ft-row-wrap .ft-row:hover { background: transparent; }
+.ft-row-more { width: 1.5rem; height: 1.5rem; margin-inline-end: 0.2rem; border: 0; border-radius: 0.4rem; background: transparent; color: var(--text-subtle); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; opacity: 0; transition: opacity 0.12s ease, background-color 0.12s ease, color 0.12s ease; }
+.ft-row-wrap:hover .ft-row-more, .ft-row-wrap:focus-within .ft-row-more, .ft-row-more[aria-expanded="true"] { opacity: 1; }
+.ft-row-more:hover { background: var(--hover-tint); color: var(--text); }
+.ft-pop-danger { color: var(--status-danger) !important; }
+.ft-pop-danger:hover { background: color-mix(in oklab, var(--status-danger) 14%, transparent) !important; color: var(--status-danger) !important; }
 .ft-ext { font-family: ui-monospace, monospace; font-size: calc(0.68rem * var(--ui-scale, 1)); color: var(--text-subtle); flex-shrink: 0; text-transform: uppercase; }
 .center-file-view { display: flex; flex-direction: column; flex: 1 1 auto; width: 100%; height: 100%; min-height: 0; background: var(--background); }
 .cf-bar { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.55rem; padding: 0.5rem 1rem; border-bottom: 1px solid var(--border-subtle); background: color-mix(in oklab, var(--surface-raised) 76%, transparent); }

@@ -4,6 +4,7 @@ from features.ui.icons import (
     ICON_AGENTS,
     ICON_BOTTOM_PANEL,
     ICON_COLLAPSE_ALL,
+    ICON_EXPAND_ALL,
     ICON_FOCUS,
     ICON_FOLDER_TREE,
     ICON_FORMATS,
@@ -12,8 +13,8 @@ from features.ui.icons import (
     ICON_HOME,
     ICON_IMPACT,
     ICON_LIBRARY,
+    ICON_MORE,
     ICON_PLUS,
-    ICON_REFRESH,
     ICON_RIGHT_SIDEBAR,
     ICON_SEARCH,
     ICON_SETTINGS,
@@ -89,10 +90,23 @@ SIDEBAR_HTML: str = (
     '<span id="files-tree-ws-title" class="ft-ws-title">Files</span>'
     '<div class="ft-head-actions">'
     f'<button id="tree-new-note-btn" type="button" aria-label="New Note" title="New Note" data-i18n-aria-label="sh_new_note" data-i18n-title="sh_new_note" class="wb-icon-btn ft-act-btn">{ICON_PLUS}</button>'
-    f'<button id="tree-refresh-btn" type="button" aria-label="Refresh files" title="Refresh files" data-i18n-aria-label="ft_refresh" data-i18n-title="ft_refresh" class="wb-icon-btn ft-act-btn">{ICON_REFRESH}</button>'
+    f'<button id="tree-expand-btn" type="button" aria-label="Expand all folders" title="Expand all folders" data-i18n-aria-label="ft_expand_all" data-i18n-title="ft_expand_all" class="wb-icon-btn ft-act-btn">{ICON_EXPAND_ALL}</button>'
     f'<button id="tree-collapse-btn" type="button" aria-label="Collapse all folders" title="Collapse all folders" data-i18n-aria-label="ft_collapse_all" data-i18n-title="ft_collapse_all" class="wb-icon-btn ft-act-btn">{ICON_COLLAPSE_ALL}</button>'
-    "</div>"
-    "</div>"
+    f'<button id="tree-more-btn" type="button" popovertarget="ft-options-menu" aria-expanded="false" aria-label="Explorer options" title="Explorer options" data-i18n-aria-label="ft_opts_aria" data-i18n-title="ft_opts_aria" class="wb-icon-btn ft-act-btn">{ICON_MORE}</button>'
+    "</div></div>"
+    '<div id="ft-options-menu" popover="auto" class="rail-popover" aria-label="Explorer options"><div focusgroup="menu nomemory" class="bp-menu-group">'
+    '<button id="ft-opt-reveal" type="button" role="menuitemcheckbox" aria-checked="true" class="shell-pop-item bp-check-item"><span data-i18n="ft_opt_reveal">Auto-reveal active file</span></button>'
+    '<button id="ft-opt-newtab" type="button" role="menuitemcheckbox" aria-checked="true" class="shell-pop-item bp-check-item"><span data-i18n="ft_opt_newtab">Always open in new tab</span></button>'
+    '<div class="shell-pop-sep"><button id="ft-act-reveal-now" type="button" class="shell-pop-item"><span data-i18n="ft_reveal_now">Reveal active file</span></button>'
+    '<button id="tree-refresh-btn" type="button" class="shell-pop-item"><span data-i18n="ft_refresh">Refresh files</span></button></div></div></div>'
+    '<div id="ft-file-menu" popover="auto" class="rail-popover" aria-label="File actions"><div focusgroup="menu nomemory" class="bp-menu-group">'
+    '<button type="button" data-fm-act="open-pin" class="shell-pop-item"><span data-i18n="ft_act_open_tab">Open in new tab</span></button>'
+    '<button type="button" data-fm-act="copilot" class="shell-pop-item"><span data-i18n="ft_act_copilot">Open &amp; ask Copilot</span></button>'
+    '<button type="button" data-fm-act="move" data-fm-writable="1" class="shell-pop-item"><span data-i18n="ft_act_move">Move to folder…</span></button>'
+    '<button type="button" data-fm-act="copy-path" class="shell-pop-item"><span data-i18n="ft_act_copy">Copy path</span></button>'
+    '<button type="button" data-fm-act="anonymize" data-fm-writable="1" class="shell-pop-item"><span data-i18n="ft_act_anon">Anonymize (GDPR)</span></button>'
+    '<div data-fm-writable="1" class="shell-pop-sep"><button type="button" data-fm-act="delete" class="shell-pop-item ft-pop-danger"><span data-i18n="delete_btn">Delete</span></button></div>'
+    "</div></div>"
     '<nav id="workspace-files-tree" aria-label="Workspace files" class="ft-tree"></nav>'
     "</div>"
     '<div id="drawer-panel-work" hidden class="drawer-panel">'

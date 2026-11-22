@@ -88,11 +88,8 @@ RIGHT_SIDEBAR_HTML: str = (
     "</header>"
     '<div id="right-panel-copilot" role="tabpanel" aria-labelledby="right-tab-copilot" class="right-copilot-pane">'
     '<div class="cp-head">'
-    '<span id="cp-ctx-badge" class="cp-ctx-badge">Workspace</span>'
-    '<div class="cp-head-actions">'
     '<select id="cp-agent-select" aria-label="Copilot agent" data-i18n-aria-label="cp_agent_aria" class="wb-compact-select cp-agent-select"></select>'
     '<button id="cp-clear-btn" type="button" data-i18n="cp_new" class="wb-btn wb-btn-sm">New</button>'
-    "</div>"
     "</div>"
     '<div id="cp-messages" class="cp-messages" aria-live="polite"></div>'
     '<form id="cp-form" class="cp-dock">'

@@ -170,6 +170,7 @@ async function openSavedChat(chatId) {
     if (typeof renderAttachedChips === "function") { renderAttachedChips(); }
     currentTurns = (session.turns || []).map(function (t) { return Object.assign({}, t, { collapsed: Boolean(t.ask_tutor) }); });
     if (typeof adoptChatAgent === "function") { adoptChatAgent(session); }
+    const fv = document.getElementById("center-file-view"); if (fv) { fv.hidden = true; }
     if (typeof syncCenterChatTab === "function") { syncCenterChatTab(session.chat_id, session.title || (currentTurns[0] && currentTurns[0].query) || ""); }
     setActiveTag(null); setViewMode(true); renderTutor(null); renderResults([], false); renderChatStream(); renderRecentChats();
     if (typeof refreshContextUsage === "function") { refreshContextUsage(); }

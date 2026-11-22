@@ -172,8 +172,6 @@ function renderCopilotThread() {
 }
 
 function syncCopilotContextUI(force) {
-  const badge = document.getElementById("cp-ctx-badge");
-  if (badge) { const lbl = cpContextLabel(); badge.textContent = lbl; badge.title = lbl; }
   if (force && typeof syncCopilotControls === "function") { syncCopilotControls(); }
   if (force || cpRenderedKey !== cpContextKey()) { renderCopilotThread(); }
 }

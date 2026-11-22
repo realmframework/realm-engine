@@ -194,7 +194,14 @@ async function openGuideMarkdownEditor(guide, previousTag) {
     };
     document.getElementById("ed-tab-write").addEventListener("click", () => setTab(false));
     document.getElementById("ed-tab-preview").addEventListener("click", () => setTab(true));
-    document.getElementById("ed-cancel-btn").addEventListener("click", () => { readerEditMode = false; renderGuideReader(guide, previousTag); });
+    document.getElementById("ed-cancel-btn").addEventListener("click", async function () {
+      if (ta.value !== readerRawDraft && typeof confirmUnsavedChanges === "function") {
+        const ch = await confirmUnsavedChanges({ name: guide.title || "Guide", canSave: true });
+        if (ch === "cancel") { return; }
+        if (ch === "save") { await saveEditedGuide(); return; }
+      }
+      readerEditMode = false; renderGuideReader(guide, previousTag);
+    });
     async function saveEditedGuide() {
       const saveBtn = document.getElementById("ed-save-btn"), saveVer = areaVersion;
       if (saveBtn && saveBtn.disabled) { return; }
@@ -231,8 +238,8 @@ function bindEditorUX() {
   const modal = document.getElementById("save-guide-modal"), form = document.getElementById("save-guide-form");
   const closeBtn = document.getElementById("close-save-guide-btn"), cancelBtn = document.getElementById("cancel-save-guide-btn");
   if (form) { form.addEventListener("submit", submitSaveGuideForm); }
-  if (closeBtn) { closeBtn.addEventListener("click", () => modal && modal.close()); }
-  if (cancelBtn) { cancelBtn.addEventListener("click", () => modal && modal.close()); }
+  if (closeBtn) { closeBtn.addEventListener("click", () => modal && (typeof requestSafeCloseDialog === "function" ? requestSafeCloseDialog(modal) : modal.close())); }
+  if (cancelBtn) { cancelBtn.addEventListener("click", () => modal && (typeof requestSafeCloseDialog === "function" ? requestSafeCloseDialog(modal) : modal.close())); }
   const expBtn = document.getElementById("sel-explain-btn"), askBtn = document.getElementById("sel-ask-agent-btn"), qBtn = document.getElementById("sel-quote-btn");
   const pill = document.getElementById("reader-selection-pill");
   for (const pair of [[expBtn, "explain"], [askBtn, "ask"], [qBtn, "quote"]]) {

@@ -94,6 +94,7 @@ function setFormatStudioTab(tab) {
   if (cBtn) { cBtn.setAttribute("aria-selected", String(isCustom)); cBtn.tabIndex = isCustom ? 0 : -1; cBtn.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium transition " + (isCustom ? "bg-[#4BB8E8] text-[#04060F]" : "text-[#A0B0C8] hover:text-[#EEF2F8]"); }
   if (bPane) { bPane.hidden = isCustom; }
   if (cForm) { cForm.hidden = !isCustom; }
+  if (isCustom && typeof ugSnapshotDialog === "function") { requestAnimationFrame(function () { ugSnapshotDialog(document.getElementById("format-studio-modal")); }); }
 }
 function renderFormatStudio() {
   const grid = document.getElementById("format-cards-grid"), pinInd = document.getElementById("format-pinned-indicator"), sideBadge = document.getElementById("sidebar-format-badge");
@@ -313,7 +314,7 @@ function bindStudioControls() {
   const customForm = document.getElementById("custom-format-form"), vBtn = document.getElementById("upload-mode-vault-btn"), cBtn = document.getElementById("upload-mode-chat-btn");
   const closeInsp = document.getElementById("close-inspector-btn");
   if (sideFmtBtn) { sideFmtBtn.addEventListener("click", () => openFormatStudio("browse")); }
-  if (closeFmt) { closeFmt.addEventListener("click", () => document.getElementById("format-studio-modal").close()); }
+  if (closeFmt) { closeFmt.addEventListener("click", () => { const m = document.getElementById("format-studio-modal"); if (m) { if (typeof requestSafeCloseDialog === "function") { requestSafeCloseDialog(m); } else { m.close(); } } }); }
   if (tabB) { tabB.addEventListener("click", () => setFormatStudioTab("browse")); } if (tabC) { tabC.addEventListener("click", () => setFormatStudioTab("custom")); }
   if (typeof bindRovingTablist === "function") { bindRovingTablist("#format-studio-modal [role='tab']", tab => setFormatStudioTab(tab.id === "format-tab-custom" ? "custom" : "browse")); }
   if (customForm) { customForm.addEventListener("submit", saveCustomFormatUI); }

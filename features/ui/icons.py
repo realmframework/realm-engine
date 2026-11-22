@@ -19,6 +19,7 @@ ICON_COPILOT: str = _svg(15, '<path d="M12 3 14.3 9.7 21 12l-6.7 2.3L12 21l-2.3-
 ICON_FOLDER_TREE: str = _svg(15, '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/>')
 ICON_REFRESH: str = _svg(14, '<path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>', "1.65")
 ICON_COLLAPSE_ALL: str = _svg(14, '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12h8"/>', "1.65")
+ICON_EXPAND_ALL: str = _svg(14, '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12h8M12 8v8"/>', "1.65")
 ICON_HOME: str = _svg(18, '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5.5v-6h-5v6H4a1 1 0 0 1-1-1v-9.5Z"/>', "1.5")
 ICON_LIBRARY: str = _svg(16, '<path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6Zm0 6h16M10 4v16"/>', "1.5")
 ICON_WORK: str = _svg(16, '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16M3 10h6M9 14h6"/>', "1.5")

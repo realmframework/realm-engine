@@ -38,7 +38,7 @@ function bindDialogFallbacks() {
   for (const d of document.querySelectorAll('dialog[closedby="any"]')) {
     let pressedOutside = false;
     d.addEventListener("pointerdown", function (e) { pressedOutside = e.target === d && outside(e, d); });
-    d.addEventListener("pointerup", function (e) { if (pressedOutside && e.target === d && outside(e, d) && d.open) { d.close(); } pressedOutside = false; });
+    d.addEventListener("pointerup", function (e) { if (pressedOutside && e.target === d && outside(e, d) && d.open) { if (typeof requestSafeCloseDialog === "function") { requestSafeCloseDialog(d); } else { d.close(); } } pressedOutside = false; });
   }
   document.getElementById("new-area-form").addEventListener("submit", createKnowledgeArea);
   document.getElementById("new-area-btn").addEventListener("click", openNewAreaDialog);

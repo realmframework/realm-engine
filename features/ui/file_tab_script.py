@@ -84,9 +84,10 @@ function ftRenderNodeHtml(node, depth, activeDocId) {
   fileList.forEach(function (f) {
     const isAct = activeDocId && f.docId === activeDocId;
     const extTxt = f.ext ? f.ext.slice(1) : "";
-    html += "<button type='button' class='ft-row ft-file" + (isAct ? " is-active" : "") + "' data-ft-doc='" + escapeHtml(f.docId) + "' title='" + escapeHtml(f.title) + "' style='--ft-depth:" + depth + "'>"
+    html += "<div class='ft-row-wrap'><button type='button' class='ft-row ft-file" + (isAct ? " is-active" : "") + "' data-ft-doc='" + escapeHtml(f.docId) + "' title='" + escapeHtml(f.title) + "' style='--ft-depth:" + depth + "'>"
       + FT_FILE_SVG + "<span class='ft-row-name'>" + escapeHtml(f.filename) + "</span>"
-      + (extTxt ? ("<span class='ft-ext'>" + escapeHtml(extTxt) + "</span>") : "") + "</button>";
+      + (extTxt ? ("<span class='ft-ext'>" + escapeHtml(extTxt) + "</span>") : "") + "</button>"
+      + "<button type='button' class='ft-row-more' data-ft-menu='" + escapeHtml(f.docId) + "' aria-label='File actions' title='File actions'>⋯</button></div>";
   });
   return html;
 }
@@ -96,9 +97,7 @@ function renderWorkspaceFilesTree() {
   if (!tree) { return; }
   const dirs = typeof selectedAreas === "function" ? selectedAreas() : [];
   const hasWs = dirs.length > 0 && typeof knowledgeAreas !== "undefined" && knowledgeAreas.length > 0;
-  if (wsLbl) {
-    wsLbl.textContent = !hasWs ? t("no_ws_short") : (dirs.length > 1 ? t("areas_active_n", { n: dirs.length }) : areaTitle(dirs[0]));
-  }
+  if (wsLbl) { wsLbl.textContent = t("sh_rail_files"); }
   if (!hasWs) {
     const areas = typeof knowledgeAreas !== "undefined" && Array.isArray(knowledgeAreas) ? knowledgeAreas : [];
     const pills = areas.map(function (a) {
@@ -131,7 +130,13 @@ function renderWorkspaceFilesTree() {
     });
   });
   tree.querySelectorAll("[data-ft-doc]").forEach(function (btn) {
-    btn.addEventListener("click", function () { openFileInCenterTab(btn.getAttribute("data-ft-doc") || ""); });
+    const did = btn.getAttribute("data-ft-doc") || "";
+    btn.addEventListener("click", function () { openFileInCenterTab(did, { pin: false }); });
+    btn.addEventListener("dblclick", function () { openFileInCenterTab(did, { pin: true }); });
+    btn.addEventListener("contextmenu", function (e) { e.preventDefault(); if (typeof openFileRowMenu === "function") { openFileRowMenu(did, btn, { x: e.clientX, y: e.clientY }); } });
+  });
+  tree.querySelectorAll("[data-ft-menu]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) { e.stopPropagation(); if (typeof openFileRowMenu === "function") { openFileRowMenu(btn.getAttribute("data-ft-menu") || "", btn); } });
   });
 }
 
@@ -145,23 +150,29 @@ function ftBuildBreadcrumb(guide, filename) {
   return parts.join(" › ");
 }
 
-async function openFileInCenterTab(docId) {
+async function openFileInCenterTab(docId, opts) {
   if (!docId || typeof centerChatTabs === "undefined") { return; }
+  const pin = Boolean((opts && opts.pin) || (typeof ftPrefs === "undefined" || ftPrefs.alwaysNewTab));
   const existing = centerChatTabs.find(function (tb) { return tb.kind === "file" && tb.docId === docId; });
-  if (existing) { activateCenterChatTab(existing.id); return; }
+  if (existing) {
+    if (pin && existing.preview) { existing.preview = false; }
+    activateCenterChatTab(existing.id);
+    return;
+  }
   const guide = (typeof allGuides !== "undefined" && Array.isArray(allGuides)) ? allGuides.find(function (g) { return g.doc_id === docId; }) : null;
   if (!guide) { return; }
   const filename = ftFileNameOf(guide), ext = ftExtOf(filename);
   const editable = ext === ".md" || ext === ".txt";
   const areaObj = (typeof knowledgeAreas !== "undefined" ? knowledgeAreas : []).find(function (a) { return a.name === (guide.area || activeKnowledgeArea); });
-  const tab = {
-    id: "ft_" + (++wbTabSeq), kind: "file", docId: docId, title: filename, filename: filename,
-    breadcrumb: ftBuildBreadcrumb(guide, filename), editable: editable,
-    readOnly: !editable || Boolean(areaObj && areaObj.linked),
-    mdMode: "preview", rawContent: null, dirty: false, loading: false, error: "",
-  };
+  const reuse = !pin ? centerChatTabs.find(function (tb) { return tb.kind === "file" && tb.preview && !tb.dirty; }) : null;
+  const tab = reuse || { id: "ft_" + (++wbTabSeq), kind: "file" };
+  Object.assign(tab, {
+    docId: docId, title: filename, filename: filename, breadcrumb: ftBuildBreadcrumb(guide, filename),
+    editable: editable, readOnly: !editable || Boolean(areaObj && areaObj.linked),
+    mdMode: "preview", rawContent: null, dirty: false, preview: !pin, loading: false, error: "",
+  });
   if (typeof snapshotActiveCenterTab === "function") { snapshotActiveCenterTab(); }
-  centerChatTabs.push(tab);
+  if (!reuse) { centerChatTabs.push(tab); }
   activateCenterChatTab(tab.id);
 }
 
@@ -268,7 +279,7 @@ function renderCenterFileTab(tab) {
     ta.value = tab.rawContent || "";
     ta.addEventListener("input", function () {
       tab.rawContent = ta.value;
-      if (!tab.dirty && !tab.readOnly) { tab.dirty = true; const sb = document.getElementById("cf-save-btn"); if (sb) { sb.disabled = false; sb.classList.add("wb-btn-primary"); } if (typeof renderCenterChatTabs === "function") { renderCenterChatTabs(); } }
+      if (!tab.dirty && !tab.readOnly) { tab.dirty = true; tab.preview = false; const sb = document.getElementById("cf-save-btn"); if (sb) { sb.disabled = false; sb.classList.add("wb-btn-primary"); } if (typeof renderCenterChatTabs === "function") { renderCenterChatTabs(); } }
       const pv = document.getElementById("cf-preview-inner");
       if (pv) { pv.innerHTML = formatMarkdown(ftStripFrontmatter(tab.rawContent)); }
     });
@@ -294,7 +305,7 @@ function bindFileTabUX() {
   if (typeof IS_EMBED !== "undefined" && IS_EMBED) { return; }
   const nBtn = document.getElementById("tree-new-note-btn"), rBtn = document.getElementById("tree-refresh-btn"), cBtn = document.getElementById("tree-collapse-btn");
   if (nBtn) { nBtn.addEventListener("click", function () { if (typeof openNewNoteModal === "function") { openNewNoteModal(); } }); }
-  if (rBtn) { rBtn.addEventListener("click", async function () { if (typeof loadGuidesCatalog === "function") { await loadGuidesCatalog(null); } renderWorkspaceFilesTree(); }); }
+  if (rBtn) { rBtn.addEventListener("click", async function () { const p = document.getElementById("ft-options-menu"); if (p && p.hidePopover) { try { p.hidePopover(); } catch (_e) {} } if (typeof loadGuidesCatalog === "function") { await loadGuidesCatalog(null); } renderWorkspaceFilesTree(); }); }
   if (cBtn) { cBtn.addEventListener("click", function () { ftExpanded.clear(); renderWorkspaceFilesTree(); }); }
   renderWorkspaceFilesTree();
 }

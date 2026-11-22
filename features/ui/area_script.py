@@ -130,6 +130,14 @@ async function restoreWorkspaceView(view) {
 }
 async function switchKnowledgeArea(name, showLibrary = null, template = null, dirs = [name]) {
   if (areaSwitching) { return false; }
+  const dirtyTabs = typeof centerChatTabs !== "undefined" ? centerChatTabs.filter(function (tb) { return tb.kind === "file" && tb.dirty; }) : [];
+  if (dirtyTabs.length && typeof confirmUnsavedChanges === "function") {
+    const ch = await confirmUnsavedChanges({ name: dirtyTabs.length === 1 ? (dirtyTabs[0].filename || dirtyTabs[0].title) : (dirtyTabs.length + " files"), canSave: dirtyTabs.every(function (tb) { return !tb.readOnly; }) });
+    if (ch === "cancel") { return false; }
+    if (ch === "save" && typeof saveCenterFileTab === "function") {
+      for (const dt of dirtyTabs) { await saveCenterFileTab(dt); if (dt.dirty) { return false; } }
+    }
+  }
   const leavingFree = typeof freeChatMode !== "undefined" && freeChatMode;
   if (leavingFree) { freeChatMode = false; safeStorageSet("realm_free_chat", "0"); }
   if (!leavingFree && JSON.stringify(dirs) === JSON.stringify(selectedAreas()) && template === null) { return true; }

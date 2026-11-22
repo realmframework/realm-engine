@@ -99,7 +99,7 @@ function bindDialogCloseAttr() {
     if (!btn) { return; }
     const id = btn.getAttribute("data-close-dialog") || btn.getAttribute("data-wb-close") || btn.getAttribute("data-m4-close") || btn.getAttribute("data-m5-close");
     const dlg = id ? document.getElementById(id) : btn.closest("dialog");
-    if (dlg && dlg.open) { dlg.close(); }
+    if (dlg && dlg.open) { if (typeof requestSafeCloseDialog === "function") { requestSafeCloseDialog(dlg); } else { dlg.close(); } }
   });
 }
 
