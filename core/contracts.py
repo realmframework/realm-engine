@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-ProviderName = Literal["ollama", "openai", "kimi", "deepseek", "gemini", "anthropic", "xai", "mistral"]
+ProviderName = Literal["builtin", "ollama", "openai", "kimi", "deepseek", "gemini", "anthropic", "xai", "mistral"]
 RetrievalMode = Literal["hybrid", "lexical", "vector"]
 ReasoningEffort = Literal["low", "medium", "high", "max"]
 class StrictModel(BaseModel):

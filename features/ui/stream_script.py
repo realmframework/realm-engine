@@ -72,6 +72,7 @@ async function runStreamingTurn(chatId, bodyObj, headers, signal, pendingTurn, t
   }, stale);
   if (!completed || stale()) { return { stopped: true }; }
   if (doneSession) {
+    if (bodyObj && bodyObj.provider === "builtin" && typeof loadLocalAiStatus === "function") { loadLocalAiStatus(); }
     const rLabel = (doneSession.router_decision && doneSession.router_decision.label) || pendingTurn.router_label || "";
     currentTurns = (doneSession.turns || []).map(function (t, i) {
       return Object.assign({}, t, {

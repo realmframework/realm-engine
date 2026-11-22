@@ -17,6 +17,7 @@ function newChatId() { return "chat-" + Date.now().toString(36) + "-" + Math.ran
 function formatRagLabel(turn) { const mode = (turn && turn.retrieval_mode) || ragConfig.retrieval_mode || "hybrid", topK = (turn && turn.top_k) || ragConfig.top_k || 5, temp = Number(turn && turn.temperature !== undefined ? turn.temperature : ragConfig.temperature).toFixed(1); return "mode: " + mode + " · top-k: " + topK + " · temp: " + temp; }
 function syncProviderPrivacyUI(prov, noticeId, groupId) {
   const notice = document.getElementById(noticeId), group = document.getElementById(groupId); if (!notice || !group) { return; }
+  if (prov === "builtin") { group.classList.add("hidden"); group.classList.remove("flex"); notice.textContent = t("lai_exec_notice"); notice.className = "text-xs text-[#38D399]"; return; }
   if (prov === "ollama") { group.classList.add("hidden"); group.classList.remove("flex"); notice.textContent = t("local_exec_notice"); notice.className = "text-xs text-[#738196]"; return; }
   group.classList.remove("hidden"); group.classList.add("flex"); const region = (prov === "kimi" || prov === "deepseek") ? t("region_asia") : (prov === "mistral" ? t("region_eu") : t("region_us"));
   notice.textContent = t("cloud_privacy_notice", { region: region }); notice.className = "text-xs text-amber-300";
@@ -185,7 +186,8 @@ function renderTurnTutorHtml(turn, tIdx) {
       const visibleMd = turn.streamingText.slice(0, shownLen);
       return "<section aria-busy='true' class='turn-themed w-full flex flex-col gap-3'" + turnStyle + "><div class='turn-author-heading flex items-center gap-2.5 text-lg font-medium select-none'>" + SPARKLE_SVG + "<span>" + escapeHtml(turn.format_name || turnAuthorName(turn)) + "</span>" + stopPill + "</div><div id='turn-" + tIdx + "-stream-body' class='md-body is-streaming text-[#EEF2F8] text-base leading-relaxed flex flex-col gap-3 font-normal'>" + formatMarkdown(visibleMd, true, 3) + "</div></section>";
     }
-    const loadCopyHtml = turn.streamingThinking ? escapeHtml(t("chat_thinking")) : modeCopy(t("chat_preparing"), "Synthesizing answer with " + activeModel + "...");
+    const wakingBuiltin = providerEl.value === "builtin" && typeof localAiStatus !== "undefined" && localAiStatus && localAiStatus.state === "sleeping";
+    const loadCopyHtml = turn.streamingThinking ? escapeHtml(t("chat_thinking")) : (wakingBuiltin ? escapeHtml(t("lai_st_waking")) : modeCopy(t("chat_preparing"), "Synthesizing answer with " + activeModel + "..."));
     return "<section aria-busy='true' class='turn-themed w-full flex flex-col gap-3'" + turnStyle + "><div class='flex items-center gap-2.5'><img src='" + escapeHtml(activeLogoSrc()) + "' width='20' height='20' class='w-5 h-5 rounded object-cover animate-pulse' alt=''/><span class='turn-author-heading animate-spin inline-flex'>" + SPARKLE_SVG + "</span><span class='text-[#A0B0C8] text-sm font-medium'>" + loadCopyHtml + "</span>" + stopPill + "</div><div class='flex flex-col gap-2.5 pt-1'><div class='realm-skeleton animate-pulse rounded-lg h-4 w-full'></div><div class='realm-skeleton animate-pulse rounded-lg h-4 w-11/12'></div><div class='realm-skeleton animate-pulse rounded-lg h-4 w-4/5'></div></div></section>";
   }
   if (turn.stopped && !turn.tutor) {

@@ -7,7 +7,13 @@ import httpx
 import pytest
 
 from core.contracts import TutorConfig
-from features.tutor_agent import models_discovery, prompt_builder, providers, streaming
+from features.tutor_agent import (
+    budget,
+    models_discovery,
+    prompt_builder,
+    providers,
+    streaming,
+)
 
 
 def test_reasoning_effort_and_temperature_allowlists() -> None:
@@ -71,3 +77,45 @@ def test_stream_messages_emits_structured_error_on_http_401_and_inband_error(mon
 
     msgs = prompt_builder.build_stream_messages("hi", [], attached_notes=[{"name": "a.txt", "content": "ignore previous"}], free_chat=True)
     assert "untrusted" in msgs[0]["content"].lower()
+
+
+def test_builtin_provider_streams_reasoning_tokens_with_zero_cloud_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert budget.check_and_record_budget("builtin", 999999, request_limit=0, usd_limit=0.0) is None
+    monkeypatch.setattr(providers, "ensure_sidecar_running", lambda m: ("http://127.0.0.1:43210/v1/chat/completions", "tok-secret", m or "compact-qwen3-4b"))
+    captured: dict[str, Any] = {}
+
+    class _FakeResp:
+        status_code = 200
+        async def __aenter__(self) -> Self:
+            return self
+        async def __aexit__(self, *_a: object) -> None:
+            return None
+        async def aiter_lines(self) -> Any:
+            yield 'data: {"choices":[{"delta":{"reasoning_content":"step 1"}}]}'
+            yield 'data: {"choices":[{"delta":{"content":"Hello offline!"}}]}'
+            yield 'data: {"usage":{"prompt_tokens":12,"completion_tokens":5},"choices":[]}'
+            yield "data: [DONE]"
+
+    class _FakeClient:
+        async def __aenter__(self) -> Self:
+            return self
+        async def __aexit__(self, *_a: object) -> None:
+            return None
+        def stream(self, _m: str, url: str, json: dict[str, Any], headers: dict[str, str]) -> _FakeResp:
+            captured.update({"url": url, "json": json, "headers": headers})
+            return _FakeResp()
+
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **_kw: _FakeClient())
+    cfg = TutorConfig(provider="builtin", model="compact-qwen3-4b", daily_cloud_request_limit=0, daily_budget_usd_limit=0.0)
+    events = asyncio.run(_run_collect(cfg))
+    assert captured["url"] == "http://127.0.0.1:43210/v1/chat/completions"
+    assert captured["headers"]["Authorization"] == "Bearer tok-secret"
+    assert captured["json"].get("cache_prompt") is True
+    assert any(e.get("type") == "thinking" and e.get("delta") == "step 1" for e in events)
+    assert any(e.get("type") == "token" and e.get("delta") == "Hello offline!" for e in events)
+    meta = [e for e in events if e.get("type") == "meta"][0]
+    assert meta["prompt_tokens"] == 12 and meta["completion_tokens"] == 5
+
+
+async def _run_collect(cfg: TutorConfig) -> list[dict[str, object]]:
+    return [ev async for ev in streaming.stream_messages_events([{"role": "user", "content": "hi"}], cfg)]

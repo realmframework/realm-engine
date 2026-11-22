@@ -119,7 +119,7 @@ html, body { background-color: var(--background) !important; color: var(--text) 
 .chat-scroll-mask { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%); mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%); }
 dialog { background-color: var(--surface-raised) !important; color: var(--text) !important; border-color: var(--border) !important; box-shadow: var(--dialog-shadow) !important; }
 dialog::backdrop { background: light-dark(rgba(11, 16, 32, 0.28), rgba(4, 6, 15, 0.54)) !important; }
-#onboarding-modal [hidden], #agent-studio-modal [hidden], #reset-logo-btn[hidden], #global-drop-overlay[hidden], #web-search-options [hidden], #web-search-lock-note[hidden] { display: none !important; }
+#onboarding-modal [hidden], #agent-studio-modal [hidden], [data-lai-panel] [hidden], #reset-logo-btn[hidden], #global-drop-overlay[hidden], #web-search-options [hidden], #web-search-lock-note[hidden] { display: none !important; }
 .settings-body { --scrollbar-thumb: light-dark(#4B5563, #8A99AE); --scrollbar-track: var(--surface-raised); }
 #upload-redaction-inspector { scrollbar-color: var(--scrollbar-thumb) var(--background) !important; }
 #upload-redaction-inspector::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb) !important; }

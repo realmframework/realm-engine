@@ -2,6 +2,7 @@
 
 from features.ui.agent_modals import AGENT_MODAL_HTML
 from features.ui.experience_template import INSTALLER_PANEL
+from features.ui.local_ai_template import BUILTIN_AI_ONBOARDING_PANEL
 from features.ui.settings_template import SETTINGS_HTML
 from features.ui.setup_template import mode_cards
 from features.ui.studio_modals import STUDIO_MODAL_HTML
@@ -130,11 +131,12 @@ MODALS_HTML: str = f"""<dialog id="upload-modal" closedby="any" aria-labelledby=
     <section id="onboarding-step-3" hidden class="flex flex-col gap-3.5 text-sm">
       <div><h3 data-i18n="ob_s3_head" class="text-lg font-medium text-[#EEF2F8]">Choose How AI Runs</h3><p data-i18n="ob_s3_sub" class="text-xs text-[#A0B0C8] mt-1">Run 100% offline with Ollama, combine Ollama with paid cloud API keys, or start with instant search only.</p></div>
       {mode_cards("onboarding")}
+      {BUILTIN_AI_ONBOARDING_PANEL}
       {INSTALLER_PANEL}
       <div class="flex flex-col gap-2 text-sm">
         <div id="onboarding-status-text" role="status" class="bg-[#04060F] border border-[rgba(238,242,248,0.08)] rounded-xl px-3.5 py-2 text-xs font-mono text-[#4BB8E8]">● Checking local Ollama &amp; retrieval engine...</div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          <label class="flex flex-col gap-1"><span data-i18n="ob_def_provider" class="text-xs text-[#A0B0C8]">Default Provider</span><select id="onboarding-provider" class="bg-[#04060F] border border-[rgba(238,242,248,0.12)] focus:border-[#4BB8E8] rounded-lg px-3 py-1.5 text-sm text-[#EEF2F8] outline-none cursor-pointer"><option value="ollama">Ollama Local</option><option value="openai">OpenAI</option><option value="gemini">Gemini</option><option value="kimi">Kimi</option><option value="deepseek">DeepSeek</option><option value="anthropic">Anthropic</option><option value="xai">xAI</option><option value="mistral">Mistral</option></select></label>
+          <label class="flex flex-col gap-1"><span data-i18n="ob_def_provider" class="text-xs text-[#A0B0C8]">Default Provider</span><select id="onboarding-provider" class="bg-[#04060F] border border-[rgba(238,242,248,0.12)] focus:border-[#4BB8E8] rounded-lg px-3 py-1.5 text-sm text-[#EEF2F8] outline-none cursor-pointer"><option value="builtin">Built-in Private AI</option><option value="ollama" selected>Ollama Local</option><option value="openai">OpenAI</option><option value="gemini">Gemini</option><option value="kimi">Kimi</option><option value="deepseek">DeepSeek</option><option value="anthropic">Anthropic</option><option value="xai">xAI</option><option value="mistral">Mistral</option></select></label>
           <label class="flex flex-col gap-1"><span data-i18n="ob_model_lbl" class="text-xs text-[#A0B0C8]">Model</span><select id="onboarding-model" aria-label="Setup AI Model" class="bg-[#04060F] border border-[rgba(238,242,248,0.12)] focus:border-[#4BB8E8] rounded-lg px-3 py-1.5 text-sm text-[#EEF2F8] outline-none cursor-pointer"></select></label>
         </div>
         <div id="onboarding-privacy-notice" role="status" data-i18n="local_exec_notice" class="text-xs text-[#738196]">Local execution — data stays on this device</div>

@@ -30,11 +30,12 @@ CLIENT_SCRIPT: str = (
     r"""<script>
 const resultsEl = document.getElementById("results"), tutorEl = document.getElementById("tutor"), queryEl = document.getElementById("query"), providerEl = document.getElementById("provider"), modelEl = document.getElementById("model"), apiKeyEl = document.getElementById("api-key"), askTutorToggle = document.getElementById("ask-tutor-toggle"), promptBox = document.getElementById("prompt-container"), submitBtn = document.getElementById("prompt-submit-btn"), chunksHeader = document.getElementById("chunks-header"), chunksTitle = document.getElementById("chunks-title"), settingsModal = document.getElementById("settings-modal"), onboardingModal = document.getElementById("onboarding-modal"), uploadModal = document.getElementById("upload-modal"), micBtn = document.getElementById("mic-btn");
 let selectedTag = null, isActiveView = false, activeController = null, activeRequestId = null, chunksCollapsed = true, chunkCount = 0, activeRecognition = null;
-const PROVIDER_DEFAULTS = { ollama: "qwen3:8b", openai: "gpt-4o-mini", kimi: "kimi-k3.1-pro", deepseek: "deepseek-chat", gemini: "gemini-3.8-flash", anthropic: "claude-sonnet-5-5", xai: "grok-4", mistral: "mistral-small-latest" };
+const PROVIDER_DEFAULTS = { builtin: "balanced-qwen3-8b", ollama: "qwen3:8b", openai: "gpt-4o-mini", kimi: "kimi-k3.1-pro", deepseek: "deepseek-chat", gemini: "gemini-3.8-flash", anthropic: "claude-sonnet-5-5", xai: "grok-4", mistral: "mistral-small-latest" };
 const NON_CHAT_RE = /^(nomic-embed|mxbai-embed|bge-|all-minilm|text-embedding|mistral-embed|whisper|phonon|kokoro|piper|tts-)|embed/i;
 const SPARKLE_SVG = "<svg aria-hidden='true' class='w-4 h-4 shrink-0' viewBox='0 0 24 24' fill='currentColor'><path d='M12 2L14.6 9.4L22 12L14.6 14.6L12 22L9.4 14.6L2 12L9.4 9.4L12 2Z'/></svg>";
-const PROVIDER_LABELS = { ollama: "Ollama (Local)", openai: "OpenAI", gemini: "Gemini", anthropic: "Anthropic", kimi: "Kimi", deepseek: "DeepSeek", xai: "xAI", mistral: "Mistral" };
-const PROVIDER_ORDER = ["ollama", "openai", "gemini", "anthropic", "kimi", "deepseek", "xai", "mistral"];
+const PROVIDER_LABELS = { builtin: "Built-in Private AI", ollama: "Ollama (Local)", openai: "OpenAI", gemini: "Gemini", anthropic: "Anthropic", kimi: "Kimi", deepseek: "DeepSeek", xai: "xAI", mistral: "Mistral" };
+const PROVIDER_ORDER = ["builtin", "ollama", "openai", "gemini", "anthropic", "kimi", "deepseek", "xai", "mistral"];
+function isLocalProvider(p) { return p === "builtin" || p === "ollama"; }
 let appKeyStatus = {}, loadModelsOp = 0;
 async function safeJson(res) { try { return await res.json(); } catch (_e) { return {}; } }
 function safeStorageGet(k, fb) { try { const v = localStorage.getItem(k); return v !== null ? v : (fb === undefined ? null : fb); } catch (_e) { return fb === undefined ? null : fb; } }
@@ -137,24 +138,24 @@ function syncModelMirrors() {
 }
 function selectActiveModel(value, optProvider) {
   if (!value) { return; }
-  if (optProvider && optProvider !== providerEl.value && (!localOnly() || optProvider === "ollama")) {
+  if (optProvider && optProvider !== providerEl.value && (!localOnly() || isLocalProvider(optProvider))) {
     providerEl.value = optProvider; document.getElementById("onboarding-provider").value = optProvider;
     syncProviderPrivacyUI(optProvider, "settings-privacy-notice", "settings-api-key-group");
     syncProviderPrivacyUI(optProvider, "onboarding-privacy-notice", "onboarding-api-key-group");
     syncKeyStatusUI();
   }
-  modelEl.value = value; if (providerEl.value === "ollama") { safeStorageSet("preferred_local_model", value); } syncModelMirrors();
+  modelEl.value = value; if (isLocalProvider(providerEl.value)) { safeStorageSet("preferred_local_model", value); } syncModelMirrors(); if (typeof syncOfflineStatusChrome === "function") { syncOfflineStatusChrome(); }
 }
 async function fetchProviderChatModels(provider) {
   const apiKey = provider === providerEl.value ? getApiKey() : "";
   const res = await areaFetch("/api/models?provider=" + encodeURIComponent(provider), { headers: apiKey ? { "x-api-key": apiKey } : {} });
   if (!res.ok) { return []; }
   const data = await safeJson(res);
-  return (data.chat_models || data.models || []).filter(function (m) { return !NON_CHAT_RE.test(m) && (!localOnly() || !/cloud/i.test(m)); });
+  return (data.chat_models || data.models || []).filter(function (m) { return !NON_CHAT_RE.test(m) && (!localOnly() || provider === "builtin" || !/cloud/i.test(m)); });
 }
 async function loadModels() {
   const op = ++loadModelsOp, version = areaVersion, activeProv = providerEl.value, prevModel = modelEl.value;
-  const providers = localOnly() ? ["ollama"] : PROVIDER_ORDER.filter(function (p) { return p === "ollama" || p === activeProv || hasSavedKey(p); });
+  const providers = localOnly() ? ["builtin", "ollama"] : PROVIDER_ORDER.filter(function (p) { return isLocalProvider(p) || p === activeProv || hasSavedKey(p); });
   const lists = await Promise.all(providers.map(function (p) { return fetchProviderChatModels(p).catch(function () { return []; }); }));
   if (op !== loadModelsOp || version !== areaVersion) { return; }
   modelEl.replaceChildren();
@@ -168,12 +169,12 @@ async function loadModels() {
     if (grouped) { container.label = PROVIDER_LABELS[prov] || prov; modelEl.appendChild(container); }
     for (const model of models) {
       const opt = document.createElement("option");
-      opt.value = model; opt.textContent = model; opt.dataset.provider = prov; opt.className = "bg-[#0B1020] text-[#EEF2F8]";
+      opt.value = model; opt.textContent = (prov === "builtin" && typeof formatBuiltinModelLabel === "function") ? formatBuiltinModelLabel(model) : model; opt.dataset.provider = prov; opt.className = "bg-[#0B1020] text-[#EEF2F8]";
       container.appendChild(opt);
     }
   });
   const pool = activeModels.length ? activeModels : (lists.find(function (l) { return l.length; }) || []);
-  const preferred = activeProv === "ollama" ? safeStorageGet("preferred_local_model") : null;
+  const preferred = isLocalProvider(activeProv) ? safeStorageGet("preferred_local_model") : null;
   const recommended = pool.find(function (m) { return m.toLowerCase().startsWith("qwen3:") || m.toLowerCase().startsWith("qwen2.5:"); });
   const chosen = (prevModel && !NON_CHAT_RE.test(prevModel) && pool.includes(prevModel)) ? prevModel : ((preferred && pool.includes(preferred) ? preferred : null) || recommended || (PROVIDER_DEFAULTS[activeProv] && pool.includes(PROVIDER_DEFAULTS[activeProv]) ? PROVIDER_DEFAULTS[activeProv] : (pool[0] || "")));
   const match = Array.from(modelEl.options).find(function (o) { return o.value === chosen && o.dataset.provider === activeProv; }) || Array.from(modelEl.options).find(function (o) { return o.value === chosen; });

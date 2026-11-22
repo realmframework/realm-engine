@@ -8,6 +8,7 @@ from features.ui.editor_script import EDITOR_SCRIPT
 from features.ui.focus_script import FOCUS_SCRIPT
 from features.ui.guide_script import GUIDE_SCRIPT
 from features.ui.impact_script import IMPACT_SCRIPT
+from features.ui.local_ai_script import LOCAL_AI_SCRIPT
 from features.ui.mention_script import MENTION_SCRIPT
 from features.ui.power_script import POWER_SCRIPT
 from features.ui.shell_script import SHELL_SCRIPT
@@ -38,6 +39,7 @@ UX_BUNDLE_SCRIPT: str = (
     + WORKFLOW_RUN_SCRIPT
     + SHELL_SCRIPT
     + WORKBENCH_TABS_SCRIPT
+    + LOCAL_AI_SCRIPT
     + r"""
 function bindAllUXBundles() {
   for (const fn of [
@@ -58,6 +60,7 @@ function bindAllUXBundles() {
     typeof bindWorkflowStudioUX === "function" && bindWorkflowStudioUX,
     typeof bindSpatialShellUX === "function" && bindSpatialShellUX,
     typeof bindWorkbenchTabsUX === "function" && bindWorkbenchTabsUX,
+    typeof bindLocalAiUX === "function" && bindLocalAiUX,
   ]) {
     if (fn) { try { fn(); } catch (err) { console.error("UX bundle init failed:", err); } }
   }

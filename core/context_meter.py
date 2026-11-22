@@ -7,6 +7,7 @@ from threading import Lock
 import httpx
 
 from core.contracts import ChatSession, ChatTurn
+from core.local_ai_sidecar import active_sidecar_context_size
 from core.runtime import is_loopback_url, ollama_base_url
 
 OLLAMA_SHOW_URL = f"{ollama_base_url()}/api/show"
@@ -46,6 +47,8 @@ def _fallback_context_size(model: str) -> int:
 
 
 def model_context_window(provider: str, model: str) -> int:
+    if provider == "builtin":
+        return active_sidecar_context_size(model)
     key = f"{provider}:{model}".lower()[:160]
     now = time.monotonic()
     with _CTX_LOCK:

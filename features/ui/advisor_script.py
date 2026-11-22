@@ -35,7 +35,8 @@ async function applySelectedMode(prefix) {
     abortActiveRequest(); stopActiveAudio();
     if (activeRecognition) { activeRecognition.abort(); activeRecognition = null; }
     applyWorkspacePayload(data);
-    providerEl.value = mode === "cloud" ? (selectedProvider === "ollama" ? "openai" : selectedProvider) : "ollama";
+    const defLocal = (typeof isBuiltinInstalled === "function" && isBuiltinInstalled()) ? "builtin" : "ollama";
+    providerEl.value = mode === "cloud" ? (isLocalProvider(selectedProvider) ? "openai" : selectedProvider) : (isLocalProvider(selectedProvider) ? selectedProvider : defLocal);
     document.getElementById("onboarding-provider").value = providerEl.value;
     apiKeyEl.value = ""; syncKeyStatusUI();
     syncProviderPrivacyUI(providerEl.value, "settings-privacy-notice", "settings-api-key-group");

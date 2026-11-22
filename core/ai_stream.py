@@ -14,6 +14,7 @@ from core.runtime import is_loopback_url, ollama_base_url
 
 StreamMessagesFn = Callable[..., AsyncIterator[dict[str, object]]]
 _SAFE_FILENAME_RE = re.compile(r"[^a-zA-Z0-9._-]+")
+LOCAL_PROVIDERS: frozenset[str] = frozenset({"builtin", "ollama"})
 
 
 def is_local_policy_satisfied(
@@ -21,10 +22,13 @@ def is_local_policy_satisfied(
     provider: str | None,
     model: str | None = None,
 ) -> bool:
-    """Return True when the provider/model/Ollama host satisfies workspace strict_local_only."""
+    """Return True when the provider/model/local host satisfies workspace strict_local_only."""
     if not config.strict_local_only:
         return True
-    if (provider or "ollama") != "ollama" or "cloud" in (model or "").lower():
+    eff = (provider or "ollama").strip().lower()
+    if eff == "builtin":
+        return True
+    if eff != "ollama" or "cloud" in (model or "").lower():
         return False
     return is_loopback_url(ollama_base_url()) or os.environ.get("REALM_ALLOW_REMOTE_OLLAMA", "").strip() == "1"
 
@@ -37,10 +41,13 @@ def require_local_policy(
     """Enforce workspace strict_local_only privacy lock, raising HTTP 403 on violation."""
     if not config.strict_local_only:
         return
-    if (provider or "ollama") != "ollama" or "cloud" in (model or "").lower():
+    eff = (provider or "ollama").strip().lower()
+    if eff == "builtin":
+        return
+    if eff != "ollama" or "cloud" in (model or "").lower():
         raise HTTPException(
             status_code=403,
-            detail="Strict Local-Only Lock is active. Use a local Ollama model or disable the lock in Settings.",
+            detail="Strict Local-Only Lock is active. Use Built-in Private AI, a local Ollama model, or disable the lock in Settings.",
         )
     if not is_loopback_url(ollama_base_url()) and os.environ.get("REALM_ALLOW_REMOTE_OLLAMA", "").strip() != "1":
         raise HTTPException(

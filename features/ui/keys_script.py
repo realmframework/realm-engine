@@ -43,7 +43,8 @@ function renderProviderPills() {
   for (const barId of ["saved-keys-bar", "onboarding-keys-bar"]) {
     const bar = document.getElementById(barId); if (!bar) { continue; }
     bar.innerHTML = PROVIDER_ORDER.map(function (prov) {
-      const saved = prov === "ollama" || hasSavedKey(prov), isAct = prov === active, disabled = locked && prov !== "ollama";
+      const builtinReady = prov === "builtin" && typeof isBuiltinInstalled === "function" && isBuiltinInstalled();
+      const saved = prov === "ollama" || builtinReady || hasSavedKey(prov), isAct = prov === active, disabled = locked && !isLocalProvider(prov);
       const vSt = keyVerifyState[prov], isBad = Boolean(vSt && vSt.status === "invalid");
       const cls = isAct ? "border-[#4BB8E8] bg-[#4BB8E8]/15 text-[#EEF2F8] font-medium" : (saved ? (isBad ? "border-[#EF4444]/40 bg-[#04060F] text-[#EEF2F8]" : "border-[#38D399]/40 bg-[#04060F] text-[#EEF2F8]") : "border-[rgba(238,242,248,0.12)] bg-[#04060F] text-[#A0B0C8]");
       const dotCls = isBad ? "bg-[#EF4444]" : "bg-[#38D399]";
@@ -52,7 +53,7 @@ function renderProviderPills() {
     }).join("");
     bar.querySelectorAll("[data-pick-provider]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        const picked = btn.getAttribute("data-pick-provider"); if (!picked || (localOnly() && picked !== "ollama")) { return; }
+        const picked = btn.getAttribute("data-pick-provider"); if (!picked || (localOnly() && !isLocalProvider(picked))) { return; }
         providerEl.value = picked; document.getElementById("onboarding-provider").value = picked;
         keyReplaceMode = false; onboardingReplaceMode = false;
         apiKeyEl.value = ""; setSecretVisibility("api-key", "toggle-api-key-visibility", false);
@@ -151,7 +152,7 @@ function syncKeyStatusUI() {
   const badge = document.getElementById("api-key-connected-badge"), mask = document.getElementById("api-key-mask"), src = document.getElementById("api-key-source-note");
   const testBtn = document.getElementById("test-api-key-btn");
   const provName = PROVIDER_LABELS[prov] || prov;
-  if (lbl) { lbl.textContent = prov === "ollama" ? t("api_key_lbl") : (provName + " " + t("api_key_lbl")); }
+  if (lbl) { lbl.textContent = isLocalProvider(prov) ? t("api_key_lbl") : (provName + " " + t("api_key_lbl")); }
   if (getLink) {
     const url = PROVIDER_KEY_URLS[prov] || "";
     getLink.hidden = !url;
@@ -186,7 +187,7 @@ async function loadKeyStatus() {
 }
 
 async function verifyAppApiKey(provider) {
-  if (!provider || provider === "ollama" || localOnly()) { return null; }
+  if (!provider || isLocalProvider(provider) || localOnly()) { return null; }
   keyVerifyBusy[provider] = true; syncKeyStatusUI();
   try {
     const res = await areaFetch("/api/keys/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider: provider }) });
@@ -204,7 +205,7 @@ async function verifyAppApiKey(provider) {
 
 async function saveAppApiKey(provider, rawKey, inputEl) {
   const key = String(rawKey || "").trim();
-  if (!provider || provider === "ollama" || !key) { return false; }
+  if (!provider || isLocalProvider(provider) || !key) { return false; }
   const res = await areaFetch("/api/keys", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider: provider, api_key: key }) });
   if (!res.ok) { return false; }
   const data = await safeJson(res); appKeyStatus = data.keys || {};
@@ -220,7 +221,7 @@ async function saveAppApiKey(provider, rawKey, inputEl) {
 }
 
 async function removeAppApiKey(provider) {
-  if (!provider || provider === "ollama") { return false; }
+  if (!provider || isLocalProvider(provider)) { return false; }
   const res = await areaFetch("/api/keys?provider=" + encodeURIComponent(provider), { method: "DELETE" });
   if (!res.ok) { return false; }
   const data = await safeJson(res); appKeyStatus = data.keys || {};

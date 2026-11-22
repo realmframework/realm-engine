@@ -3,6 +3,7 @@
 from features.ui.i18n_extra_script import I18N_EXTRA_SCRIPT
 from features.ui.i18n_feedback_script import I18N_FEEDBACK_SCRIPT
 from features.ui.i18n_guide_script import I18N_GUIDE_SCRIPT
+from features.ui.i18n_local_ai_script import I18N_LOCAL_AI_SCRIPT
 from features.ui.i18n_m4_script import I18N_M4_SCRIPT
 from features.ui.i18n_m5_script import I18N_M5_SCRIPT
 from features.ui.i18n_settings_script import I18N_SETTINGS_SCRIPT
@@ -138,6 +139,7 @@ const I18N = {
     + I18N_M4_SCRIPT
     + I18N_M5_SCRIPT
     + I18N_SHELL_SCRIPT
+    + I18N_LOCAL_AI_SCRIPT
     + r"""
 
 const STARTER_TERMS = {
@@ -256,6 +258,7 @@ function applyLanguage(lang, persistLocal) {
   if (typeof updateTopbarContext === "function") { updateTopbarContext(); }
   if (typeof renderCenterChatTabs === "function") { renderCenterChatTabs(); }
   if (typeof renderSplitChatTabs === "function") { renderSplitChatTabs(); }
+  if (typeof renderLocalAiPanels === "function") { renderLocalAiPanels(); }
   if (typeof wbLayout !== "undefined" && wbLayout.rightOpen && wbLayout.rightTab === "doc" && typeof renderRightDocumentPane === "function") { renderRightDocumentPane(); }
   if (typeof broadcastToEmbedFrames === "function") { broadcastToEmbedFrames({ type: "realm:sync-theme", lang: safe }); }
   if (typeof syncInspectorSidebar === "function") { syncInspectorSidebar(); }

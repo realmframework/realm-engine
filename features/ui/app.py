@@ -19,6 +19,7 @@ from features.ingestion import converters, embedder
 from features.ingestion.anonymizer import anonymize_slug, inspect_anonymization
 from features.ingestion.embedder import embed_text
 from features.ingestion.service import ingest_directory
+from features.local_ai import router as local_ai_router
 from features.search.router import route_query_intent
 from features.search.service import hybrid_search
 from features.slides import router as slides_router
@@ -82,7 +83,7 @@ def get_index() -> list[contracts.KnowledgeChunk]:
             return INDEX
         try:
             target = workspace.resolve_safe_knowledge_dir(WORKSPACE_CONFIG.knowledge_dir, create=False)
-        except HTTPException:
+        except (HTTPException, ValueError):
             return []
         return _reindex(target)
 
@@ -126,6 +127,7 @@ def _build_local_app() -> FastAPI:
         impact_router.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events, lambda a: work_board_service.project_name_map(a, workspace.REPO_ROOT), lambda: workspace.REPO_ROOT),
         focus_router.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events, lambda a, lbl, mins, pid, tid, nt: impact_router.log_focus_time(a, workspace.REPO_ROOT, lbl, mins, pid, tid, nt), lambda a: work_board_service.open_task_summaries(a, workspace.REPO_ROOT), lambda a, blks: work_board_service.schedule_focus_events(a, list(blks), workspace.REPO_ROOT), lambda: workspace.REPO_ROOT),
         workflow_router.build_router(lambda: WORKSPACE_CONFIG, wf_cbs, lambda: workspace.REPO_ROOT),
+        local_ai_router.build_router(lambda: workspace.REPO_ROOT),
     )
     for router in routers:
         local.include_router(router)

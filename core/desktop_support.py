@@ -109,6 +109,10 @@ def record_active_url(data_dir: Path, url: str) -> None:
                 os.chmod(path, 0o600)
 
 def clear_active_url(data_dir: Path) -> None:
+    from core.local_ai_sidecar import shutdown_sidecar
+
+    with suppress(Exception):
+        shutdown_sidecar()
     path = data_dir / ACTIVE_URL_FILE
     if not path.is_symlink():
         with suppress(OSError):

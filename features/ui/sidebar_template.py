@@ -44,7 +44,7 @@ ACTIVITY_RAIL_HTML: str = (
     '<button id="rail-status-btn" type="button" popovertarget="rail-status-popover" aria-expanded="false" class="rail-btn" aria-label="Engine &amp; Privacy status" title="Engine &amp; Privacy status" data-i18n-aria-label="sh_status_aria" data-i18n-title="sh_status_aria"><span id="system-status-pill" role="status" aria-label="Engine ready" title="Engine ready" class="text-xs font-mono text-[#38D399]">●</span></button>'
     '<div id="rail-status-popover" popover="auto" class="rail-popover" aria-label="Workspace status">'
     '<div class="drawer-heading" style="padding:0 0 0.45rem" data-i18n="sh_status_head">LOCAL WORKSPACE STATUS</div>'
-    '<div class="shell-pop-row"><span data-i18n="sh_st_privacy">Privacy</span><strong id="sh-pop-privacy">Local Only</strong></div>'
+    '<div class="shell-pop-row"><span data-i18n="sh_st_privacy">Privacy</span><strong id="sh-pop-privacy" class="text-right">Local Only</strong></div>'
     '<div class="shell-pop-row"><span data-i18n="sh_st_agent">Active Agent</span><strong id="sh-pop-agent">Saga</strong></div>'
     '<div class="shell-pop-row"><span data-i18n="sh_st_timer">Work Timer</span><strong id="sh-pop-timer">00:00</strong></div>'
     '<button type="button" data-shell-act="settings" class="shell-pop-item shell-pop-sep"><span data-i18n="sh_manage_settings">Manage Settings</span><span>→</span></button>'

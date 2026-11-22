@@ -12,7 +12,7 @@ def build_guard(config: Callable[[], WorkspaceConfig], record: Callable[..., str
     def guard(provider: str, text: str, kind: str = "embedding") -> None:
         active = config()
         require_local(active, provider)
-        if provider == "ollama":
+        if provider in {"ollama", "builtin"}:
             return
         tokens, cost = estimate(text, output_tokens=0, kind=provider + "_speech" if kind == "speech" else kind)
         denied = record(provider, tokens, active.daily_cloud_request_limit, active.daily_budget_usd_limit, cost)
@@ -23,6 +23,8 @@ def build_guard(config: Callable[[], WorkspaceConfig], record: Callable[..., str
 
 def build_embedder(embed: Callable[..., list[float]], guard: Callable[[str, str, str], None]) -> Callable[..., list[float]]:
     def guarded(text: str, provider: str = "ollama", api_key: str | None = None) -> list[float]:
+        if provider == "builtin":
+            return []
         if provider != "ollama":
             guard(provider, text, "embedding")
         return embed(text, provider=provider, api_key=api_key)

@@ -8,8 +8,8 @@ function applyLocalPolicy() {
   document.getElementById("governance-local-only").checked = locked;
   for (const id of ["provider", "onboarding-provider"]) {
     const select = document.getElementById(id);
-    for (const option of select.options) { option.disabled = locked && option.value !== "ollama"; }
-    if (locked && select.value !== "ollama") { select.value = "ollama"; }
+    for (const option of select.options) { option.disabled = locked && !isLocalProvider(option.value); }
+    if (locked && !isLocalProvider(select.value)) { select.value = (typeof isBuiltinInstalled === "function" && isBuiltinInstalled()) ? "builtin" : "ollama"; }
   }
   const speech = document.getElementById("tts-model");
   for (const option of speech.options) { option.disabled = locked && cloudSpeech(option.value); }
@@ -34,7 +34,7 @@ async function setCloudAccess(allowCloud) {
     abortActiveRequest(); stopActiveAudio();
     if (activeRecognition) { activeRecognition.abort(); activeRecognition = null; }
     applyWorkspacePayload(data);
-    if (allowCloud && providerEl.value === "ollama") { providerEl.value = "openai"; document.getElementById("onboarding-provider").value = "openai"; }
+    if (allowCloud && isLocalProvider(providerEl.value)) { providerEl.value = "openai"; document.getElementById("onboarding-provider").value = "openai"; }
     syncProviderPrivacyUI(providerEl.value, "settings-privacy-notice", "settings-api-key-group");
     syncProviderPrivacyUI(document.getElementById("onboarding-provider").value, "onboarding-privacy-notice", "onboarding-api-key-group");
     syncKeyStatusUI(); await loadModels(); await refreshBudget(); invalidateAudit();

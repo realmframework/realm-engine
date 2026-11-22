@@ -38,6 +38,7 @@ function updateTopbarContext(customTitle) {
   }
   const privEl = document.getElementById("sh-pop-privacy"), agEl = document.getElementById("sh-pop-agent"), tmEl = document.getElementById("sh-pop-timer"), topTm = document.getElementById("topbar-timer-pill");
   if (privEl) { privEl.textContent = (typeof localOnly === "function" && localOnly()) ? t("sh_local_only") : t("sh_cloud_ready"); }
+  if (typeof syncOfflineStatusChrome === "function") { syncOfflineStatusChrome(); }
   if (agEl) { agEl.textContent = typeof activeAgentName === "function" ? activeAgentName() : "Saga"; }
   const activeTimer = typeof impState !== "undefined" && impState && impState.active_timer;
   const hms = typeof fmtHMS === "function" && typeof impTimerClientSecs !== "undefined" ? fmtHMS(impTimerClientSecs) : "00:00:00";

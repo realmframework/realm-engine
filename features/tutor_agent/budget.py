@@ -86,7 +86,7 @@ def budget_snapshot(request_limit: int = 50, usd_limit: float = 1.0, now: float 
 
 
 def check_and_record_budget(provider: str, estimated_tokens: int = MAX_OUTPUT_TOKENS, request_limit: int = 50, usd_limit: float = 1.0, estimated_cost_usd: float | None = None, now: float | None = None) -> str | None:
-    if provider == "ollama":
+    if provider in {"ollama", "builtin"}:
         return None
     cost = estimated_tokens * ESTIMATE_USD_PER_MILLION_TOKENS / 1_000_000 if estimated_cost_usd is None else estimated_cost_usd
     with LOCK:

@@ -8,6 +8,8 @@ from pathlib import Path
 from fastapi import FastAPI
 
 from core.file_watcher import join_vault_watcher, start_vault_watcher
+from core.local_ai_os import reap_stale_sidecar
+from core.local_ai_sidecar import shutdown_sidecar
 from core.logging_config import configure_logging
 from features.ui import areas, workspace
 
@@ -21,6 +23,7 @@ def area_lifespan(
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         configure_logging()
+        reap_stale_sidecar(workspace.REPO_ROOT)
         with workspace.STATE_LOCK:
             workspace.REPO_ROOT.mkdir(parents=True, exist_ok=True)
             active = workspace.load_workspace_config().knowledge_dir
@@ -61,5 +64,7 @@ def area_lifespan(
                 with suppress(asyncio.CancelledError):
                     await sched_task
             join_vault_watcher(stop_event, timeout=2.0)
+            with suppress(Exception):
+                shutdown_sidecar()
 
     return lifespan

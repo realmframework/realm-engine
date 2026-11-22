@@ -131,7 +131,10 @@ def build_workspace_payload(config: contracts.WorkspaceConfig, chunks: list[cont
         if len(config.active_dirs) == 1 and area["name"] == config.knowledge_dir:
             area["doc_count"] = len(guides)
     avail = list(dict.fromkeys([*[str(a["name"]) for a in areas], *([config.knowledge_dir] if config.knowledge_dir else [])]))
-    subs = [] if not config.active_dirs else (selection.subfolders(config, REPO_ROOT) if len(config.active_dirs) > 1 else selection.filter_subfolders(list_subfolders(resolve_safe_knowledge_dir(config.knowledge_dir)), config.knowledge_dir, config))
+    try:
+        subs = [] if not config.active_dirs else (selection.subfolders(config, REPO_ROOT) if len(config.active_dirs) > 1 else selection.filter_subfolders(list_subfolders(resolve_safe_knowledge_dir(config.knowledge_dir)), config.knowledge_dir, config))
+    except (HTTPException, ValueError):
+        subs = []
     return {"config": config.model_dump(), "areas": areas, "subfolders": subs, "unloaded_subfolders": selection.unloaded_subfolders(config), "available_dirs": avail, "tags": sorted_tags, "starter_prompts": prompts, "doc_count": len(guides), "embeddings_active": any(bool(c.embedding) for c in chunks)}
 
 
