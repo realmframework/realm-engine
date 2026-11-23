@@ -92,16 +92,19 @@ RIGHT_SIDEBAR_HTML: str = (
     '<button id="cp-clear-btn" type="button" data-i18n="cp_new" class="wb-btn wb-btn-sm">New</button>'
     "</div>"
     '<div id="cp-messages" class="cp-messages" aria-live="polite"></div>'
+    '<div class="cp-compose-wrap">'
+    '<div id="cp-file-menu" hidden role="listbox" aria-label="Workspace files" class="cp-file-menu"></div>'
+    '<div id="cp-chips" class="cp-chips" aria-label="Attached Copilot context"></div>'
     '<form id="cp-form" class="cp-dock">'
     '<div class="cp-dock-row">'
-    '<textarea id="cp-input" rows="1" aria-label="Ask Copilot" placeholder="Ask or describe an edit…" data-i18n-placeholder="cp_ph" class="cp-input"></textarea>'
+    '<textarea id="cp-input" rows="1" aria-label="Ask Copilot" placeholder="Ask, #file to attach, or describe an edit…" data-i18n-placeholder="cp_ph" class="cp-input"></textarea>'
     '<button id="cp-send-btn" type="submit" aria-label="Send to Copilot" class="cp-send">↑</button>'
     "</div>"
     '<div class="cp-meta-bar">'
     '<select id="cp-model-select" aria-label="Copilot model" data-i18n-aria-label="cp_model_aria" class="cp-meta-select"></select>'
     '<select id="cp-format-select" aria-label="Copilot output format" data-i18n-aria-label="cp_format_aria" class="cp-meta-select"></select>'
     "</div>"
-    "</form>"
+    "</form></div>"
     "</div>"
     '<div id="right-panel-inspector" role="tabpanel" aria-labelledby="right-tab-inspector" hidden class="right-sidebar-scroll">'
     '<div id="inspector-sidebar-body" class="flex flex-col gap-4 text-sm shrink-0 pb-10"></div>'

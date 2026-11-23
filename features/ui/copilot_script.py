@@ -41,6 +41,7 @@ function cpContextKey() {
 }
 
 function cpGetThread() {
+  if (typeof cpEnsureThreadsLoaded === "function") { cpEnsureThreadsLoaded(); }
   const key = cpContextKey();
   if (!cpThreads.has(key)) { cpThreads.set(key, []); }
   return cpThreads.get(key);
@@ -110,7 +111,8 @@ function cpRenderActionCard(act, mIdx, aIdx) {
   const badge = CP_BADGE_LABELS[act.kind] || act.kind, st = act.status || "pending";
   let footer = "";
   if (st === "applied") {
-    const undoBtn = act.kind === "update_document" && act.prevContent !== undefined
+    const canUndo = typeof cpCanUndoAction === "function" ? cpCanUndoAction(act) : (act.kind === "update_document" && act.prevContent !== undefined);
+    const undoBtn = canUndo
       ? "<button type='button' data-cp-undo='" + mIdx + ":" + aIdx + "' class='wb-btn wb-btn-sm'>" + escapeHtml(t("cp_undo")) + "</button>" : "";
     const openBtn = act.createdDocId
       ? "<button type='button' data-cp-open-doc='" + escapeHtml(act.createdDocId) + "' class='wb-btn wb-btn-sm'>" + escapeHtml(t("cp_open")) + "</button>" : "";
@@ -160,10 +162,10 @@ function renderCopilotThread() {
     b.addEventListener("click", function () { const [mi, ai] = (b.getAttribute("data-cp-apply") || "").split(":").map(Number); cpApplyAction(mi, ai); });
   });
   box.querySelectorAll("[data-cp-dismiss]").forEach(function (b) {
-    b.addEventListener("click", function () { const [mi, ai] = (b.getAttribute("data-cp-dismiss") || "").split(":").map(Number); const m = cpGetThread()[mi]; if (m && m.actions && m.actions[ai]) { m.actions[ai].status = "dismissed"; renderCopilotThread(); } });
+    b.addEventListener("click", function () { const [mi, ai] = (b.getAttribute("data-cp-dismiss") || "").split(":").map(Number); const m = cpGetThread()[mi]; if (m && m.actions && m.actions[ai]) { m.actions[ai].status = "dismissed"; if (typeof cpSavePersistedThreads === "function") { cpSavePersistedThreads(); } renderCopilotThread(); } });
   });
   box.querySelectorAll("[data-cp-undo]").forEach(function (b) {
-    b.addEventListener("click", function () { const [mi, ai] = (b.getAttribute("data-cp-undo") || "").split(":").map(Number); cpUndoDocAction(mi, ai); });
+    b.addEventListener("click", function () { const [mi, ai] = (b.getAttribute("data-cp-undo") || "").split(":").map(Number); if (typeof cpUndoAnyAction === "function") { cpUndoAnyAction(mi, ai); } });
   });
   box.querySelectorAll("[data-cp-open-doc]").forEach(function (b) {
     b.addEventListener("click", function () { if (typeof openFileInCenterTab === "function") { openFileInCenterTab(b.getAttribute("data-cp-open-doc") || ""); } });
@@ -223,11 +225,13 @@ async function cpApplyAction(mIdx, aIdx) {
     } else if (act.kind === "create_note") {
       const data = await cpJsonReq("/api/guides/create", "POST", { title: p.title || "Untitled Note", content: p.content || "", subfolder: p.subfolder || "", tags: Array.isArray(p.tags) ? p.tags : [] }, true);
       act.createdDocId = data.doc_id || "";
+      if (data.doc_id) { const enc = typeof ftEncodeDocPath === "function" ? ftEncodeDocPath(data.doc_id) : encodeURIComponent(data.doc_id); act.undoMeta = { kind: "create_note", endpoint: "/api/guides/" + enc, areaScoped: true, docId: data.doc_id }; }
       if (typeof applyWorkspacePayload === "function") { applyWorkspacePayload(data); }
       if (typeof loadGuidesCatalog === "function") { await loadGuidesCatalog(null); }
     } else if (act.kind === "create_task") {
       const prio = CP_PRIOS.has(p.priority) ? p.priority : "medium";
-      await cpJsonReq("/api/work-board/tasks", "POST", { title: p.title, description: p.description || "", priority: prio, due_date: p.due_date || "", column_id: p.column_id || "", project_id: p.project_id || "", linked_doc_id: p.linked_doc_id || (cpActiveFileTab() ? cpActiveFileTab().docId : "") }, true);
+      const data = await cpJsonReq("/api/work-board/tasks", "POST", { title: p.title, description: p.description || "", priority: prio, due_date: p.due_date || "", column_id: p.column_id || "", project_id: p.project_id || "", linked_doc_id: p.linked_doc_id || (cpActiveFileTab() ? cpActiveFileTab().docId : "") }, true);
+      if (data.item && data.item.id) { act.undoMeta = { kind: "create_task", endpoint: "/api/work-board/tasks/" + encodeURIComponent(data.item.id), areaScoped: true }; }
       await cpSyncWorkUi();
     } else if (act.kind === "update_task") {
       const patch = {};
@@ -236,24 +240,29 @@ async function cpApplyAction(mIdx, aIdx) {
       await cpSyncWorkUi();
     } else if (act.kind === "create_event") {
       const evKind = CP_EVENT_KINDS.has(p.kind) ? p.kind : "event";
-      await cpJsonReq("/api/work-board/events", "POST", { title: p.title, date: p.date || new Date().toISOString().slice(0, 10), start_time: p.start_time || "", end_time: p.end_time || "", kind: evKind, notes: p.notes || "" }, true);
+      const data = await cpJsonReq("/api/work-board/events", "POST", { title: p.title, date: p.date || new Date().toISOString().slice(0, 10), start_time: p.start_time || "", end_time: p.end_time || "", kind: evKind, notes: p.notes || "" }, true);
+      if (data.item && data.item.id) { act.undoMeta = { kind: "create_event", endpoint: "/api/work-board/events/" + encodeURIComponent(data.item.id), areaScoped: true }; }
       await cpSyncWorkUi();
     } else if (act.kind === "create_goal") {
       const today = new Date().toISOString().slice(0, 10), end = new Date(Date.now() + 84 * 86400000).toISOString().slice(0, 10);
-      await cpJsonReq("/api/focus/goals", "POST", { title: p.title, why: p.why || "", target_hours: Math.max(1, Number(p.target_hours || 20)), start_date: p.start_date || today, end_date: p.end_date || end }, true);
+      const data = await cpJsonReq("/api/focus/goals", "POST", { title: p.title, why: p.why || "", target_hours: Math.max(1, Number(p.target_hours || 20)), start_date: p.start_date || today, end_date: p.end_date || end }, true);
+      if (data.item && data.item.id) { act.undoMeta = { kind: "create_goal", endpoint: "/api/focus/goals/" + encodeURIComponent(data.item.id), areaScoped: true }; }
       if (typeof loadFocusSummary === "function") { await loadFocusSummary(); }
       if (typeof focViewOpen !== "undefined" && focViewOpen && typeof renderFocusView === "function") { renderFocusView(); }
     } else if (act.kind === "upsert_agent") {
-      await cpJsonReq("/api/agents", "POST", { id: p.id || "", name: p.name, role: p.role || "Specialist", tagline: p.tagline || "", palette: p.palette || "realm", temperature: Number(p.temperature ?? 0.2), instructions: p.instructions || "" }, false);
+      const data = await cpJsonReq("/api/agents", "POST", { id: p.id || "", name: p.name, role: p.role || "Specialist", tagline: p.tagline || "", palette: p.palette || "realm", temperature: Number(p.temperature ?? 0.2), instructions: p.instructions || "" }, false);
+      if (!p.id && data.agent && data.agent.id) { act.undoMeta = { kind: "upsert_agent", endpoint: "/api/agents/" + encodeURIComponent(data.agent.id), areaScoped: false }; }
       if (typeof loadAgentTeam === "function") { await loadAgentTeam(); }
     } else if (act.kind === "upsert_workflow") {
       const wfId = String(p.workflow_id || "").trim();
       const data = await cpJsonReq(wfId ? ("/api/workflows/" + encodeURIComponent(wfId)) : "/api/workflows", wfId ? "PATCH" : "POST", { name: p.name, description: p.description || "", trigger_kind: p.trigger_kind || "manual", schedule_minutes: Number(p.schedule_minutes || 0), nodes: p.nodes || [], edges: p.edges || [] }, true);
+      if (!wfId && data.item && data.item.id) { act.undoMeta = { kind: "upsert_workflow", endpoint: "/api/workflows/" + encodeURIComponent(data.item.id), areaScoped: true }; }
       if (typeof loadWorkflowsSummary === "function") { await loadWorkflowsSummary(); }
       if (data.item && data.item.id && typeof wfActiveId !== "undefined") { wfActiveId = data.item.id; }
       if (typeof wfViewOpen !== "undefined" && wfViewOpen && typeof renderWorkflowsView === "function") { renderWorkflowsView(); }
     }
     act.status = "applied";
+    if (typeof cpSavePersistedThreads === "function") { cpSavePersistedThreads(); }
     if (typeof showToast === "function") { showToast("✓ " + (act.title || t("cp_applied")), 2600); }
   } catch (err) {
     act.status = "pending"; act.error = (err && err.message) || "Action failed.";
@@ -261,24 +270,12 @@ async function cpApplyAction(mIdx, aIdx) {
   renderCopilotThread();
 }
 
-async function cpUndoDocAction(mIdx, aIdx) {
-  const m = cpGetThread()[mIdx], act = m && m.actions && m.actions[aIdx];
-  if (!act || act.kind !== "update_document" || act.prevContent === undefined) { return; }
-  const docId = String((act.payload && act.payload.doc_id) || "");
-  try {
-    const enc = typeof ftEncodeDocPath === "function" ? ftEncodeDocPath(docId) : encodeURIComponent(docId);
-    await cpSyncDocUi(docId, act.prevContent, await cpJsonReq("/api/guides/" + enc + "/raw", "PUT", { content: act.prevContent }, true));
-    act.status = "pending";
-    if (typeof showToast === "function") { showToast(t("cp_undo") + " ✓", 2200); }
-    renderCopilotThread();
-  } catch (_e) {}
-}
-
 async function cpSendPrompt(rawText) {
   const text = String(rawText || "").trim();
   if (!text || cpStreaming) { return; }
   const inp = document.getElementById("cp-input");
   if (inp) { inp.value = ""; inp.style.height = "auto"; }
+  if (typeof cpCloseFileMenu === "function") { cpCloseFileMenu(); }
   const thread = cpGetThread();
   thread.push({ role: "user", content: text });
   const cfg = typeof cpResolveRequestConfig === "function" ? cpResolveRequestConfig() : { agentId: "saga", agentName: "Saga", provider: "ollama", model: null, formatId: null, formatName: "" };
@@ -290,9 +287,10 @@ async function cpSendPrompt(rawText) {
   try {
     const apiKey = typeof getApiKey === "function" ? getApiKey() : "";
     const headers = Object.assign({ "Content-Type": "application/json" }, apiKey ? { "x-api-key": apiKey } : {});
+    const sendCtx = typeof cpBuildSendContext === "function" ? await cpBuildSendContext() : cpCollectContext();
     const res = await areaFetch("/api/copilot/chat/stream", {
       method: "POST", headers: headers, signal: ctrl.signal,
-      body: JSON.stringify({ messages: payloadMsgs, context: cpCollectContext(), provider: cfg.provider, model: cfg.model, api_key: apiKey || null, agent_id: cfg.agentId, format_id: cfg.formatId }),
+      body: JSON.stringify({ messages: payloadMsgs, context: sendCtx, provider: cfg.provider, model: cfg.model, api_key: apiKey || null, agent_id: cfg.agentId, format_id: cfg.formatId }),
     });
     if (!res.ok) { const e = await safeJson(res); throw new Error((e && e.detail) || "Copilot unavailable."); }
     await readSseStream(res, function (ev, d) {
@@ -309,6 +307,7 @@ async function cpSendPrompt(rawText) {
   } finally {
     aiMsg.streaming = false;
     if (cpController === ctrl) { cpController = null; }
+    if (typeof cpSavePersistedThreads === "function") { cpSavePersistedThreads(); }
     cpSetBusy(false); renderCopilotThread();
   }
 }
@@ -325,10 +324,11 @@ function bindCopilotUX() {
   const form = document.getElementById("cp-form"), inp = document.getElementById("cp-input"), sendBtn = document.getElementById("cp-send-btn"), clrBtn = document.getElementById("cp-clear-btn");
   if (form) { form.addEventListener("submit", function (e) { e.preventDefault(); cpSendPrompt(inp ? inp.value : ""); }); }
   if (sendBtn) { sendBtn.addEventListener("click", function () { if (cpStreaming && cpController) { cpController.abort(); } }); }
-  if (clrBtn) { clrBtn.addEventListener("click", function () { if (cpStreaming && cpController) { cpController.abort(); } cpThreads.set(cpContextKey(), []); renderCopilotThread(); if (inp) { inp.focus({ preventScroll: true }); } }); }
+  if (clrBtn) { clrBtn.addEventListener("click", function () { if (cpStreaming && cpController) { cpController.abort(); } cpThreads.set(cpContextKey(), []); if (typeof cpSavePersistedThreads === "function") { cpSavePersistedThreads(); } renderCopilotThread(); if (inp) { inp.focus({ preventScroll: true }); } }); }
   if (inp) {
     inp.addEventListener("input", function () { inp.style.height = "auto"; inp.style.height = Math.min(120, inp.scrollHeight) + "px"; });
     inp.addEventListener("keydown", function (e) {
+      if (typeof cpHandleFileMenuKeydown === "function" && cpHandleFileMenuKeydown(e)) { return; }
       if (e.key === "Enter" && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); cpSendPrompt(inp.value); }
     });
   }

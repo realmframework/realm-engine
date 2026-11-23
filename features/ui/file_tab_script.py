@@ -1,4 +1,4 @@
-"""VS Code-style Right Sidebar Workspace File Tree & In-Tab 3-Mode Markdown Viewer/Editor (Preview / Raw / Side by Side)."""
+"""Workspace Files Tree (with live filter & folder actions) & Center File Tabs (3-Mode Markdown + Code Editor)."""
 
 FILE_TAB_SCRIPT: str = r"""
 const ftExpanded = new Set();
@@ -7,79 +7,25 @@ const FT_CHEV_SVG = "<svg class='ft-chev' aria-hidden='true' viewBox='0 0 24 24'
 const FT_FOLDER_SVG = "<svg class='ft-icon' aria-hidden='true' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z'/></svg>";
 const FT_FILE_SVG = "<svg class='ft-icon' aria-hidden='true' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z'/><path d='M14 3v5h5'/></svg>";
 
-function ftFileNameOf(guide) {
-  const fp = String((guide && guide.file_path) || "");
-  if (fp) {
-    const parts = fp.replace(/\\/g, "/").split("/");
-    const base = parts[parts.length - 1];
-    if (base) { return base; }
-  }
-  const raw = String((guide && guide.doc_id) || "note");
-  const clean = raw.includes("::") ? raw.split("::").pop() : raw;
-  const seg = clean.split("/").pop() || clean;
-  return /\.[a-z0-9]{1,6}$/i.test(seg) ? seg : (seg + ".md");
-}
-
-function ftExtOf(filename) {
-  const m = String(filename || "").match(/\.([a-z0-9]{1,6})$/i);
-  return m ? ("." + m[1].toLowerCase()) : "";
-}
-
 function ftStripFrontmatter(raw) {
   return String(raw || "").replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n*/, "");
 }
 
-function ftBuildTreeModel() {
-  const dirs = typeof selectedAreas === "function" ? selectedAreas() : [];
-  const guides = typeof allGuides !== "undefined" && Array.isArray(allGuides) ? allGuides : [];
-  const multi = dirs.length > 1;
-  const root = { key: "", name: "", folders: new Map(), files: [] };
-  const ensureFolder = function (parent, seg, keyPrefix, color) {
-    const k = keyPrefix ? (keyPrefix + "/" + seg) : seg;
-    if (!parent.folders.has(seg)) {
-      parent.folders.set(seg, { key: k, name: seg, color: color || "", folders: new Map(), files: [] });
-    }
-    return parent.folders.get(seg);
-  };
-  if (multi) {
-    dirs.forEach(function (areaName) {
-      const aObj = (typeof knowledgeAreas !== "undefined" ? knowledgeAreas : []).find(function (a) { return a.name === areaName; });
-      ensureFolder(root, areaName, "", (aObj && aObj.color) || "#4BB8E8");
-    });
-  }
-  guides.forEach(function (g) {
-    let cur = root, prefix = "";
-    if (multi && g.area) {
-      const aObj = (typeof knowledgeAreas !== "undefined" ? knowledgeAreas : []).find(function (a) { return a.name === g.area; });
-      cur = ensureFolder(cur, g.area, "", (aObj && aObj.color) || "#4BB8E8");
-      prefix = g.area;
-    }
-    const sub = String(g.subfolder || "").replace(/^\/+|\/+$/g, "");
-    if (sub) {
-      sub.split("/").filter(Boolean).forEach(function (seg) {
-        cur = ensureFolder(cur, seg, prefix, "");
-        prefix = prefix ? (prefix + "/" + seg) : seg;
-      });
-    }
-    const fname = ftFileNameOf(g);
-    cur.files.push({ docId: g.doc_id, filename: fname, ext: ftExtOf(fname), title: g.title || fname, guide: g });
-  });
-  return root;
-}
-
-function ftRenderNodeHtml(node, depth, activeDocId) {
+function ftRenderNodeHtml(node, depth, activeDocId, filtering) {
   const folderList = Array.from(node.folders.values()).sort(function (a, b) { return a.name.localeCompare(b.name); });
   const fileList = node.files.slice().sort(function (a, b) { return a.filename.localeCompare(b.filename); });
   let html = "";
   folderList.forEach(function (f) {
-    const open = ftExpanded.has(f.key);
-    const label = depth === 0 && f.color && typeof areaTitle === "function" ? areaTitle(f.name) : f.name;
+    const open = filtering || ftExpanded.has(f.key);
+    const isAreaRoot = depth === 0 && Boolean(f.color);
+    const label = isAreaRoot && typeof areaTitle === "function" ? areaTitle(f.name) : f.name;
     const leadIcon = f.color
       ? "<span aria-hidden='true' class='w-2 h-2 rounded-full shrink-0' style='background:" + escapeHtml(f.color) + "'></span>"
       : FT_FOLDER_SVG;
-    html += "<button type='button' class='ft-row ft-folder' data-ft-folder='" + escapeHtml(f.key) + "' aria-expanded='" + String(open) + "' style='--ft-depth:" + depth + "'>"
-      + FT_CHEV_SVG + leadIcon + "<span class='ft-row-name'>" + escapeHtml(label) + "</span></button>";
-    if (open) { html += ftRenderNodeHtml(f, depth + 1, activeDocId); }
+    const moreBtn = isAreaRoot ? "" : "<button type='button' class='ft-row-more' data-ft-folder-menu='" + escapeHtml(f.key) + "' aria-label='Folder actions' title='Folder actions'>⋯</button>";
+    html += "<div class='ft-row-wrap'><button type='button' class='ft-row ft-folder' data-ft-folder='" + escapeHtml(f.key) + "' data-ft-area-root='" + (isAreaRoot ? "1" : "0") + "' aria-expanded='" + String(open) + "' style='--ft-depth:" + depth + "'>"
+      + FT_CHEV_SVG + leadIcon + "<span class='ft-row-name'>" + escapeHtml(label) + "</span></button>" + moreBtn + "</div>";
+    if (open) { html += ftRenderNodeHtml(f, depth + 1, activeDocId, filtering); }
   });
   fileList.forEach(function (f) {
     const isAct = activeDocId && f.docId === activeDocId;
@@ -115,19 +61,26 @@ function renderWorkspaceFilesTree() {
   const activeTab = typeof centerChatTabs !== "undefined" ? centerChatTabs.find(function (tb) { return tb.id === activeCenterTabId; }) : null;
   const fvEl = document.getElementById("center-file-view");
   const activeDocId = activeTab && activeTab.kind === "file" && fvEl && !fvEl.hidden ? activeTab.docId : "";
-  const root = ftBuildTreeModel();
-  const markup = ftRenderNodeHtml(root, 0, activeDocId);
+  const q = String(ftFilterQuery || "").trim().toLowerCase();
+  const root = ftFilterNode(ftBuildTreeModel(), q);
+  const markup = ftRenderNodeHtml(root, 0, activeDocId, Boolean(q));
   if (!markup) {
-    tree.innerHTML = "<div class='p-4 text-xs text-[#738196] text-center'>" + escapeHtml(t("ft_empty_ws")) + "</div>";
+    tree.innerHTML = "<div class='p-4 text-xs text-[#738196] text-center'>" + escapeHtml(q ? t("ft_no_filter_matches") : t("ft_empty_ws")) + "</div>";
     return;
   }
   tree.innerHTML = markup;
   tree.querySelectorAll("[data-ft-folder]").forEach(function (btn) {
+    const k = btn.getAttribute("data-ft-folder") || "";
     btn.addEventListener("click", function () {
-      const k = btn.getAttribute("data-ft-folder") || "";
       if (ftExpanded.has(k)) { ftExpanded.delete(k); } else { ftExpanded.add(k); }
       renderWorkspaceFilesTree();
     });
+    if (btn.getAttribute("data-ft-area-root") !== "1") {
+      btn.addEventListener("contextmenu", function (e) { e.preventDefault(); if (typeof openFolderRowMenu === "function") { openFolderRowMenu(k, btn, { x: e.clientX, y: e.clientY }); } });
+    }
+  });
+  tree.querySelectorAll("[data-ft-folder-menu]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) { e.stopPropagation(); if (typeof openFolderRowMenu === "function") { openFolderRowMenu(btn.getAttribute("data-ft-folder-menu") || "", btn); } });
   });
   tree.querySelectorAll("[data-ft-doc]").forEach(function (btn) {
     const did = btn.getAttribute("data-ft-doc") || "";
@@ -161,15 +114,17 @@ async function openFileInCenterTab(docId, opts) {
   }
   const guide = (typeof allGuides !== "undefined" && Array.isArray(allGuides)) ? allGuides.find(function (g) { return g.doc_id === docId; }) : null;
   if (!guide) { return; }
-  const filename = ftFileNameOf(guide), ext = ftExtOf(filename);
-  const editable = ext === ".md" || ext === ".txt";
+  const filename = ftFileNameOf(guide), ext = ftExtOf(filename), codeLang = ftCodeLabelFor(filename);
+  const isCode = Boolean(codeLang);
+  const editable = ext === ".md" || isCode;
   const areaObj = (typeof knowledgeAreas !== "undefined" ? knowledgeAreas : []).find(function (a) { return a.name === (guide.area || activeKnowledgeArea); });
-  const reuse = !pin ? centerChatTabs.find(function (tb) { return tb.kind === "file" && tb.preview && !tb.dirty; }) : null;
+  const reuse = !pin ? centerChatTabs.find(function (tb) { return tb.kind === "file" && tb.preview && !tb.dirty && !tb.pinned; }) : null;
   const tab = reuse || { id: "ft_" + (++wbTabSeq), kind: "file" };
   Object.assign(tab, {
     docId: docId, title: filename, filename: filename, breadcrumb: ftBuildBreadcrumb(guide, filename),
-    editable: editable, readOnly: !editable || Boolean(areaObj && areaObj.linked),
-    mdMode: "preview", rawContent: null, dirty: false, preview: !pin, loading: false, error: "",
+    editable: editable, isCode: isCode, codeLang: codeLang,
+    readOnly: !editable || Boolean(areaObj && areaObj.linked),
+    mdMode: isCode ? "raw" : "preview", rawContent: null, dirty: false, preview: !pin, loading: false, error: "",
   });
   if (typeof snapshotActiveCenterTab === "function") { snapshotActiveCenterTab(); }
   if (!reuse) { centerChatTabs.push(tab); }
@@ -192,6 +147,7 @@ async function loadFileTabRaw(tab) {
     if (!res.ok) { throw new Error((data && data.detail) || t("md_load_err")); }
     tab.rawContent = String(data.raw_markdown || "");
     if (data.filename) { tab.filename = data.filename; tab.title = data.filename; }
+    if (data.language && !tab.codeLang) { tab.codeLang = String(data.language).toUpperCase(); tab.isCode = true; }
     tab.loading = false;
   } catch (err) {
     tab.loading = false; tab.error = (err && err.message) || t("md_load_err");
@@ -228,9 +184,7 @@ async function saveCenterFileTab(tab) {
 }
 
 function ftPreviewHtmlForTab(tab) {
-  if (tab.editable && tab.rawContent !== null) {
-    return formatMarkdown(ftStripFrontmatter(tab.rawContent));
-  }
+  if (tab.editable && tab.rawContent !== null) { return formatMarkdown(ftStripFrontmatter(tab.rawContent)); }
   const guide = (typeof allGuides !== "undefined" && Array.isArray(allGuides)) ? allGuides.find(function (g) { return g.doc_id === tab.docId; }) : null;
   if (!guide) { return "<div class='wb-empty'>" + escapeHtml(t("md_load_err")) + "</div>"; }
   return "<h1 style='margin:0;font-size:calc(1.45rem * var(--ui-scale,1));font-weight:600'>" + escapeHtml(guide.title || tab.filename) + "</h1>"
@@ -239,12 +193,24 @@ function ftPreviewHtmlForTab(tab) {
     }).join("");
 }
 
+function ftSyncGutter(gutter, text) {
+  if (!gutter) { return; }
+  const count = Math.max(1, String(text || "").split("\n").length);
+  if (Number(gutter.dataset.lines || 0) === count) { return; }
+  gutter.dataset.lines = String(count);
+  const nums = [];
+  for (let i = 1; i <= count; i++) { nums.push(String(i)); }
+  gutter.textContent = nums.join("\n");
+}
+
 function renderCenterFileTab(tab) {
   const box = document.getElementById("center-file-view"); if (!box || !tab) { return; }
   if (tab.editable && tab.rawContent === null && !tab.loading && !tab.error) { loadFileTabRaw(tab); return; }
-  const mode = tab.editable ? (tab.mdMode || "preview") : "preview";
+  const isCode = Boolean(tab.isCode);
+  const mode = isCode ? "raw" : (tab.editable ? (tab.mdMode || "preview") : "preview");
+  const langBadge = isCode && tab.codeLang ? "<span class='cf-lang-badge'>" + escapeHtml(tab.codeLang) + "</span>" : "";
   const roBadge = tab.readOnly ? "<span class='wb-stat-pill'>" + escapeHtml(t("md_readonly_badge")) + "</span>" : "";
-  const modeSeg = tab.editable
+  const modeSeg = tab.editable && !isCode
     ? "<div class='cf-seg' role='group' aria-label='Markdown view mode'>"
       + "<button type='button' data-cf-mode='preview' aria-pressed='" + String(mode === "preview") + "'>" + escapeHtml(t("md_mode_preview")) + "</button>"
       + "<button type='button' data-cf-mode='raw' aria-pressed='" + String(mode === "raw") + "'>" + escapeHtml(t("md_mode_raw")) + "</button>"
@@ -258,27 +224,29 @@ function renderCenterFileTab(tab) {
     bodyHtml = "<div class='cf-preview-pane'><div class='cf-preview-inner'><p class='text-sm text-[#A0B0C8]'>" + escapeHtml(t("graph_loading")) + "</p></div></div>";
   } else if (tab.error) {
     bodyHtml = "<div class='cf-preview-pane'><div class='cf-preview-inner'><div class='wb-empty'>" + escapeHtml(tab.error) + "</div></div></div>";
+  } else if (isCode) {
+    bodyHtml = "<div class='cf-code-wrap'><pre id='cf-code-gutter' class='cf-code-gutter' aria-hidden='true'>1</pre><textarea id='cf-editor-ta' class='cf-editor' spellcheck='false' wrap='off' aria-label='" + escapeHtml(tab.filename) + "'" + (tab.readOnly ? " readonly" : "") + "></textarea></div>";
   } else {
     const edPane = mode === "raw" || mode === "split"
-      ? "<div class='cf-editor-pane'><textarea id='cf-editor-ta' class='cf-editor' spellcheck='false' aria-label='" + escapeHtml(tab.filename) + "'" + (tab.readOnly ? " readonly" : "") + "></textarea></div>"
-      : "";
+      ? "<div class='cf-editor-pane'><textarea id='cf-editor-ta' class='cf-editor' spellcheck='false' aria-label='" + escapeHtml(tab.filename) + "'" + (tab.readOnly ? " readonly" : "") + "></textarea></div>" : "";
     const pvPane = mode === "preview" || mode === "split"
-      ? "<div class='cf-preview-pane'><div id='cf-preview-inner' class='cf-preview-inner md-body md-prose'>" + ftPreviewHtmlForTab(tab) + "</div></div>"
-      : "";
+      ? "<div class='cf-preview-pane'><div id='cf-preview-inner' class='cf-preview-inner md-body md-prose'>" + ftPreviewHtmlForTab(tab) + "</div></div>" : "";
     bodyHtml = edPane + pvPane;
   }
-  box.innerHTML = "<div class='cf-bar'><div class='cf-crumb' title='" + escapeHtml(tab.breadcrumb) + "'>" + FT_FILE_SVG + "<span>" + escapeHtml(tab.breadcrumb) + "</span>" + roBadge + "</div>"
+  box.innerHTML = "<div class='cf-bar'><div class='cf-crumb' title='" + escapeHtml(tab.breadcrumb) + "'>" + FT_FILE_SVG + "<span>" + escapeHtml(tab.breadcrumb) + "</span>" + langBadge + roBadge + "</div>"
     + "<div class='cf-controls'><span id='cf-status' class='cf-status'></span>" + modeSeg + saveBtn
     + "<button id='cf-copilot-btn' type='button' class='wb-btn wb-btn-sm'>✦ " + escapeHtml(t("md_copilot_btn")) + "</button></div></div>"
     + "<div class='cf-body" + (mode === "split" ? " is-split" : "") + "'>" + bodyHtml + "</div>";
   box.querySelectorAll("[data-cf-mode]").forEach(function (b) {
     b.addEventListener("click", function () { tab.mdMode = b.getAttribute("data-cf-mode") || "preview"; renderCenterFileTab(tab); });
   });
-  const ta = document.getElementById("cf-editor-ta");
+  const ta = document.getElementById("cf-editor-ta"), gutter = document.getElementById("cf-code-gutter");
   if (ta) {
     ta.value = tab.rawContent || "";
+    if (gutter) { ftSyncGutter(gutter, ta.value); ta.addEventListener("scroll", function () { gutter.scrollTop = ta.scrollTop; }); }
     ta.addEventListener("input", function () {
       tab.rawContent = ta.value;
+      if (gutter) { ftSyncGutter(gutter, ta.value); }
       if (!tab.dirty && !tab.readOnly) { tab.dirty = true; tab.preview = false; const sb = document.getElementById("cf-save-btn"); if (sb) { sb.disabled = false; sb.classList.add("wb-btn-primary"); } if (typeof renderCenterChatTabs === "function") { renderCenterChatTabs(); } }
       const pv = document.getElementById("cf-preview-inner");
       if (pv) { pv.innerHTML = formatMarkdown(ftStripFrontmatter(tab.rawContent)); }

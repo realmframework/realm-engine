@@ -3,6 +3,7 @@
 from features.ui.i18n_extra_script import I18N_EXTRA_SCRIPT
 from features.ui.i18n_feedback_script import I18N_FEEDBACK_SCRIPT
 from features.ui.i18n_guide_script import I18N_GUIDE_SCRIPT
+from features.ui.i18n_ide_script import I18N_IDE_SCRIPT
 from features.ui.i18n_local_ai_script import I18N_LOCAL_AI_SCRIPT
 from features.ui.i18n_m4_script import I18N_M4_SCRIPT
 from features.ui.i18n_m5_script import I18N_M5_SCRIPT
@@ -139,6 +140,7 @@ const I18N = {
     + I18N_M4_SCRIPT
     + I18N_M5_SCRIPT
     + I18N_SHELL_SCRIPT
+    + I18N_IDE_SCRIPT
     + I18N_LOCAL_AI_SCRIPT
     + r"""
 

@@ -1,7 +1,7 @@
 """Global Command Palette (Cmd/Ctrl+K) and inline / prompt commands with keyboard navigation."""
 
 COMMAND_SCRIPT: str = r"""
-let cmdFiltered = [], cmdActiveIdx = 0;
+let cmdFiltered = [], cmdActiveIdx = 0, cmdPaletteMode = "all";
 let slashFiltered = [], slashActiveIdx = 0, slashMenuOpen = false;
 
 function cmdScore(query, text) {
@@ -17,6 +17,7 @@ function cmdScore(query, text) {
 }
 
 function buildCommandPaletteItems() {
+  if (cmdPaletteMode === "files" && typeof buildQuickFileItems === "function") { return buildQuickFileItems(); }
   const items = [];
   const inChat = Boolean(typeof currentChatId !== "undefined" && currentChatId && Array.isArray(currentTurns) && currentTurns.length);
   items.push(
@@ -140,15 +141,17 @@ function executeCommandItem(idx) {
   if (item && typeof item.run === "function") { item.run(); }
 }
 
-function openCommandPalette() {
+function openCommandPalette(mode) {
   const modal = document.getElementById("cmd-palette-modal"), inp = document.getElementById("cmd-palette-input");
   if (!modal) { return; }
-  if (modal.open) { modal.close(); return; }
+  const nextMode = mode === "files" ? "files" : "all";
+  if (modal.open && cmdPaletteMode === nextMode) { modal.close(); return; }
+  cmdPaletteMode = nextMode;
   closeSlashMenu();
-  if (inp) { inp.value = ""; inp.setAttribute("aria-expanded", "true"); }
+  if (inp) { inp.value = ""; inp.placeholder = t(cmdPaletteMode === "files" ? "cmd_quick_open_ph" : "cmd_placeholder"); inp.setAttribute("aria-expanded", "true"); }
   cmdActiveIdx = 0;
   renderCommandResults("");
-  modal.showModal();
+  if (!modal.open) { modal.showModal(); }
   if (inp) { inp.focus(); }
 }
 

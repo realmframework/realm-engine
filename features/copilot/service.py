@@ -20,13 +20,14 @@ _VALID_PALETTES = frozenset({"realm", "lisbeth", "salander", "wasp", "plague", "
 def _context_block(ctx: cc.CopilotContext) -> str:
     parts = [f"Active view: {ctx.view}"]
     if ctx.doc_id or ctx.filename:
-        ro = " (READ-ONLY — use create_note instead of update_document)" if ctx.doc_readonly else " (editable Markdown)"
+        ro = " (READ-ONLY — use create_note instead of update_document)" if ctx.doc_readonly else " (editable)"
         parts.append(f"Open document: {ctx.filename or ctx.doc_id} [doc_id={ctx.doc_id}]{ro}")
         if ctx.doc_content.strip():
             parts.append(f"<open_document>\n{ctx.doc_content[:18000]}\n</open_document>")
-    for tag, val, lim in (("work_board", ctx.work_summary, 4500), ("active_workflow", ctx.workflow_summary, 4500), ("agent_team", ctx.agents_summary, 3000)):
-        if val.strip():
-            parts.append(f"<{tag}>\n{val[:lim]}\n</{tag}>")
+    if ctx.selected_text.strip():
+        parts.append(f"<selected_excerpt>\n{ctx.selected_text[:5500]}\n</selected_excerpt>")
+    parts.extend(f'<referenced_file name="{ef.filename}" doc_id="{ef.doc_id}">\n{ef.content[:9000]}\n</referenced_file>' for ef in ctx.extra_files[:4] if ef.content.strip())
+    parts.extend(f"<{tag}>\n{val[:lim]}\n</{tag}>" for tag, val, lim in (("work_board", ctx.work_summary, 4500), ("active_workflow", ctx.workflow_summary, 4500), ("agent_team", ctx.agents_summary, 3000)) if val.strip())
     return "\n".join(parts)
 
 
@@ -54,11 +55,10 @@ def build_copilot_messages(req: cc.CopilotChatRequest, language: str, agent_name
 
 def _doc_diff(before: str, after: str) -> tuple[str, str]:
     b, a = before.splitlines(), after.splitlines()
-    rem = [line for tag, i1, i2, _, _ in difflib.SequenceMatcher(None, b, a).get_opcodes() if tag in {"replace", "delete"} for line in b[i1:i2]]
-    add = [line for tag, _, _, j1, j2 in difflib.SequenceMatcher(None, b, a).get_opcodes() if tag in {"replace", "insert"} for line in a[j1:j2]]
+    ops = difflib.SequenceMatcher(None, b, a).get_opcodes()
+    rem = [ln for tag, i1, i2, _, _ in ops if tag in {"replace", "delete"} for ln in b[i1:i2]]
+    add = [ln for tag, _, _, j1, j2 in ops if tag in {"replace", "insert"} for ln in a[j1:j2]]
     return "\n".join(rem)[:3500], "\n".join(add)[:3500]
-
-
 def _norm_doc(payload: dict[str, object], ctx: cc.CopilotContext) -> tuple[dict[str, object], str, str] | None:
     doc_id = str(payload.get("doc_id") or ctx.doc_id).strip()
     if ctx.doc_readonly or not doc_id:

@@ -5,6 +5,7 @@ let wbTabSeq = 0;
 let wbCenterIsChat = true;
 let centerChatTabs = [{ id: "ct_0", kind: "chat", chatId: "", title: "", agentId: "", draft: "" }];
 let activeCenterTabId = "ct_0";
+const WB_PIN_SVG = "<svg class='wb-tab-pin' aria-hidden='true' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M12 17v5'/><path d='M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16h14v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z'/></svg>";
 
 function defaultChatTabLabel() {
   return t("new_chat").replace(/^\+\s*/, "");
@@ -31,14 +32,15 @@ function renderChatTabStrip(listId, tabs, activeId, attrPrefix, onActivate, onCl
     const sel = tb.id === selId;
     const isFile = tb.kind === "file";
     const label = tb.title || fallbackLabel;
-    const iconHtml = isFile && typeof FT_FILE_SVG !== "undefined" ? FT_FILE_SVG : "";
+    const pinHtml = tb.pinned ? WB_PIN_SVG : "";
+    const iconHtml = !tb.pinned && isFile && typeof FT_FILE_SVG !== "undefined" ? FT_FILE_SVG : "";
     const dirtyHtml = isFile && tb.dirty ? "<span class='wb-tab-dirty' aria-label='Unsaved'>•</span>" : "";
     const closeAria = isFile ? "Close file tab" : "Close chat tab";
-    const closeX = tabs.length > 1
+    const closeX = tabs.length > 1 && !tb.pinned
       ? "<span class='wb-tab-x' data-" + attrPrefix + "-close='" + escapeHtml(tb.id) + "' role='button' aria-label='" + closeAria + "'>✕</span>"
       : "";
-    const pvCls = isFile && tb.preview ? " is-preview" : "";
-    return "<button type='button' role='tab' aria-selected='" + String(sel) + "' tabindex='" + (sel ? "0" : "-1") + "' data-" + attrPrefix + "-tab='" + escapeHtml(tb.id) + "' class='wb-zone-tab" + pvCls + "'>" + iconHtml + "<span>" + escapeHtml(label) + "</span>" + dirtyHtml + closeX + "</button>";
+    const pvCls = (isFile && tb.preview ? " is-preview" : "") + (tb.pinned ? " is-pinned" : "");
+    return "<button type='button' role='tab' aria-selected='" + String(sel) + "' tabindex='" + (sel ? "0" : "-1") + "' data-" + attrPrefix + "-tab='" + escapeHtml(tb.id) + "' class='wb-zone-tab" + pvCls + "'>" + pinHtml + iconHtml + "<span>" + escapeHtml(label) + "</span>" + dirtyHtml + closeX + "</button>";
   }).join("");
   list.querySelectorAll("[data-" + attrPrefix + "-tab]").forEach(function (btn) {
     btn.addEventListener("click", function (e) {
@@ -51,6 +53,12 @@ function renderChatTabStrip(listId, tabs, activeId, attrPrefix, onActivate, onCl
       const tb = tabs.find(function (item) { return item.id === tid; });
       if (tb && tb.preview) { tb.preview = false; renderChatTabStrip(listId, tabs, selId, attrPrefix, onActivate, onClose); }
     });
+    if (listId === "center-tablist") {
+      btn.addEventListener("contextmenu", function (e) {
+        e.preventDefault();
+        if (typeof openTabContextMenu === "function") { openTabContextMenu(btn.getAttribute("data-" + attrPrefix + "-tab") || "", { x: e.clientX, y: e.clientY }); }
+      });
+    }
   });
   if (typeof bindRovingTablist === "function") {
     bindRovingTablist("#" + listId + " [role='tab']", function (btn) { onActivate(btn.getAttribute("data-" + attrPrefix + "-tab")); });
@@ -218,12 +226,13 @@ function activateCenterChatTab(tabId) {
 
 async function closeCenterChatTab(tabId, force) {
   const tb = centerChatTabs.find(function (item) { return item.id === tabId; });
-  if (!force && tb && tb.kind === "file" && tb.dirty && typeof confirmUnsavedChanges === "function") {
+  if (!tb) { return true; }
+  if (!force && tb.kind === "file" && tb.dirty && typeof confirmUnsavedChanges === "function") {
     const ch = await confirmUnsavedChanges({ name: tb.filename || tb.title, canSave: !tb.readOnly });
-    if (ch === "cancel") { return; }
+    if (ch === "cancel") { return false; }
     if (ch === "save" && typeof saveCenterFileTab === "function") {
       await saveCenterFileTab(tb);
-      if (tb.dirty) { return; }
+      if (tb.dirty) { return false; }
     }
   }
   const wasActive = activeCenterTabId === tabId;
@@ -233,6 +242,7 @@ async function closeCenterChatTab(tabId, force) {
   }
   if (wasActive) { activateCenterChatTab(centerChatTabs[centerChatTabs.length - 1].id); }
   else { renderCenterChatTabs(); if (typeof renderWorkspaceFilesTree === "function") { renderWorkspaceFilesTree(); } }
+  return true;
 }
 
 function resetCenterChatTabsOnAreaChange() {

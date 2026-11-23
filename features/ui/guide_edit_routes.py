@@ -10,11 +10,12 @@ from fastapi.concurrency import run_in_threadpool
 
 from core.contracts import KnowledgeChunk, WorkspaceConfig
 from core.db import atomic_write_text
+from core.file_types import EDITABLE_TEXT_EXTENSIONS, code_language_for
 from core.linked_vaults import is_linked_vault
 from features.ui import folders, route_helpers, selection, upload_guard, workspace
 
 MAX_MARKDOWN_BYTES = min(upload_guard.MAX_UPLOAD_BYTES, 1_000_000)
-_EDITABLE_SUFFIXES = frozenset({".md", ".txt"})
+_EDITABLE_SUFFIXES = EDITABLE_TEXT_EXTENSIONS
 
 def _safe_slug(title: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_-]+", "_", title.strip()).strip("_").lower()[:64] or "note"
@@ -65,11 +66,11 @@ def build_router(config: Callable[[], WorkspaceConfig], reindex: Callable[[Path]
             if path.is_symlink():
                 raise HTTPException(status_code=400, detail="Symbolic links cannot be edited")
             if path.suffix.lower() not in _EDITABLE_SUFFIXES:
-                raise HTTPException(status_code=400, detail="Only Markdown and plain-text guides can be edited in-app.")
+                raise HTTPException(status_code=400, detail="Only text, Markdown, and source-code files can be opened in the code/text editor.")
             if path.stat().st_size > MAX_MARKDOWN_BYTES:
                 raise HTTPException(status_code=413, detail="Guide is too large to edit in-app")
             rel = path.relative_to(target)
-            return {"doc_id": doc_id, "filename": path.name, "subfolder": "" if rel.parent == Path(".") else rel.parent.as_posix(), "raw_markdown": path.read_text(encoding="utf-8", errors="replace")}
+            return {"doc_id": doc_id, "filename": path.name, "language": code_language_for(path.name), "subfolder": "" if rel.parent == Path(".") else rel.parent.as_posix(), "raw_markdown": path.read_text(encoding="utf-8", errors="replace")}
 
     @router.put("/api/guides/{doc_id:path}/raw")
     async def save_raw_guide(doc_id: str, request: Request) -> dict[str, object]:
@@ -97,7 +98,7 @@ def build_router(config: Callable[[], WorkspaceConfig], reindex: Callable[[Path]
                 if path.is_symlink():
                     raise HTTPException(status_code=400, detail="Symbolic links cannot be edited")
                 if path.suffix.lower() not in _EDITABLE_SUFFIXES:
-                    raise HTTPException(status_code=400, detail="Only Markdown and plain-text guides can be edited in-app.")
+                    raise HTTPException(status_code=400, detail="Only Markdown, text, and source-code files can be edited in-app.")
                 atomic_write_text(path, raw_text.rstrip() + "\n")
                 chunks = reindex(target)
                 return {**workspace.build_workspace_payload(active, chunks), "doc_id": doc_id, "guide": next((g for g in workspace.group_chunks_into_guides(chunks) if g["doc_id"] == doc_id), None)}

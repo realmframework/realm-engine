@@ -14,6 +14,7 @@ from core import contracts
 from core.db import atomic_write_text
 from core.linked_vaults import is_linked_vault
 from features.ui import (
+    file_ops_routes,
     folder_routes,
     folders,
     guide_edit_routes,
@@ -126,6 +127,7 @@ def build_router(
     for sub in (
         preview_routes.build_router(config, convert, inspect),
         folder_routes.build_router(config, reindex),
+        file_ops_routes.build_router(config, reindex),
         guide_edit_routes.build_router(config, reindex),
         native_import_routes.build_router(config, reindex, convert, inspect, slug),
     ):

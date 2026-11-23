@@ -13,14 +13,15 @@ from pypdf import PdfReader
 
 from core.contracts import KnowledgeChunk
 from core.db import atomic_write_text
+from core.file_types import CODE_LANG_BY_EXT, SUPPORTED_EXTENSIONS
 from features.ingestion import topics as _topics
+from features.ingestion.code_extractor import extract_code
 from features.ingestion.office_extractors import extract_csv, extract_pptx, extract_xlsx
 from features.ingestion.parser import parse_markdown_text
 from features.ingestion.topics import infer_document_tags, repair_directory_topics
 
 __all__ = ["SUPPORTED_EXTENSIONS", "convert_bytes_to_markdown", "convert_file_to_chunks", "infer_document_tags", "repair_directory_topics"]
 
-SUPPORTED_EXTENSIONS = {".md", ".txt", ".html", ".docx", ".pdf", ".csv", ".tsv", ".xlsx", ".pptx"}
 SECTION_CHAR_TARGET, MAX_DOCX_XML_BYTES = 1200, 20 * 1024 * 1024
 
 
@@ -98,7 +99,7 @@ def _extract_pdf(raw_bytes: bytes, fallback_title: str) -> tuple[str, list[tuple
 
 
 def convert_bytes_to_markdown(filename: str, raw_bytes: bytes, tags: list[str] | None = None) -> str:
-    """Convert raw file bytes (.md, .txt, .html, .docx, .pdf, .csv, .tsv, .xlsx, .pptx) into Markdown."""
+    """Convert raw document or source-code bytes into structured Markdown for RAG indexing."""
     ext = Path(filename).suffix.lower()
     if ext not in SUPPORTED_EXTENSIONS:
         raise ValueError(f"Unsupported file extension: {ext}")
@@ -108,7 +109,10 @@ def convert_bytes_to_markdown(filename: str, raw_bytes: bytes, tags: list[str] |
         if text.startswith(("#", "---\n", "---\r\n")):
             return _topics.normalize_document_tags(text, filename, tags)
         return _topics.normalize_document_tags(f"# {fallback_title}\n\n## Overview\n{text}", filename, tags)
-    if ext == ".txt":
+    if (code_lang := CODE_LANG_BY_EXT.get(ext)):
+        title, sections = extract_code(raw_bytes.decode("utf-8", errors="replace"), Path(filename).name, code_lang)
+        tags = list(dict.fromkeys([*(tags or []), code_lang, "code"]))
+    elif ext == ".txt":
         paragraphs = [p.strip() for p in re.split(r"\n\s*\n", raw_bytes.decode("utf-8", errors="replace")) if p.strip()]
         title, sections = fallback_title, _chunk_paragraphs(paragraphs)
     elif ext == ".html":

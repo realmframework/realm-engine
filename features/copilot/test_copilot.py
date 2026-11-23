@@ -11,7 +11,12 @@ from fastapi.testclient import TestClient
 
 from core import agent_personas
 from core.contracts import WorkspaceConfig
-from core.copilot_contracts import CopilotChatRequest, CopilotContext, CopilotMessage
+from core.copilot_contracts import (
+    CopilotAttachedFile,
+    CopilotChatRequest,
+    CopilotContext,
+    CopilotMessage,
+)
 from features.copilot import router as copilot_router
 from features.copilot import service
 
@@ -117,3 +122,21 @@ def test_copilot_stream_route_hides_action_xml_and_emits_done(tmp_path: Path) ->
     done = next(d for ev, d in events if ev == "done")
     actions = done["actions"]
     assert isinstance(actions, list) and len(actions) == 1 and actions[0]["kind"] == "create_task"
+
+
+def test_copilot_context_grounds_selected_excerpt_and_extra_files() -> None:
+    req = CopilotChatRequest(
+        messages=[CopilotMessage(role="user", content="Compare the selection with server.js")],
+        context=CopilotContext(
+            view="file",
+            doc_id="docs/API",
+            filename="API.md",
+            doc_content="# API\nGET /health\n",
+            selected_text="GET /health",
+            extra_files=[CopilotAttachedFile(doc_id="src/server__js", filename="server.js", content="app.get('/health', ok);")],
+        ),
+    )
+    sys_msg = service.build_copilot_messages(req, "en")[0]["content"]
+    assert "<selected_excerpt>\nGET /health\n</selected_excerpt>" in sys_msg
+    assert '<referenced_file name="server.js" doc_id="src/server__js">' in sys_msg
+    assert "app.get('/health', ok);" in sys_msg

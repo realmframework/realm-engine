@@ -10,6 +10,7 @@ from fastapi import HTTPException, Request
 
 from core import contracts
 from core.db import atomic_write_text, backup_corrupt_file
+from core.file_types import SUPPORTED_EXTENSIONS
 from core.runtime import data_root, is_loopback_url, ollama_base_url
 from features.ui import selection
 from features.ui.areas import area_path, list_areas
@@ -19,7 +20,7 @@ from features.ui.starter_prompts import build_starter_prompts
 REPO_ROOT = data_root()
 WORKSPACE_FILE = REPO_ROOT / "workspace.json"
 STATE_LOCK = RLock()
-ALLOWED_UPLOAD_EXTENSIONS = {".md", ".txt", ".html", ".pdf", ".docx", ".csv", ".tsv", ".xlsx", ".pptx"}
+ALLOWED_UPLOAD_EXTENSIONS = set(SUPPORTED_EXTENSIONS)
 OLLAMA_TAGS_URL = f"{ollama_base_url()}/api/tags"
 _ORIG_HTTPX_GET = httpx.get
 

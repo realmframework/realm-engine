@@ -11,6 +11,8 @@ from features.ui.focus_template import FOCUS_MODALS_HTML, FOCUS_VIEW_HTML
 from features.ui.form_styles import FORM_STYLES_CSS
 from features.ui.guide_template import GUIDE_MODAL_HTML, GUIDE_STYLES_CSS
 from features.ui.icons import ICON_GLOBE, ICON_MIC
+from features.ui.ide_menus_template import IDE_MENUS_HTML
+from features.ui.ide_styles import IDE_STYLES_CSS
 from features.ui.impact_focus_styles import IMPACT_FOCUS_STYLES_CSS
 from features.ui.impact_template import IMPACT_MODALS_HTML, IMPACT_VIEW_HTML
 from features.ui.modals import MODALS_HTML
@@ -180,6 +182,7 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
     + POWER_STYLES_CSS
     + WORK_BOARD_STYLES_CSS
     + SPLIT_STYLES_CSS
+    + IDE_STYLES_CSS
     + IMPACT_FOCUS_STYLES_CSS
     + WORKFLOW_STUDIO_STYLES_CSS
     + SHELL_STYLES_CSS
@@ -296,6 +299,7 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
     + FOCUS_MODALS_HTML
     + IMPACT_MODALS_HTML
     + WORKFLOWS_MODALS_HTML
+    + IDE_MENUS_HTML
     + "\n"
     + CLIENT_SCRIPT
     + "\n</body>\n</html>\n"

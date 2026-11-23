@@ -99,14 +99,11 @@ SIDEBAR_HTML: str = (
     '<button id="ft-opt-newtab" type="button" role="menuitemcheckbox" aria-checked="true" class="shell-pop-item bp-check-item"><span data-i18n="ft_opt_newtab">Always open in new tab</span></button>'
     '<div class="shell-pop-sep"><button id="ft-act-reveal-now" type="button" class="shell-pop-item"><span data-i18n="ft_reveal_now">Reveal active file</span></button>'
     '<button id="tree-refresh-btn" type="button" class="shell-pop-item"><span data-i18n="ft_refresh">Refresh files</span></button></div></div></div>'
-    '<div id="ft-file-menu" popover="auto" class="rail-popover" aria-label="File actions"><div focusgroup="menu nomemory" class="bp-menu-group">'
-    '<button type="button" data-fm-act="open-pin" class="shell-pop-item"><span data-i18n="ft_act_open_tab">Open in new tab</span></button>'
-    '<button type="button" data-fm-act="copilot" class="shell-pop-item"><span data-i18n="ft_act_copilot">Open &amp; ask Copilot</span></button>'
-    '<button type="button" data-fm-act="move" data-fm-writable="1" class="shell-pop-item"><span data-i18n="ft_act_move">Move to folder…</span></button>'
-    '<button type="button" data-fm-act="copy-path" class="shell-pop-item"><span data-i18n="ft_act_copy">Copy path</span></button>'
-    '<button type="button" data-fm-act="anonymize" data-fm-writable="1" class="shell-pop-item"><span data-i18n="ft_act_anon">Anonymize (GDPR)</span></button>'
-    '<div data-fm-writable="1" class="shell-pop-sep"><button type="button" data-fm-act="delete" class="shell-pop-item ft-pop-danger"><span data-i18n="delete_btn">Delete</span></button></div>'
-    "</div></div>"
+    '<div class="ft-filter-wrap">'
+    '<svg class="ft-filter-ico" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>'
+    '<input id="ft-filter-input" type="text" autocomplete="off" spellcheck="false" placeholder="Filter files…" data-i18n-placeholder="ft_filter_ph" aria-label="Filter files" class="ft-filter-input"/>'
+    '<button id="ft-filter-clear" type="button" hidden aria-label="Clear filter" class="ft-filter-clear">✕</button>'
+    "</div>"
     '<nav id="workspace-files-tree" aria-label="Workspace files" class="ft-tree"></nav>'
     "</div>"
     '<div id="drawer-panel-work" hidden class="drawer-panel">'

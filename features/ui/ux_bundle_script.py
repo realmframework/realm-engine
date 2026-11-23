@@ -4,6 +4,7 @@ from features.ui.agent_builder_script import AGENT_BUILDER_SCRIPT
 from features.ui.comfort_script import COMFORT_SCRIPT
 from features.ui.command_script import COMMAND_SCRIPT
 from features.ui.copilot_controls_script import COPILOT_CONTROLS_SCRIPT
+from features.ui.copilot_extras_script import COPILOT_EXTRAS_SCRIPT
 from features.ui.copilot_script import COPILOT_SCRIPT
 from features.ui.eco_sync_script import ECO_SYNC_SCRIPT
 from features.ui.editor_script import EDITOR_SCRIPT
@@ -11,6 +12,7 @@ from features.ui.file_explorer_script import FILE_EXPLORER_SCRIPT
 from features.ui.file_tab_script import FILE_TAB_SCRIPT
 from features.ui.focus_script import FOCUS_SCRIPT
 from features.ui.guide_script import GUIDE_SCRIPT
+from features.ui.ide_actions_script import IDE_ACTIONS_SCRIPT
 from features.ui.impact_script import IMPACT_SCRIPT
 from features.ui.local_ai_script import LOCAL_AI_SCRIPT
 from features.ui.mention_script import MENTION_SCRIPT
@@ -46,8 +48,10 @@ UX_BUNDLE_SCRIPT: str = (
     + WORKBENCH_TABS_SCRIPT
     + FILE_EXPLORER_SCRIPT
     + FILE_TAB_SCRIPT
+    + IDE_ACTIONS_SCRIPT
     + UNSAVED_GUARD_SCRIPT
     + COPILOT_CONTROLS_SCRIPT
+    + COPILOT_EXTRAS_SCRIPT
     + COPILOT_SCRIPT
     + LOCAL_AI_SCRIPT
     + r"""
@@ -72,8 +76,10 @@ function bindAllUXBundles() {
     typeof bindWorkbenchTabsUX === "function" && bindWorkbenchTabsUX,
     typeof bindFileExplorerUX === "function" && bindFileExplorerUX,
     typeof bindFileTabUX === "function" && bindFileTabUX,
+    typeof bindIdeActionsUX === "function" && bindIdeActionsUX,
     typeof bindUnsavedGuardUX === "function" && bindUnsavedGuardUX,
     typeof bindCopilotControlsUX === "function" && bindCopilotControlsUX,
+    typeof bindCopilotExtrasUX === "function" && bindCopilotExtrasUX,
     typeof bindCopilotUX === "function" && bindCopilotUX,
     typeof bindLocalAiUX === "function" && bindLocalAiUX,
   ]) {

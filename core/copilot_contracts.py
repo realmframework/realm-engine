@@ -24,12 +24,20 @@ class CopilotMessage(StrictModel):
     content: str = Field(..., min_length=1, max_length=12000)
 
 
+class CopilotAttachedFile(StrictModel):
+    doc_id: str = Field(..., min_length=1, max_length=260)
+    filename: str = Field(..., min_length=1, max_length=200)
+    content: str = Field(default="", max_length=12000)
+
+
 class CopilotContext(StrictModel):
     view: CopilotViewKind = "chat"
     doc_id: str = Field(default="", max_length=260)
     filename: str = Field(default="", max_length=200)
     doc_content: str = Field(default="", max_length=24000)
     doc_readonly: bool = False
+    selected_text: str = Field(default="", max_length=6000)
+    extra_files: list[CopilotAttachedFile] = Field(default_factory=list, max_length=4)
     work_summary: str = Field(default="", max_length=6000)
     workflow_summary: str = Field(default="", max_length=6000)
     agents_summary: str = Field(default="", max_length=4000)

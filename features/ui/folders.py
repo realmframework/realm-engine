@@ -4,7 +4,9 @@ import os
 import re
 from pathlib import Path, PurePosixPath
 
-EXTENSIONS = (".md", ".txt", ".html", ".docx", ".pdf", ".csv", ".tsv", ".xlsx", ".pptx")
+from core.file_types import ALL_EXTENSIONS, CODE_EXTENSIONS, is_ignored_relpath
+
+EXTENSIONS = ALL_EXTENSIONS
 _WIN_RESERVED = frozenset({"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))})
 
 
@@ -54,7 +56,11 @@ def resolve_document(base: Path, doc_id: str) -> Path:
     probe = contained_path(base, doc_id)
     parent = probe.parent
     if parent.is_dir():
-        stem_lower = probe.name.lower()
+        stem_lower, want_ext = probe.name.lower(), ""
+        if "__" in stem_lower:
+            cand_stem, cand_ext = stem_lower.rsplit("__", 1)
+            if cand_stem and f".{cand_ext}" in EXTENSIONS:
+                stem_lower, want_ext = cand_stem, f".{cand_ext}"
         by_ext: dict[str, Path] = {}
         for entry in sorted(parent.iterdir()):
             if entry.stem.lower() != stem_lower or entry.suffix.lower() not in EXTENSIONS:
@@ -63,6 +69,8 @@ def resolve_document(base: Path, doc_id: str) -> Path:
                 raise ValueError("Symbolic links cannot be used as subfolders or guides")
             if entry.is_file() and entry.resolve().is_relative_to(base.resolve()):
                 by_ext.setdefault(entry.suffix.lower(), entry)
+        if want_ext and want_ext in by_ext:
+            return by_ext[want_ext]
         for extension in EXTENSIONS:
             if extension in by_ext:
                 return by_ext[extension]
@@ -73,7 +81,10 @@ def list_subfolders(base: Path) -> list[dict[str, object]]:
     folders: dict[str, int] = {"": 0}
     documents: set[str] = set()
     for path in base.rglob("*"):
-        relative = path.relative_to(base).as_posix()
+        rel_obj = path.relative_to(base)
+        if is_ignored_relpath(rel_obj):
+            continue
+        relative = rel_obj.as_posix()
         try:
             contained_path(base, relative)
         except ValueError:
@@ -81,7 +92,7 @@ def list_subfolders(base: Path) -> list[dict[str, object]]:
         if path.is_dir():
             folders.setdefault(relative, 0)
         elif path.is_file() and path.suffix.lower() in EXTENSIONS:
-            documents.add(path.relative_to(base).with_suffix("").as_posix())
+            documents.add(rel_obj.as_posix() if path.suffix.lower() in CODE_EXTENSIONS else rel_obj.with_suffix("").as_posix())
     for document in documents:
         parent = PurePosixPath(document).parent
         folders[parent.as_posix() if parent != PurePosixPath(".") else ""] += 1
