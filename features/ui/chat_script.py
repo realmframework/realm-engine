@@ -129,9 +129,10 @@ async function loadRecentChats() {
     const data = await safeJson(res);
     if (version === areaVersion && op === recentChatsOp && free === Boolean(typeof freeChatMode !== "undefined" && freeChatMode) && Array.isArray(data)) {
       savedChats = data; renderRecentChats();
-      if (currentChatId && typeof syncCenterChatTab === "function") {
+      if (currentChatId && typeof centerChatTabs !== "undefined") {
         const cur = savedChats.find(function (c) { return c.chat_id === currentChatId; });
-        if (cur) { syncCenterChatTab(currentChatId, cur.title || ""); }
+        const tb = cur ? centerChatTabs.find(function (x) { return x.kind !== "file" && x.chatId === currentChatId; }) : null;
+        if (tb && cur && cur.title && tb.title !== cur.title) { tb.title = cur.title; if (typeof renderCenterChatTabs === "function") { renderCenterChatTabs(); } }
       }
     }
   } catch (_e) {}
@@ -141,7 +142,11 @@ function renderRecentChats() {
   if (!Array.isArray(savedChats) || !savedChats.length) { listEl.innerHTML = "<div class='px-4 py-1.5 text-xs text-[#738196]'>" + escapeHtml(t("no_recent_chats")) + "</div>"; return; }
   listEl.innerHTML = savedChats.map(function (c) {
     const rowCls = c.chat_id === currentChatId ? "group w-full flex items-center justify-between gap-1 px-3 py-2 rounded-lg bg-[#4BB8E8]/15 text-[#4BB8E8] text-sm font-medium transition-colors" : "group w-full flex items-center justify-between gap-1 px-3 py-2 rounded-lg text-sm text-[#A0B0C8] hover:text-[#EEF2F8] hover:bg-white/[0.04] transition-colors";
-    return "<div class='" + rowCls + "'><button type='button' data-open-chat='" + escapeHtml(c.chat_id) + "' class='flex-1 text-left truncate'>" + escapeHtml(c.title) + "</button><button type='button' data-split-chat='" + escapeHtml(c.chat_id) + "' title='" + escapeHtml(t("sp_open_in_split")) + "' aria-label='" + escapeHtml(t("sp_open_in_split")) + "' class='opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 text-[#738196] hover:text-[#4BB8E8] p-0.5 transition-opacity'><svg aria-hidden='true' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7'><rect x='3' y='4' width='18' height='16' rx='2'/><path d='M12 4v16'/></svg></button><button type='button' data-del-chat='" + escapeHtml(c.chat_id) + "' aria-label='" + escapeHtml(t("aria_del_chat", { title: c.title })) + "' class='opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 text-xs text-[#738196] hover:text-[#EEF2F8] px-1 transition-opacity'>✕</button></div>";
+    const isWork = typeof wbWorkingChats !== "undefined" && wbWorkingChats.has(c.chat_id);
+    const isUnrd = !isWork && typeof wbUnreadChats !== "undefined" && wbUnreadChats.has(c.chat_id);
+    const badge = isWork && typeof WB_SPIN_SVG !== "undefined" ? ("<span title='" + escapeHtml(t("st_chat_working")) + "' aria-label='" + escapeHtml(t("st_chat_working")) + "' class='inline-flex items-center shrink-0'>" + WB_SPIN_SVG + "</span>")
+      : (isUnrd ? ("<span class='wb-tab-unread' title='" + escapeHtml(t("st_chat_unread")) + "' aria-label='" + escapeHtml(t("st_chat_unread")) + "'></span>") : "");
+    return "<div class='" + rowCls + "'>" + badge + "<button type='button' data-open-chat='" + escapeHtml(c.chat_id) + "' class='flex-1 text-left truncate'>" + escapeHtml(c.title) + "</button><button type='button' data-split-chat='" + escapeHtml(c.chat_id) + "' title='" + escapeHtml(t("sp_open_in_split")) + "' aria-label='" + escapeHtml(t("sp_open_in_split")) + "' class='opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 text-[#738196] hover:text-[#4BB8E8] p-0.5 transition-opacity'><svg aria-hidden='true' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7'><rect x='3' y='4' width='18' height='16' rx='2'/><path d='M12 4v16'/></svg></button><button type='button' data-del-chat='" + escapeHtml(c.chat_id) + "' aria-label='" + escapeHtml(t("aria_del_chat", { title: c.title })) + "' class='opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 text-xs text-[#738196] hover:text-[#EEF2F8] px-1 transition-opacity'>✕</button></div>";
   }).join("");
   listEl.querySelectorAll("[data-open-chat]").forEach(function (btn) { btn.addEventListener("click", function () { openSavedChat(btn.getAttribute("data-open-chat") || ""); }); });
   listEl.querySelectorAll("[data-split-chat]").forEach(function (btn) {
@@ -166,6 +171,7 @@ async function openSavedChat(chatId) {
       if (op !== openChatOp || version !== areaVersion) { return; }
     }
     currentChatId = session.chat_id; adoptChatScope(session);
+    if (typeof wbUnreadChats !== "undefined") { wbUnreadChats.delete(session.chat_id); }
     activeAttachedNotes = (session.attached_notes || []).map(function (n) { return { name: n.name || "Note", chars: (n.content || "").length }; });
     if (typeof renderAttachedChips === "function") { renderAttachedChips(); }
     currentTurns = (session.turns || []).map(function (t) { return Object.assign({}, t, { collapsed: Boolean(t.ask_tutor) }); });

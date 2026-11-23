@@ -14,7 +14,11 @@ from core.linked_vaults import cache_index_for_dir, cache_study_path, is_linked_
 from core.work_contracts import WorkBoardState
 from core.workflow_contracts import WorkflowState
 from features.ui import chat_store, folders, workspace
-from features.ui.backup_archive import MAX_ARCHIVE_BYTES, bounded_bytes
+from features.ui.backup_archive import (
+    MAX_ARCHIVE_BYTES,
+    bounded_bytes,
+    is_backup_doc_path,
+)
 from features.ui.backup_state import restored_state
 
 
@@ -29,7 +33,7 @@ def apply_restore(entries: dict[str, bytes], active: WorkspaceConfig, activate: 
     if any(folder.exists() and not folder.is_dir() for folder in wanted_folders):
         raise HTTPException(status_code=409, detail="A restored folder conflicts with an existing file. Choose a new workspace.")
     for name, raw in entries.items():
-        if not name.lower().endswith(".md"):
+        if not is_backup_doc_path(name):
             continue
         path = folders.contained_path(target, name)
         if path.exists():
@@ -79,4 +83,4 @@ def apply_restore(entries: dict[str, bytes], active: WorkspaceConfig, activate: 
             else:
                 atomic_write_bytes(path, raw)
         raise
-    return {**payload, "restored_files": sum(name.lower().endswith(".md") for name in entries), "added_files": len(created), "restored_chats": len(chats)}
+    return {**payload, "restored_files": sum(is_backup_doc_path(name) for name in entries), "added_files": len(created), "restored_chats": len(chats)}

@@ -29,9 +29,11 @@ function ftRenderNodeHtml(node, depth, activeDocId, filtering) {
   });
   fileList.forEach(function (f) {
     const isAct = activeDocId && f.docId === activeDocId;
+    const isDirty = typeof centerChatTabs !== "undefined" && centerChatTabs.some(function (tb) { return tb.kind === "file" && tb.docId === f.docId && tb.dirty; });
     const extTxt = f.ext ? f.ext.slice(1) : "";
+    const dirtyDot = isDirty ? "<span class='ft-dirty-dot' title='" + escapeHtml(t("st_file_modified")) + "' aria-label='" + escapeHtml(t("st_file_modified")) + "'></span>" : "";
     html += "<div class='ft-row-wrap'><button type='button' class='ft-row ft-file" + (isAct ? " is-active" : "") + "' data-ft-doc='" + escapeHtml(f.docId) + "' title='" + escapeHtml(f.title) + "' style='--ft-depth:" + depth + "'>"
-      + FT_FILE_SVG + "<span class='ft-row-name'>" + escapeHtml(f.filename) + "</span>"
+      + FT_FILE_SVG + "<span class='ft-row-name'>" + escapeHtml(f.filename) + "</span>" + dirtyDot
       + (extTxt ? ("<span class='ft-ext'>" + escapeHtml(extTxt) + "</span>") : "") + "</button>"
       + "<button type='button' class='ft-row-more' data-ft-menu='" + escapeHtml(f.docId) + "' aria-label='File actions' title='File actions'>⋯</button></div>";
   });
@@ -62,6 +64,7 @@ function renderWorkspaceFilesTree() {
   const fvEl = document.getElementById("center-file-view");
   const activeDocId = activeTab && activeTab.kind === "file" && fvEl && !fvEl.hidden ? activeTab.docId : "";
   const q = String(ftFilterQuery || "").trim().toLowerCase();
+  if (typeof ideRestorePinnedTabs === "function") { ideRestorePinnedTabs(); }
   const root = ftFilterNode(ftBuildTreeModel(), q);
   const markup = ftRenderNodeHtml(root, 0, activeDocId, Boolean(q));
   if (!markup) {
@@ -203,6 +206,20 @@ function ftSyncGutter(gutter, text) {
   gutter.textContent = nums.join("\n");
 }
 
+function ftCursorPos(ta) {
+  if (!ta) { return ""; }
+  const pre = ta.value.slice(0, ta.selectionStart || 0).split("\n");
+  return "Ln " + pre.length + ", Col " + (pre[pre.length - 1].length + 1);
+}
+
+function ftUpdateStatusBar(tab, ta) {
+  const posEl = document.getElementById("cf-sb-pos"), cntEl = document.getElementById("cf-sb-lines"), stEl = document.getElementById("cf-sb-state");
+  const txt = ta ? ta.value : (tab.rawContent || "");
+  if (posEl) { posEl.textContent = ta ? ftCursorPos(ta) : ""; }
+  if (cntEl) { cntEl.textContent = t("cf_lines_n", { n: Math.max(1, String(txt).split("\n").length) }); }
+  if (stEl) { stEl.textContent = tab.readOnly ? t("md_readonly_badge") : (tab.dirty ? t("st_file_modified") : t("st_file_saved")); }
+}
+
 function renderCenterFileTab(tab) {
   const box = document.getElementById("center-file-view"); if (!box || !tab) { return; }
   if (tab.editable && tab.rawContent === null && !tab.loading && !tab.error) { loadFileTabRaw(tab); return; }
@@ -233,10 +250,13 @@ function renderCenterFileTab(tab) {
       ? "<div class='cf-preview-pane'><div id='cf-preview-inner' class='cf-preview-inner md-body md-prose'>" + ftPreviewHtmlForTab(tab) + "</div></div>" : "";
     bodyHtml = edPane + pvPane;
   }
+  const sbHtml = !tab.loading && !tab.error
+    ? "<div class='cf-statusbar'><span class='cf-statusbar-grp'><span id='cf-sb-pos'></span><span id='cf-sb-lines'></span></span><span class='cf-statusbar-grp'><span id='cf-sb-state'></span><span>UTF-8</span><span>" + escapeHtml(isCode ? tab.codeLang : "Markdown") + "</span></span></div>"
+    : "";
   box.innerHTML = "<div class='cf-bar'><div class='cf-crumb' title='" + escapeHtml(tab.breadcrumb) + "'>" + FT_FILE_SVG + "<span>" + escapeHtml(tab.breadcrumb) + "</span>" + langBadge + roBadge + "</div>"
     + "<div class='cf-controls'><span id='cf-status' class='cf-status'></span>" + modeSeg + saveBtn
     + "<button id='cf-copilot-btn' type='button' class='wb-btn wb-btn-sm'>✦ " + escapeHtml(t("md_copilot_btn")) + "</button></div></div>"
-    + "<div class='cf-body" + (mode === "split" ? " is-split" : "") + "'>" + bodyHtml + "</div>";
+    + "<div class='cf-body" + (mode === "split" ? " is-split" : "") + "'>" + bodyHtml + "</div>" + sbHtml;
   box.querySelectorAll("[data-cf-mode]").forEach(function (b) {
     b.addEventListener("click", function () { tab.mdMode = b.getAttribute("data-cf-mode") || "preview"; renderCenterFileTab(tab); });
   });
@@ -244,10 +264,13 @@ function renderCenterFileTab(tab) {
   if (ta) {
     ta.value = tab.rawContent || "";
     if (gutter) { ftSyncGutter(gutter, ta.value); ta.addEventListener("scroll", function () { gutter.scrollTop = ta.scrollTop; }); }
+    const syncCursor = function () { ftUpdateStatusBar(tab, ta); };
+    ta.addEventListener("click", syncCursor); ta.addEventListener("keyup", syncCursor); ta.addEventListener("select", syncCursor);
     ta.addEventListener("input", function () {
       tab.rawContent = ta.value;
       if (gutter) { ftSyncGutter(gutter, ta.value); }
-      if (!tab.dirty && !tab.readOnly) { tab.dirty = true; tab.preview = false; const sb = document.getElementById("cf-save-btn"); if (sb) { sb.disabled = false; sb.classList.add("wb-btn-primary"); } if (typeof renderCenterChatTabs === "function") { renderCenterChatTabs(); } }
+      if (!tab.dirty && !tab.readOnly) { tab.dirty = true; tab.preview = false; const sb = document.getElementById("cf-save-btn"); if (sb) { sb.disabled = false; sb.classList.add("wb-btn-primary"); } if (typeof renderCenterChatTabs === "function") { renderCenterChatTabs(); } renderWorkspaceFilesTree(); }
+      ftUpdateStatusBar(tab, ta);
       const pv = document.getElementById("cf-preview-inner");
       if (pv) { pv.innerHTML = formatMarkdown(ftStripFrontmatter(tab.rawContent)); }
     });
@@ -265,6 +288,7 @@ function renderCenterFileTab(tab) {
   const sBtn = document.getElementById("cf-save-btn"), cBtn = document.getElementById("cf-copilot-btn");
   if (sBtn) { sBtn.addEventListener("click", function () { saveCenterFileTab(tab); }); }
   if (cBtn) { cBtn.addEventListener("click", function () { if (typeof openCopilotForCurrentContext === "function") { openCopilotForCurrentContext(); } }); }
+  ftUpdateStatusBar(tab, ta);
   renderWorkspaceFilesTree();
   if (typeof syncCopilotContextUI === "function") { syncCopilotContextUI(); }
 }

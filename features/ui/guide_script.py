@@ -19,9 +19,10 @@ function setGuideTab(name) {
 function bindGuideUX() {
   const modal = document.getElementById("guide-modal");
   const tablist = document.getElementById("guide-tabs");
-  const searchKbd = document.getElementById("guide-kbd-search");
-  if (searchKbd && !/mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent || "")) {
-    searchKbd.textContent = "Ctrl+K";
+  if (!/mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent || "")) {
+    [["guide-kbd-search", "Ctrl+K"], ["guide-kbd-files", "Ctrl+P"], ["guide-kbd-copilot", "Ctrl+J"], ["guide-kbd-save", "Ctrl+S"]].forEach(function ([id, txt]) {
+      const el = document.getElementById(id); if (el) { el.textContent = txt; }
+    });
   }
   if (tablist) {
     tablist.querySelectorAll("[data-guide-tab]").forEach((btn) => {

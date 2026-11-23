@@ -45,6 +45,10 @@ GUIDE_MODAL_HTML: str = r"""<dialog id="guide-modal" closedby="any" aria-labelle
         <p data-i18n="guide_mention_d" class="guide-note">Type @ anywhere in your message (for example “What do you think @erika?”) to ask another specialist in the same chat. You can also assign each agent its own model in Agents.</p>
       </div>
       <div class="guide-card">
+        <h3 data-i18n="guide_copilot_t" class="guide-card-title">Right Sidebar Copilot ( #file )</h3>
+        <p data-i18n="guide_copilot_d" class="guide-note">Press ⌘J to open Copilot beside any document, code file, board, or workflow. Highlight text to ask or edit selections, type # to attach extra files, and review diffs with 1-click Apply &amp; Undo.</p>
+      </div>
+      <div class="guide-card">
         <h3 data-i18n="guide_chat_t" class="guide-card-title">Attachments &amp; Answer Actions</h3>
         <p data-i18n="guide_chat_attach" class="guide-note">Click + in the prompt bar to attach files just for the current chat. Click ··· under any reply for a Second Opinion, structured Answer Format, or PDF export.</p>
       </div>
@@ -71,6 +75,9 @@ GUIDE_MODAL_HTML: str = r"""<dialog id="guide-modal" closedby="any" aria-labelle
       <div class="guide-card">
         <h3 data-i18n="guide_keys_t" class="guide-card-title">Useful Shortcuts</h3>
         <div class="guide-row"><code id="guide-kbd-search" class="guide-kbd">⌘K</code><span data-i18n="guide_k_search">Search documents, chats &amp; actions</span></div>
+        <div class="guide-row"><code id="guide-kbd-files" class="guide-kbd">⌘P</code><span data-i18n="guide_k_files">Quick open any Markdown or code file</span></div>
+        <div class="guide-row"><code id="guide-kbd-copilot" class="guide-kbd">⌘J</code><span data-i18n="guide_k_copilot">Toggle Right Sidebar Copilot</span></div>
+        <div class="guide-row"><code id="guide-kbd-save" class="guide-kbd">⌘S</code><span data-i18n="guide_k_save">Save active file tab</span></div>
         <div class="guide-row"><code class="guide-kbd">Shift + Enter</code><span data-i18n="guide_k_newline">Add a new line in the prompt box</span></div>
         <div class="guide-row"><code class="guide-kbd">Esc</code><span data-i18n="guide_k_esc">Stop an answer or close a popup</span></div>
       </div>

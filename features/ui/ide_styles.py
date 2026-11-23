@@ -37,4 +37,14 @@ IDE_STYLES_CSS: str = r"""<style id="realm-ide-styles">
 .cp-file-opt-name { font-weight: 500; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cp-file-opt-sub { font-family: ui-monospace, monospace; font-size: calc(0.7rem * var(--ui-scale, 1)); color: var(--text-subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 9rem; }
 .ft-pop-sep { height: 1px; margin: 0.25rem 0.4rem; background: var(--border-subtle); }
+@keyframes wb-spin { to { transform: rotate(360deg); } }
+.wb-tab-spin { width: 0.85rem; height: 0.85rem; color: var(--accent); flex-shrink: 0; animation: wb-spin 0.85s linear infinite; }
+.wb-tab-unread { width: 0.46rem; height: 0.46rem; border-radius: 999px; background: var(--accent); box-shadow: 0 0 0 2.5px color-mix(in oklab, var(--accent) 24%, transparent); flex-shrink: 0; }
+.wb-tab-dirty-dot { width: 0.48rem; height: 0.48rem; border-radius: 999px; background: var(--accent); flex-shrink: 0; margin-inline: 0.28rem; }
+.wb-zone-tab.is-dirty:not(.is-pinned):not(:hover) .wb-tab-x { display: none; }
+.wb-zone-tab.is-dirty:not(.is-pinned):hover .wb-tab-dirty-dot { display: none; }
+.ft-dirty-dot { width: 0.44rem; height: 0.44rem; border-radius: 999px; background: var(--accent); flex-shrink: 0; }
+.cf-statusbar { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.26rem 1rem; border-top: 1px solid var(--border-subtle); background: color-mix(in oklab, var(--surface-raised) 72%, transparent); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: calc(0.71rem * var(--ui-scale, 1)); color: var(--text-subtle); }
+.cf-statusbar-grp { display: inline-flex; align-items: center; gap: 0.8rem; min-width: 0; }
+@media (prefers-reduced-motion: reduce) { .wb-tab-spin { animation: none; opacity: 0.85; } }
 </style>"""

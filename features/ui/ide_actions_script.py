@@ -3,6 +3,65 @@
 IDE_ACTIONS_SCRIPT: str = r"""
 let tcmTabId = "";
 let ftMenuFolderKey = "";
+let idePinnedScopeRestored = "";
+
+function idePinnedStorageKey() {
+  const dirs = typeof selectedAreas === "function" ? selectedAreas() : [];
+  const scope = dirs.length ? dirs.slice().sort().join(",") : ((typeof activeKnowledgeArea !== "undefined" && activeKnowledgeArea) || "global");
+  return "realm_pinned_tabs::" + scope;
+}
+
+function ideSavePinnedTabs() {
+  if (typeof centerChatTabs === "undefined") { return; }
+  const pinnedIds = centerChatTabs.filter(function (tb) { return tb.kind === "file" && tb.pinned && tb.docId; }).map(function (tb) { return tb.docId; }).slice(0, 8);
+  safeStorageSet(idePinnedStorageKey(), JSON.stringify(pinnedIds));
+}
+
+function ideRestorePinnedTabs() {
+  const key = idePinnedStorageKey();
+  if (key === idePinnedScopeRestored || typeof allGuides === "undefined" || !Array.isArray(allGuides) || !allGuides.length || typeof centerChatTabs === "undefined") { return; }
+  idePinnedScopeRestored = key;
+  try {
+    const raw = safeStorageGet(key);
+    const ids = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(ids) || !ids.length) { return; }
+    let added = false;
+    ids.forEach(function (docId) {
+      if (centerChatTabs.some(function (tb) { return tb.kind === "file" && tb.docId === docId; })) { return; }
+      const g = allGuides.find(function (x) { return x.doc_id === docId; });
+      if (!g) { return; }
+      const fn = ftFileNameOf(g), ext = ftExtOf(fn), cl = ftCodeLabelFor(fn), isCode = Boolean(cl);
+      const areaObj = (typeof knowledgeAreas !== "undefined" ? knowledgeAreas : []).find(function (a) { return a.name === (g.area || activeKnowledgeArea); });
+      centerChatTabs.unshift({ id: "ft_" + (++wbTabSeq), kind: "file", docId: docId, title: fn, filename: fn, breadcrumb: ftBuildBreadcrumb(g, fn), editable: ext === ".md" || isCode, isCode: isCode, codeLang: cl, readOnly: !(ext === ".md" || isCode) || Boolean(areaObj && areaObj.linked), mdMode: isCode ? "raw" : "preview", rawContent: null, dirty: false, preview: false, pinned: true, loading: false, error: "" });
+      added = true;
+    });
+    if (added && typeof renderCenterChatTabs === "function") { renderCenterChatTabs(); }
+  } catch (_e) {}
+}
+
+async function createAnyFileInFolder(subfolder, area) {
+  const fname = await promptNameDialog({ title: t("ft_new_file_t"), label: t("ft_new_file_lbl"), value: "", placeholder: "e.g. notes.md, script.py, config.yml", confirmLabel: t("ft_fld_create_btn"), selectAll: true });
+  if (!fname) { return; }
+  const cleanSub = String(subfolder || "").replace(/^\/+|\/+$/g, "");
+  const exists = (typeof allGuides !== "undefined" && Array.isArray(allGuides)) && allGuides.some(function (g) {
+    return String(g.subfolder || "") === cleanSub && ftFileNameOf(g).toLowerCase() === fname.toLowerCase();
+  });
+  if (exists) { if (typeof showToast === "function") { showToast(t("ft_new_file_exists"), 3000); } return; }
+  const ext = ftExtOf(fname), starter = ext === ".json" ? "{\n}\n" : (ext === ".md" ? ("# " + fname.replace(/\.md$/i, "") + "\n\n") : ("// " + fname + "\n"));
+  const body = { filename: fname, subfolder: cleanSub, content: ext === ".py" || ext === ".yml" || ext === ".yaml" || ext === ".sh" ? ("# " + fname + "\n") : starter, anonymize: false };
+  if (area) { body.save_area = area; }
+  try {
+    const res = await areaFetch("/api/upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const data = await safeJson(res);
+    if (!res.ok) { throw new Error((data && data.detail) || "Could not create file."); }
+    if (typeof applyWorkspacePayload === "function") { applyWorkspacePayload(data); }
+    if (typeof loadGuidesCatalog === "function") { await loadGuidesCatalog(null); }
+    if (cleanSub) { ftExpanded.add(cleanSub); }
+    renderWorkspaceFilesTree();
+    const created = (allGuides || []).find(function (g) { return String(g.subfolder || "") === cleanSub && ftFileNameOf(g).toLowerCase() === fname.toLowerCase(); });
+    if (created && typeof openFileInCenterTab === "function") { openFileInCenterTab(created.doc_id, { pin: true }); }
+  } catch (err) { if (typeof showToast === "function") { showToast((err && err.message) || "Create file failed.", 3200); } }
+}
 
 function promptNameDialog(opts) {
   const modal = document.getElementById("name-prompt-modal");
@@ -76,6 +135,7 @@ function togglePinCenterTab(tabId) {
   tb.pinned = !tb.pinned;
   if (tb.pinned) { tb.preview = false; }
   centerChatTabs = centerChatTabs.filter(function (x) { return x.pinned; }).concat(centerChatTabs.filter(function (x) { return !x.pinned; }));
+  ideSavePinnedTabs();
   if (typeof renderCenterChatTabs === "function") { renderCenterChatTabs(); }
 }
 
@@ -125,7 +185,9 @@ async function runFolderMenuAction(act) {
   if (pop && pop.matches && pop.matches(":popover-open") && pop.hidePopover) { try { pop.hidePopover(); } catch (_e) {} }
   if (!ftMenuFolderKey) { return; }
   const meta = ftFolderMeta(ftMenuFolderKey);
-  if (act === "new-note") {
+  if (act === "new-file") {
+    await createAnyFileInFolder(meta.relPath, meta.area);
+  } else if (act === "new-note") {
     if (typeof openSaveGuideModal === "function") {
       openSaveGuideModal({ isNew: true, title: "", content: "## Overview\n\n", tags: "notes", area: meta.area, subfolder: meta.relPath });
     }
@@ -221,6 +283,14 @@ function bindIdeActionsUX() {
   if (fldMenu) {
     fldMenu.querySelectorAll("[data-folder-act]").forEach(function (b) {
       b.addEventListener("click", function () { runFolderMenuAction(b.getAttribute("data-folder-act") || ""); });
+    });
+  }
+  const newFileBtn = document.getElementById("ft-act-new-file");
+  if (newFileBtn) {
+    newFileBtn.addEventListener("click", function () {
+      const p = document.getElementById("ft-options-menu");
+      if (p && p.hidePopover) { try { p.hidePopover(); } catch (_e) {} }
+      createAnyFileInFolder("", typeof activeKnowledgeArea !== "undefined" ? activeKnowledgeArea : "");
     });
   }
   const flt = document.getElementById("ft-filter-input"), clr = document.getElementById("ft-filter-clear");

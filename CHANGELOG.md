@@ -4,6 +4,21 @@ All notable changes to **REALM Knowledge Engine (`realm-engine`)** are documente
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Context-Aware Right Sidebar Copilot (`⌘J` / `Ctrl+J`):** Live context-aware assistant beside any open file, Work OS board, workflow, or agent team; per-reply Agent, Model & Output Format controls with provenance badges; **Highlight-to-Copilot** floating selection pill (`Ask Copilot` / `Edit Selection`); **`#file` multi-document autocomplete & chips** (keeping `@` for agents and `/` for commands); inline diff previews; persistent threads in `localStorage`; and **universal 1-click Apply & Undo** across document edits, notes, tasks, events, goals, workflows, and agents.
+- **Code & Config File Support + Code Editor Tab:** Native indexing, live watching, uploading, and ZIP backup/restore for 35+ source & config extensions (`.py`, `.js`, `.ts`, `.tsx`, `.json`, `.yml`, `.toml`, `.css`, `.html`, `.sql`, `.sh`, `.rs`, `.go`, `.java`, `.swift`, `.dart`, etc.) with automatic skipping of `node_modules/`, `.git/`, `dist/`, `.venv/`, `__pycache__/`, lockfiles, `.env*`, credentials, and REALM internal stores. Opens in a dedicated Code Editor tab with language badge, synced line-number gutter, `Ln/Col` status footer, and `⌘S` save.
+- **4-Zone IDE Workbench & VS Code Explorer:** Left Activity Rail (`Home`, `Files`, `Library`, `Graph`, `Work OS`, `Workflows`, `Agents & Formats`), inline file tree filter, `Expand All` / `Collapse All`, `Auto-reveal active file`, `Always open in new tab` / italic preview tab mode, `+ New File…`, file Rename & Duplicate, Folder context menu (`New file…`, `New note here`, `New subfolder…`, `Rename folder…`, `Delete folder`), Tab context menu (`Pin / Unpin` persisted per workspace, `Close Others`, `Close to the Right`, `Close Saved`, `Close All`), and **`⌘P` / `Ctrl+P` Quick Open File**.
+- **Live Status Indicators & App-Wide Unsaved Guard:** Background-streaming chat tabs and Recent Chats show a live **Working spinner** and transition to a glowing **Unread reply dot** when finished while viewing another tab; dirty files display a **Modified dot** on both tabs and the Files Explorer tree; an app-wide **Save / Discard / Keep editing** modal guards file tabs, workspace switches, 10 creation/edit dialogs, and desktop window close.
+- **Built-in Private AI Sidecar:** Managed local `llama-server` runtime with a 5-tier hardware-matched Apache 2.0 model catalog, idle sleep, GPU fallback, and zero-jargon setup inside Settings alongside live-discovered Ollama and cloud models.
+- **Work OS & Visual Workflows Studio:** Built-in Kanban Board & Calendar, Focus Seasons & Goals, Time & Impact ROI Ledger, and interactive node-graph Workflows Studio with scheduled runs and multi-agent pipelines.
+- **Gemini-Stitch Luminous Glass & Unified Global Theme Control:** Extended frosted glass + ambient aurora surface language across every workspace view (Dark & Light modes) and simplified theme precedence into a single **Fix Global Theme** switch in Appearance (follows active agent by default, or locks one theme everywhere).
+
+### Security
+- Added explicit anti-prompt-injection boundaries in Copilot (`<open_document>`, `<selected_excerpt>`, `<referenced_file>` treated strictly as untrusted data) and enforced `x-knowledge-area` + `excluded_subfolders` checks (`403` / `409`) on `/api/copilot/chat/stream`.
+- Hardened file ingestion, live file watcher, folder upload, and ZIP backup/restore with unified ignore rules in `core/file_types.py` covering secrets, databases, lockfiles, build directories, and REALM internal JSON stores.
+
 ## [0.3.0] - 2026-11-21
 
 ### Added

@@ -85,3 +85,19 @@ def test_linked_vault_blocks_code_edit_rename_duplicate_and_folder_rename(area_c
     assert area_client.post("/api/guides/src/main/rename", json={"new_name": "hacked.py"}).status_code == 403
     assert area_client.post("/api/guides/src/main/duplicate").status_code == 403
     assert area_client.post("/api/subfolders/rename", json={"path": "src", "new_name": "lib"}).status_code == 403
+
+
+def test_code_upload_backup_restore_and_file_watcher(area_client: TestClient, tmp_path: Path) -> None:
+    from core.file_watcher import scan_directory_mtimes
+
+    up = area_client.post("/api/upload", json={"filename": "worker.py", "content": "def run():\n    return 'py_upload_ok'\n"})
+    assert up.status_code == 200
+    assert (tmp_path / "knowledge_base/worker.py").is_file()
+    mtimes = scan_directory_mtimes(tmp_path / "knowledge_base")
+    assert mtimes is not None and "worker.py" in mtimes
+    # Export backup ZIP includes worker.py and restores cleanly into a fresh workspace
+    zbytes = area_client.get("/api/backup/export").content
+    assert area_client.post("/api/workspace", json={"knowledge_dir": "restored_code"}).status_code == 200
+    restored = area_client.post("/api/backup/import", files={"file": ("backup.zip", zbytes, "application/zip")})
+    assert restored.status_code == 200
+    assert (tmp_path / "restored_code/worker.py").is_file()

@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 from typing import cast
 
-from fastapi import APIRouter, Header, Request
+from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from core import model_routing
@@ -28,6 +28,20 @@ def _sse(event: str, data: dict[str, object]) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
+def _assert_copilot_scope(cfg: WorkspaceConfig, request: Request, body: CopilotChatRequest) -> None:
+    expected = request.headers.get("x-knowledge-area")
+    if expected is not None and expected != cfg.knowledge_dir:
+        raise HTTPException(status_code=409, detail="Knowledge area changed. Refresh before continuing.")
+    for raw_id in (body.context.doc_id, *(f.doc_id for f in body.context.extra_files)):
+        if not raw_id:
+            continue
+        area, local = raw_id.split("::", 1) if "::" in raw_id else (cfg.knowledge_dir, raw_id)
+        excluded = {p.strip("/").casefold() for p in cfg.excluded_subfolders.get(area, []) if p.strip("/")}
+        rel = local.strip("/").casefold()
+        if any(rel == ex or rel.startswith(ex + "/") for ex in excluded):
+            raise HTTPException(status_code=403, detail="Excluded folder content cannot be sent to Copilot.")
+
+
 def build_router(
     get_config: Callable[[], WorkspaceConfig],
     stream_messages: StreamMessagesFn,
@@ -42,6 +56,7 @@ def build_router(
         x_api_key: str | None = Header(default=None, alias="x-api-key"),
     ) -> StreamingResponse:
         cfg = get_config()
+        _assert_copilot_scope(cfg, request, body)
         root = get_data_root() if get_data_root is not None else Path.cwd()
         api_key = x_api_key or body.api_key
         agent, persona_instr = await asyncio.to_thread(

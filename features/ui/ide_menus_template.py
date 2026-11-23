@@ -13,6 +13,7 @@ IDE_MENUS_HTML: str = (
     '<div data-fm-writable="1" class="shell-pop-sep"><button type="button" data-fm-act="delete" class="shell-pop-item ft-pop-danger"><span data-i18n="delete_btn">Delete</span></button></div>'
     "</div></div>"
     '<div id="ft-folder-menu" popover="auto" class="rail-popover" aria-label="Folder actions"><div focusgroup="menu nomemory" class="bp-menu-group">'
+    '<button type="button" data-folder-act="new-file" data-fm-writable="1" class="shell-pop-item"><span data-i18n="ft_new_file">New file…</span></button>'
     '<button type="button" data-folder-act="new-note" data-fm-writable="1" class="shell-pop-item"><span data-i18n="ft_fld_new_note">New note here</span></button>'
     '<button type="button" data-folder-act="new-subfolder" data-fm-writable="1" class="shell-pop-item"><span data-i18n="ft_fld_new_sub">New subfolder…</span></button>'
     '<button type="button" data-folder-act="rename" data-fm-writable="1" class="shell-pop-item"><span data-i18n="ft_fld_rename">Rename folder…</span></button>'

@@ -12,6 +12,11 @@ from pypdf.errors import PdfReadError
 
 from core import contracts
 from core.db import atomic_write_text
+from core.file_types import (
+    CODE_EXTENSIONS,
+    EDITABLE_TEXT_EXTENSIONS,
+    is_ignored_relpath,
+)
 from core.linked_vaults import is_linked_vault
 from features.ui import (
     file_ops_routes,
@@ -67,20 +72,22 @@ def build_router(
                 for idx, (filename, raw) in enumerate(files):
                     rel = rel_paths[idx] if idx < len(rel_paths) else ""
                     base_name = Path(filename.replace("\\", "/")).name if skip_unsupported else filename
-                    if skip_unsupported and (not base_name or base_name.startswith(".") or "__MACOSX" in rel.split("/")):
+                    if skip_unsupported and (not base_name or base_name.startswith(".") or "__MACOSX" in rel.split("/") or (rel and is_ignored_relpath(Path(rel.replace("\\", "/"))))):
                         skipped += 1
                         continue
                     try:
-                        stem, _ = workspace.validate_upload_filename(base_name)
+                        stem, ext = workspace.validate_upload_filename(base_name)
                         item_dest = folders.resolve_subfolder(destination, rel_sub, create=True) if (rel_sub := _safe_rel_folder(rel) if rel else "") else destination
                         do_anon = active.anonymize_uploads if anonymize is None else bool(anonymize)
-                        anon_stem, text = (slug(base_name, stem) if do_anon else stem), convert(base_name, raw, workspace.auto_tags_for_filename(base_name, tags))
+                        is_code = ext in CODE_EXTENSIONS
+                        anon_stem = slug(base_name, stem) if do_anon else stem
+                        text = raw.decode("utf-8", errors="replace") if is_code else convert(base_name, raw, workspace.auto_tags_for_filename(base_name, tags))
                         report = contracts.AnonymizationReport.model_validate(inspect(text, base_name)) if do_anon else None
                         final_text = report.scrubbed_text if report else text
-                        out_path = guide_edit_routes._unique_md_path(item_dest, anon_stem) if (do_anon and anon_stem != stem) else (item_dest / f"{anon_stem}.md")
+                        out_path = (item_dest / f"{anon_stem}{ext}") if is_code else (guide_edit_routes._unique_md_path(item_dest, anon_stem) if (do_anon and anon_stem != stem) else (item_dest / f"{anon_stem}.md"))
                         atomic_write_text(out_path, final_text)
                         uploaded.append(rel or base_name)
-                        titles.append(final_text.splitlines()[0].lstrip("# ") if final_text.splitlines() else stem)
+                        titles.append(out_path.name if is_code else (final_text.splitlines()[0].lstrip("# ") if final_text.splitlines() else stem))
                         total += report.total_redacted if report else 0
                     except (ValueError, BadZipFile, ParseError, PdfReadError, EOFError, KeyError) as exc:
                         if not skip_unsupported:
@@ -103,8 +110,8 @@ def build_router(
             target, local_id = workspace.resolve_selected_guide(active, doc_id)
             selection.assert_guide_not_excluded(active, area_slug, local_id)
             path = workspace.resolve_guide_file(target, local_id)
-            if path.suffix.lower() not in preview_routes.TEXT_SUFFIXES:
-                raise HTTPException(status_code=400, detail="Only text and Markdown guides can be anonymized in place.")
+            if path.suffix.lower() not in EDITABLE_TEXT_EXTENSIONS:
+                raise HTTPException(status_code=400, detail="Only text, Markdown, and source-code files can be anonymized in place.")
             report = contracts.AnonymizationReport.model_validate(inspect(path.read_text(encoding="utf-8", errors="replace"), path.name))
             atomic_write_text(path, report.scrubbed_text)
             reindex(target)

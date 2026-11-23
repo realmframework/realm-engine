@@ -18,35 +18,41 @@ Click the active workspace name at the top-left of the sidebar to:
 
 ## 2. Adding, Editing & Clipping Documents
 
-### Supported Formats (9)
+### Supported Formats (Documents + 35+ Code & Config Types)
 | Category | Extensions | Notes |
 |---|---|---|
 | Notes & Markup | `.md`, `.txt`, `.html` | Supports YAML frontmatter (`title`, `description`, `tags`) and `# Title` / `Tags:` syntax. |
 | Documents | `.pdf`, `.docx` | Local extraction; Office XML decompression bounded to prevent zip bombs. |
 | Spreadsheets & Data | `.xlsx`, `.csv`, `.tsv` | Structured Markdown table conversion for clean retrieval and quoting. |
 | Presentations | `.pptx` | Slide-by-slide text and speaker-note extraction. |
+| Source Code & Config | `.py`, `.js`, `.ts`, `.tsx`, `.jsx`, `.json`, `.yaml`, `.yml`, `.toml`, `.css`, `.sql`, `.sh`, `.rs`, `.go`, `.java`, `.swift`, `.dart`, etc. | Opens in the Code Editor tab with language badge, synced line-number gutter, and `Ln/Col` footer. Automatically ignores `node_modules/`, `.git/`, `dist/`, `.venv/`, `__pycache__/`, lockfiles, `.env*`, and credentials. |
 
-- **Drag & Drop / Folder Import:** Drop files or nested directories onto the window, or use **Add Documents → Import Folder (with Subfolders)** via the native OS picker.
-- **Live Markdown Editor:** Open any guide in **Library** and click **Edit** (Write / Split / Preview + `⌘S` / `Ctrl+S`), or click **+ New Note** to create Markdown directly inside any subfolder.
+- **Left Files Explorer & Tabs:** Click **Files** in the left rail to filter files live, expand/collapse folders, toggle **Auto-reveal active file** or **Always open in new tab**, create any file (`New file…` / `New note here`), rename/duplicate/move/anonymize/delete files, or manage folders. Right-click any center tab to **Pin / Unpin** (persisted per workspace) or bulk close (`Close Others`, `Close to the Right`, `Close Saved`, `Close All`).
+- **Live Status Indicators & Unsaved Guard:** Chat tabs and **Recent Chats** display a spinning **Working** icon while streaming in the background and a glowing **Unread** dot if an answer completes while you're on another tab. Unsaved files show a **Modified** dot on both the tab and the Files tree, and an app-wide **Save / Discard / Keep editing** prompt protects tabs, modals, workspace switches, and window close.
+- **Right Sidebar Copilot (`⌘J` / `Ctrl+J`):** Ask questions or propose structured edits beside any open file, Work OS board, workflow, or agent roster. Choose any Agent, Model, or Output Format; highlight text in a file for `✦ Ask Copilot` / `✦ Edit Selection`; type `#` to attach up to 4 extra workspace files (`#server.js`, `#API.md`); preview diffs before clicking **Apply**, and reverse changes with **1-click Undo**. Copilot threads persist automatically per workspace/context.
+- **Drag & Drop / Folder Import:** Drop files or nested directories onto the window (preserving native extensions for code files and skipping ignored folders), or use **Add Documents → Import Folder (with Subfolders)** via the native OS picker.
 - **Web Clipper:** Inside **Add Documents**, paste any public `http(s)://` URL to clip clean article Markdown offline (available when **Strict Local-Only Lock** is disabled).
-- **Subfolder Scopes & Unloading:** Click **Chat ↗** on any folder or document to scope your conversation to that exact subtree. Use **Unload** to temporarily exclude a subfolder from search, chat, CLI, MCP, and Public API without deleting files on disk.
+- **Subfolder Scopes & Unloading:** Click **Chat ↗** on any folder or document to scope your conversation to that exact subtree. Use **Unload** to temporarily exclude a subfolder from search, chat, Copilot, CLI, MCP, and Public API without deleting files on disk.
 
 ---
 
-## 3. Keyboard Shortcuts & Slash Commands
+## 3. Keyboard Shortcuts & 3-Symbol Grammar (`@`, `/`, `#`)
 
-Press **`?`** (when not typing) or **`⌘/`** (`Ctrl+/`) at any time to open the 4-tab **Quick Guide & Shortcuts** dialog.
+Press **`?`** (when not typing) or **`⌘/`** (`Ctrl+/`) at any time to open the **Quick Guide & Shortcuts** dialog.
 
 | Shortcut | Action |
 |---|---|
-| `⌘K` / `Ctrl+K` | **Quick Jump** — fuzzy search documents, recent chats, agents, workspaces, and actions |
+| `⌘K` / `Ctrl+K` | **Command Palette** — fuzzy search documents, recent chats, agents, workspaces, and actions |
+| `⌘P` / `Ctrl+P` | **Quick Open File** — fuzzy jump directly to any Markdown or code file in a center tab |
+| `⌘J` / `Ctrl+J` | Toggle **Right Sidebar Copilot** |
 | `⌘I` / `Ctrl+I` | Toggle **Engine Inspector** (Context Meter, Compress Context, Retrieval X-Ray) |
+| `⌘S` / `Ctrl+S` | Save the active Markdown or Code Editor tab |
 | `⌘/` / `Ctrl+/` or `?` | Open **Quick Guide & Shortcuts** |
-| `/` (in prompt box) | Open **Slash Commands** (`/summarize`, `/quiz`, `/table`, `/actions`, `/compare`, `/eli5`, `/critique`, or `/<format>`) |
-| `@` (in prompt box) | Summon any specialist agent for a single turn (e.g., `@Lisbeth`, `@Annika`, `@Plague`) |
-| `⌘S` / `Ctrl+S` | Save while inside the Markdown Editor |
+| `/` (in main chat) | Open **Slash Commands** (`/explain`, `/summarize`, `/quiz`, `/compare`, `/factcheck`, `/translate`, or `/<format>`) |
+| `@` (in main chat) | Summon any specialist agent for a single turn (e.g., `@Lisbeth`, `@Erika`, `@Plague`) |
+| `#` (in Copilot) | Attach additional workspace files (`#API.md`, `#server.js`) as context chips |
 | `F` (in Graph View) | Focus the 2D Knowledge Graph filter |
-| `Esc` | Close the open dialog or popover |
+| `Esc` | Stop an answer or close the open dialog/popover |
 
 ---
 
@@ -75,5 +81,5 @@ Open the right-hand **Engine Inspector** during any chat to see exactly what the
 ## 6. Appearance, Accessibility, Languages & Backups
 
 - **Languages:** Switch instantly between **English**, **Deutsch**, and **Español** in **Settings → Workspace** (all labels, starter prompts, confirmations, modals, and Quick Guide translate live).
-- **Themes & Reading Comfort (WCAG 2.1 AA):** Choose **System / Dark / Light (Clear)**, pick from **15 verified AA palettes**, customize Primary Accent and Ambient Glow, upload a custom workspace logo, select **Default / Hyperlegible / Dyslexia** fonts, adjust **S / M / L / XL** text size and **Focus / Normal / Wide** line measure, or enable **High-Contrast Focus**, **Reduce Motion**, and **Eco Mode** (optimized for 8 GB / CPU machines).
-- **ZIP Backup & Restore:** Under **Settings → Workspace**, download a portable single-area `.zip` archive (Markdown guides, empty subfolders, workspace settings, and area chats — excluding raw binaries, API keys, model weights, and host file paths) and merge-restore safely with conflict protection and rollback.
+- **Themes & Reading Comfort (WCAG 2.1 AA):** Choose **System / Dark / Light (Clear)**, pick from **15 verified AA palettes**, toggle **Fix Global Theme** (off = follows each active agent's palette; on = locks one theme across every agent and view), customize Primary Accent and Ambient Glow, upload a custom workspace logo, select **Default / Hyperlegible / Dyslexia** fonts, adjust **S / M / L / XL** text size and **Focus / Normal / Wide** line measure, or enable **High-Contrast Focus**, **Reduce Motion**, and **Eco Mode**.
+- **ZIP Backup & Restore:** Under **Settings → Workspace**, download a portable single-area `.zip` archive (Markdown, text, HTML, and source/config files, empty subfolders, workspace settings, chats, Work OS, Focus, Impact, and Workflows — excluding secrets, build folders, raw binaries, model weights, and host paths) and merge-restore safely with conflict protection and rollback.

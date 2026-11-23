@@ -36,7 +36,21 @@ const I18N_IDE = {
     cp_sel_edit: "Edit Selection",
     cp_sel_edit_prefill: "Edit this selection: ",
     cp_chip_sel_pfx: "Selection",
-    cp_ph: "Ask, #file to attach, or describe an edit…"
+    cp_ph: "Ask, #file to attach, or describe an edit…",
+    st_chat_working: "Working…",
+    st_chat_unread: "Unread reply",
+    st_file_modified: "Unsaved changes",
+    st_file_saved: "Saved",
+    cf_lines_n: "{n} lines",
+    ft_new_file: "New file…",
+    ft_new_file_t: "New File",
+    ft_new_file_lbl: "Filename (with extension)",
+    ft_new_file_exists: "A file with that name already exists in this folder.",
+    guide_copilot_t: "Right Sidebar Copilot ( #file )",
+    guide_copilot_d: "Press ⌘J / Ctrl+J to open Copilot beside any document, code file, board, or workflow. Highlight text to ask or edit selections, type # to attach extra files, and review diffs with 1-click Apply & Undo.",
+    guide_k_files: "Quick open any Markdown or code file",
+    guide_k_copilot: "Toggle Right Sidebar Copilot",
+    guide_k_save: "Save active file tab"
   },
   de: {
     ft_filter_ph: "Dateien filtern…",
@@ -72,7 +86,21 @@ const I18N_IDE = {
     cp_sel_edit: "Auswahl bearbeiten",
     cp_sel_edit_prefill: "Bearbeite diese Auswahl: ",
     cp_chip_sel_pfx: "Auswahl",
-    cp_ph: "Fragen, #Datei anhängen oder Änderung beschreiben…"
+    cp_ph: "Fragen, #Datei anhängen oder Änderung beschreiben…",
+    st_chat_working: "Arbeitet…",
+    st_chat_unread: "Ungelesene Antwort",
+    st_file_modified: "Ungespeicherte Änderungen",
+    st_file_saved: "Gespeichert",
+    cf_lines_n: "{n} Zeilen",
+    ft_new_file: "Neue Datei…",
+    ft_new_file_t: "Neue Datei",
+    ft_new_file_lbl: "Dateiname (mit Endung)",
+    ft_new_file_exists: "Eine Datei mit diesem Namen existiert hier bereits.",
+    guide_copilot_t: "Copilot in der rechten Seitenleiste ( #Datei )",
+    guide_copilot_d: "Drücke ⌘J / Strg+J für den Copilot neben jeder Datei, jedem Code, Board oder Workflow. Text markieren für Auswahl-Aktionen, # tippen um weitere Dateien anzuhängen, und Vorschläge mit 1-Klick übernehmen oder rückgängig machen.",
+    guide_k_files: "Beliebige Markdown- oder Code-Datei schnell öffnen",
+    guide_k_copilot: "Copilot-Seitenleiste ein-/ausblenden",
+    guide_k_save: "Aktive Datei speichern"
   },
   es: {
     ft_filter_ph: "Filtrar archivos…",
@@ -108,7 +136,21 @@ const I18N_IDE = {
     cp_sel_edit: "Editar selección",
     cp_sel_edit_prefill: "Edita esta selección: ",
     cp_chip_sel_pfx: "Selección",
-    cp_ph: "Pregunta, #archivo para adjuntar o pide un cambio…"
+    cp_ph: "Pregunta, #archivo para adjuntar o pide un cambio…",
+    st_chat_working: "Trabajando…",
+    st_chat_unread: "Respuesta sin leer",
+    st_file_modified: "Cambios sin guardar",
+    st_file_saved: "Guardado",
+    cf_lines_n: "{n} líneas",
+    ft_new_file: "Nuevo archivo…",
+    ft_new_file_t: "Nuevo archivo",
+    ft_new_file_lbl: "Nombre del archivo (con extensión)",
+    ft_new_file_exists: "Ya existe un archivo con ese nombre en esta carpeta.",
+    guide_copilot_t: "Copilot lateral derecho ( #archivo )",
+    guide_copilot_d: "Pulsa ⌘J / Ctrl+J para abrir Copilot junto a cualquier documento, código, tablero o flujo. Selecciona texto para preguntar o editar, escribe # para adjuntar archivos extra y aplica o deshaz cambios en 1 clic.",
+    guide_k_files: "Abrir rápido cualquier archivo Markdown o de código",
+    guide_k_copilot: "Mostrar u ocultar Copilot lateral",
+    guide_k_save: "Guardar pestaña de archivo activa"
   }
 };
 Object.keys(I18N_IDE).forEach(function (k) { Object.assign(I18N[k], I18N_IDE[k]); });

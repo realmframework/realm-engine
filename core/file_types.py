@@ -81,7 +81,8 @@ IGNORED_FILENAMES: frozenset[str] = frozenset(
         "pipfile.lock",
     }
 )
-_SECRET_TOKENS: tuple[str, ...] = ("id_rsa", "id_ed25519", "id_ecdsa", ".pem", ".key", ".p12", ".pfx", ".secret")
+_SECRET_TOKENS: tuple[str, ...] = ("id_rsa", "id_ed25519", "id_ecdsa", ".pem", ".key", ".p12", ".pfx", ".secret", ".sqlite", ".db", "credentials.")
+_SECRET_FILENAMES: frozenset[str] = frozenset({"credentials.json", "service-account.json", "client_secret.json"})
 REALM_INTERNAL_ROOT_FILES: frozenset[str] = frozenset(
     {
         "index.json",
@@ -114,7 +115,7 @@ def is_ignored_relpath(rel_path: Path) -> bool:
     name = parts[-1].lower()
     if len(parts) == 1 and name in REALM_INTERNAL_ROOT_FILES:
         return True
-    if name in IGNORED_FILENAMES or name.startswith(".env"):
+    if name in IGNORED_FILENAMES or name in _SECRET_FILENAMES or name.startswith(".env"):
         return True
     return any(tok in name for tok in _SECRET_TOKENS)
 

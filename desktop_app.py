@@ -19,8 +19,6 @@ from core.version import APP_VERSION
 
 DEFAULT_HOST, DEFAULT_PORT, WINDOW_BG = "127.0.0.1", 8000, "#04060F"
 _ACTIVE_CLOSING: Callable[[], None] | None = None
-
-
 def find_available_port(preferred: int = DEFAULT_PORT, host: str = DEFAULT_HOST) -> int:
     for candidate in (preferred, 0):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -31,10 +29,8 @@ def find_available_port(preferred: int = DEFAULT_PORT, host: str = DEFAULT_HOST)
                 if candidate == 0:
                     raise
     return preferred
-
 def configure_frozen_stdio(log_dir: Path) -> None:
     desktop_support.configure_desktop_logging(log_dir)
-
 def wait_for_health(url: str, worker: threading.Thread, timeout: float = 30.0) -> None:
     deadline, health_url = time.monotonic() + timeout, f"{url.rstrip('/')}/healthz"
     while time.monotonic() < deadline:
@@ -48,7 +44,6 @@ def wait_for_health(url: str, worker: threading.Thread, timeout: float = 30.0) -
             pass
         time.sleep(0.1)
     raise RuntimeError(f"Timed out waiting for local server at {health_url}")
-
 def smoke_check(url: str) -> None:
     base = url.rstrip("/")
     for suffix, marker in (("/healthz", b"ok"), ("/", b"<html"), ("/static/ui.css", b"{")):
@@ -60,7 +55,15 @@ def smoke_check(url: str) -> None:
         importlib.import_module("webview")
         if sys.platform in {"darwin", "win32"}:
             importlib.import_module("webview.platforms.cocoa" if sys.platform == "darwin" else "webview.platforms.edgechromium")
-
+def _guard_window_close(win: Any) -> bool | None:
+    try:
+        if hasattr(win, "evaluate_js") and win.evaluate_js("typeof ugHasAnyUnsavedWork === 'function' && ugHasAnyUnsavedWork()") and hasattr(win, "create_confirmation_dialog") and not win.create_confirmation_dialog("Unsaved changes", "You have unsaved edits. Close REALM Engine without saving?"):
+            return False
+    except Exception:
+        pass
+    if _ACTIVE_CLOSING is not None:
+        _ACTIVE_CLOSING()
+    return None
 def open_native_window(url: str, title: str = "REALM Engine") -> None:
     if sys.platform == "win32" and not desktop_support.has_windows_webview2():
         logging_config.get_logger("desktop").warning("WebView2 runtime missing; launching browser fallback")
@@ -73,7 +76,7 @@ def open_native_window(url: str, title: str = "REALM Engine") -> None:
         storage.mkdir(parents=True, exist_ok=True)
         win = webview.create_window(title, url, width=1360, height=880, min_size=(960, 640), background_color=WINDOW_BG, text_select=True, zoomable=True)
         if _ACTIVE_CLOSING is not None and hasattr(win, "events") and hasattr(win.events, "closing"):
-            win.events.closing += _ACTIVE_CLOSING
+            win.events.closing += lambda: _guard_window_close(win)
         webview.start(private_mode=False, storage_path=str(storage), gui="edgechromium" if sys.platform == "win32" else None)
     except Exception as exc:
         if sys.platform in {"linux", "win32"}:
@@ -84,7 +87,6 @@ def open_native_window(url: str, title: str = "REALM Engine") -> None:
 
 def load_asgi_app() -> Any:
     return importlib.import_module("features.ui.app").app
-
 def run_native_desktop(port: int = DEFAULT_PORT, title: str = "REALM Engine", smoke_only: bool = False, window_runner: Callable[[str, str], None] = open_native_window) -> int:
     global _ACTIVE_CLOSING
     bound_port = find_available_port(port, DEFAULT_HOST)
@@ -106,7 +108,6 @@ def run_native_desktop(port: int = DEFAULT_PORT, title: str = "REALM Engine", sm
         server.should_exit = True
         worker.join(timeout=5)
     return bound_port
-
 def main(argv: list[str] | None = None) -> None:
     cleaned = [arg for arg in (sys.argv[1:] if argv is None else argv) if not arg.startswith("-psn_")]
     if cleaned and cleaned[0] in {"ask", "mcp"}:
@@ -144,6 +145,5 @@ def main(argv: list[str] | None = None) -> None:
         if runtime.is_frozen() and not args.smoke_test:
             desktop_support.show_native_error("REALM Engine could not start", f"{exc}\n\nDiagnostic log:\n{logging_config.log_file_path(directory)}")
         raise
-
 if __name__ == "__main__":
     main()

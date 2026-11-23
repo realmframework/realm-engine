@@ -202,6 +202,7 @@ function abortActiveRequest() {
   ++currentScrollId;
   if (activeRequestId) { cancelBackendRequest(activeRequestId); activeRequestId = null; }
   if (activeController) { activeController.abort(); activeController = null; }
+  if (typeof clearWorkingChats === "function") { clearWorkingChats(); }
   setLoadingState(false);
 }
 function stopActiveRequest() {
@@ -236,7 +237,9 @@ async function runSearch(withTutor, opts) {
   if (!q && !selectedTag) { resetHome(); return; }
   if (!q && selectedTag) { await openLibraryCatalog(selectedTag); return; }
   if (!currentChatId) { currentChatId = newChatId(); }
-  if (typeof syncCenterChatTab === "function") { syncCenterChatTab(currentChatId, q.slice(0, 36)); }
+  const runChatId = currentChatId;
+  if (typeof syncCenterChatTab === "function") { syncCenterChatTab(runChatId, q.slice(0, 36)); }
+  if (typeof setChatTabActivity === "function") { setChatTabActivity(runChatId, "working"); }
   const controller = new AbortController(), reqId = "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
   activeController = controller; activeRequestId = reqId; renderTutor(null); renderResults([], false);
   const pendingTurn = { query: q, tag: selectedTag, ask_tutor: Boolean(useTutor), loadingTutor: Boolean(useTutor), agent_id: effAgentId, agent_name: effAgentName, tutor: null, results: [], collapsed: Boolean(useTutor), top_k: ragConfig.top_k, retrieval_mode: ragConfig.retrieval_mode, rrf_k: ragConfig.rrf_k, temperature: ragConfig.temperature };
@@ -270,7 +273,10 @@ async function runSearch(withTutor, opts) {
     currentTurns = (session.turns || []).map(function (t, i) { return Object.assign({}, t, { router_label: i === turnIdx ? rLabel : (currentTurns[i] && currentTurns[i].router_label) || "", collapsed: i === turnIdx ? Boolean(t.ask_tutor) : (currentTurns[i] ? currentTurns[i].collapsed : true) }); });
     renderChatStream(); await loadRecentChats(); refreshBudget();
   } catch (err) { if ((err && err.name === "AbortError") || controller.signal.aborted || version !== areaVersion) { return; } pendingTurn.loadingTutor = false; pendingTurn.isError = true; pendingTurn.tutor = { answer: err.message || "Request failed.", cited_titles: [], knowledge_gap_detected: false }; areaStatus(err.message || "Request failed."); renderChatStream(); refreshBudget(); }
-  finally { if (activeController === controller) { activeController = null; activeRequestId = null; setLoadingState(false); } }
+  finally {
+    if (typeof setChatTabActivity === "function") { setChatTabActivity(runChatId, (controller.signal.aborted || version !== areaVersion) ? "aborted" : "done"); }
+    if (activeController === controller) { activeController = null; activeRequestId = null; setLoadingState(false); }
+  }
 }
 async function askTutor() { askTutorToggle.checked = appliedRunMode !== "search"; await runSearch(askTutorToggle.checked); }
 function submitQuery() { if (typeof tryExpandInlineSlashSubmit === "function" && tryExpandInlineSlashSubmit()) { return; } const hasRec = typeof activeSlashRecipe !== "undefined" && Boolean(activeSlashRecipe); if (queryEl.value.trim() || selectedTag || hasRec) { runSearch(askTutorToggle.checked && (queryEl.value.trim().length > 0 || hasRec)); } else { queryEl.focus(); } }

@@ -6,9 +6,10 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
+from core.file_types import IGNORED_DIRS, SUPPORTED_EXTENSIONS, is_ignored_relpath
 from core.logging_config import get_logger
 
-WATCHED_EXTENSIONS = {".md", ".txt", ".html", ".pdf", ".docx", ".csv", ".tsv", ".xlsx", ".pptx"}
+WATCHED_EXTENSIONS = set(SUPPORTED_EXTENSIONS)
 _SYNC_STATE: dict[str, object] = {"watching": False, "last_sync_at": "", "last_changed_files": [], "sync_version": 0, "owner": 0}
 _SYNC_LOCK = threading.Lock()
 _WATCHER_THREADS: dict[int, threading.Thread] = {}
@@ -25,18 +26,19 @@ def scan_directory_mtimes(directory: Path) -> dict[str, FileStamp] | None:
         resolved_root = directory.resolve()
         for cur_root, dirnames, filenames in os.walk(directory, followlinks=False):
             root_path = Path(cur_root)
-            dirnames[:] = [d for d in dirnames if not d.startswith(".") and not (root_path / d).is_symlink()]
+            dirnames[:] = [d for d in dirnames if not d.startswith(".") and d.lower() not in IGNORED_DIRS and not (root_path / d).is_symlink()]
             for fname in filenames:
                 if fname.startswith("."):
                     continue
                 path = root_path / fname
-                if path.suffix.lower() not in WATCHED_EXTENSIONS or path.is_symlink():
+                rel = path.relative_to(directory)
+                if path.suffix.lower() not in WATCHED_EXTENSIONS or path.is_symlink() or is_ignored_relpath(rel):
                     continue
                 try:
                     if not path.resolve().is_relative_to(resolved_root):
                         continue
                     st = path.stat()
-                    found[path.relative_to(directory).as_posix()] = (st.st_mtime_ns, st.st_size)
+                    found[rel.as_posix()] = (st.st_mtime_ns, st.st_size)
                 except OSError:
                     continue
     except OSError:

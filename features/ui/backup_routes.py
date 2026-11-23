@@ -11,6 +11,7 @@ from fastapi.responses import Response
 from starlette.datastructures import UploadFile
 
 from core.contracts import WorkspaceConfig
+from core.file_types import EDITABLE_TEXT_EXTENSIONS, is_ignored_relpath
 from core.linked_vaults import cache_study_path
 from features.ui import chat_store, folders, workspace
 from features.ui.backup_apply import apply_restore
@@ -58,9 +59,10 @@ def build_router(config: Callable[[], WorkspaceConfig], activate: Callable[[Work
                         entries[extra_name] = bounded_bytes(extra_path)
                 total = sum(map(len, entries.values()))
                 for path in target.rglob("*"):
-                    if path.is_symlink() or any(part.startswith(".") for part in path.relative_to(target).parts):
+                    rel_obj = path.relative_to(target)
+                    if path.is_symlink() or is_ignored_relpath(rel_obj):
                         continue
-                    if not path.is_dir() and (not path.is_file() or path.suffix.lower() != ".md"):
+                    if not path.is_dir() and (not path.is_file() or path.suffix.lower() not in EDITABLE_TEXT_EXTENSIONS):
                         continue
                     name = path.relative_to(target).as_posix()
                     try:

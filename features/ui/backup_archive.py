@@ -9,9 +9,16 @@ from pathlib import Path, PurePosixPath
 
 from fastapi import HTTPException
 
+from core.file_types import EDITABLE_TEXT_EXTENSIONS, is_ignored_relpath
+
 MAX_ARCHIVE_BYTES = 64 * 1024 * 1024
 MAX_FILE_BYTES = 15 * 1024 * 1024
 MAX_MEMBERS = 2048
+BACKUP_STORE_FILES = frozenset({"workspace.json", "chats.json", "work_board.json", "impact_ledger.json", "focus_engine.json", "workflows.json"})
+
+
+def is_backup_doc_path(name: str) -> bool:
+    return not name.endswith("/") and name not in BACKUP_STORE_FILES and Path(name).suffix.lower() in EDITABLE_TEXT_EXTENSIONS and not is_ignored_relpath(Path(name))
 
 
 def member_path(name: str) -> PurePosixPath:
@@ -81,7 +88,7 @@ def read_archive(raw: bytes) -> dict[str, bytes]:
             if info.is_dir():
                 entries[str(path) + "/"] = b""
                 continue
-            if path.suffix.lower() == ".md" or str(path) in {"workspace.json", "chats.json", "work_board.json", "impact_ledger.json", "focus_engine.json", "workflows.json"}:
+            if str(path) in BACKUP_STORE_FILES or is_backup_doc_path(str(path)):
                 with archive.open(info) as handle:
                     content = handle.read(MAX_FILE_BYTES + 1)
                 if len(content) != info.file_size or len(content) > MAX_FILE_BYTES:

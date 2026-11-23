@@ -69,41 +69,19 @@ def test_parse_copilot_task_agent_and_workflow_actions() -> None:
 
 def test_copilot_stream_route_hides_action_xml_and_emits_done(tmp_path: Path) -> None:
     cfg = WorkspaceConfig(app_title="Copilot Test", knowledge_dir="", active_dirs=[], strict_local_only=True)
-    agent_personas.save_agent(
-        tmp_path,
-        name="Security Hawk",
-        role="Auditor",
-        palette="lisbeth",
-        model_provider="ollama",
-        model_name="qwen3.5:9b",
-        temperature=0.1,
-        instructions="Always highlight threat models first.",
-    )
-    captured_sys: list[str] = []
-    captured_models: list[str] = []
+    agent_personas.save_agent(tmp_path, name="Security Hawk", role="Auditor", palette="lisbeth", model_provider="ollama", model_name="qwen3.5:9b", temperature=0.1, instructions="Always highlight threat models first.")
+    captured_sys, captured_models = [], []
 
     async def fake_stream(msgs: list[dict[str, str]], tcfg: object, **_kw: object) -> AsyncIterator[dict[str, object]]:
         captured_sys.append(msgs[0]["content"])
         captured_models.append(str(getattr(tcfg, "model", "")))
-        chunks = [
-            "Here is a ",
-            "proposed task.\n<copi",
-            'lot_action>{"kind":"create_task","title":"Add Review Task","summary":"Creates a review item.","payload":{"title":"Review API spec","priority":"high"}}</copilot_action>',
-        ]
-        for ch in chunks:
+        for ch in ("Here is a ", "proposed task.\n<copi", 'lot_action>{"kind":"create_task","title":"Add Review Task","summary":"Creates a review item.","payload":{"title":"Review API spec","priority":"high"}}</copilot_action>'):
             yield {"type": "token", "delta": ch}
 
     app = FastAPI()
     app.include_router(copilot_router.build_router(lambda: cfg, fake_stream, lambda: tmp_path))
     client = TestClient(app)
-    req = CopilotChatRequest(
-        messages=[CopilotMessage(role="user", content="Add a task to review the API spec")],
-        context=CopilotContext(view="file", doc_id="API", filename="API.md", doc_content="# API\n"),
-        provider="ollama",
-        model="qwen3:8b",
-        agent_id="security_hawk",
-        format_id="executive_brief",
-    )
+    req = CopilotChatRequest(messages=[CopilotMessage(role="user", content="Add a task to review the API spec")], context=CopilotContext(view="file", doc_id="API", filename="API.md", doc_content="# API\n"), provider="ollama", model="qwen3:8b", agent_id="security_hawk", format_id="executive_brief")
     res = client.post("/api/copilot/chat/stream", json=req.model_dump())
     assert res.status_code == 200
     events: list[tuple[str, dict[str, object]]] = []
@@ -140,3 +118,19 @@ def test_copilot_context_grounds_selected_excerpt_and_extra_files() -> None:
     assert "<selected_excerpt>\nGET /health\n</selected_excerpt>" in sys_msg
     assert '<referenced_file name="server.js" doc_id="src/server__js">' in sys_msg
     assert "app.get('/health', ok);" in sys_msg
+    assert "untrusted data" in sys_msg
+
+
+def test_copilot_blocks_excluded_subfolders_and_stale_area(tmp_path: Path) -> None:
+    cfg = WorkspaceConfig(knowledge_dir="kb", active_dirs=["kb"], excluded_subfolders={"kb": ["private"]})
+
+    async def noop_stream(*_a: object, **_kw: object) -> AsyncIterator[dict[str, object]]:
+        yield {"type": "token", "delta": "ok"}
+
+    app = FastAPI()
+    app.include_router(copilot_router.build_router(lambda: cfg, noop_stream, lambda: tmp_path))
+    client = TestClient(app)
+    req = CopilotChatRequest(messages=[CopilotMessage(role="user", content="Read")], context=CopilotContext(view="file", doc_id="private/secret"))
+    assert client.post("/api/copilot/chat/stream", json=req.model_dump()).status_code == 403
+    ok_req = CopilotChatRequest(messages=[CopilotMessage(role="user", content="Hi")], context=CopilotContext(view="chat"))
+    assert client.post("/api/copilot/chat/stream", json=ok_req.model_dump(), headers={"x-knowledge-area": "other"}).status_code == 409

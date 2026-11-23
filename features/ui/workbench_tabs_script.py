@@ -5,7 +5,34 @@ let wbTabSeq = 0;
 let wbCenterIsChat = true;
 let centerChatTabs = [{ id: "ct_0", kind: "chat", chatId: "", title: "", agentId: "", draft: "" }];
 let activeCenterTabId = "ct_0";
+const wbWorkingChats = new Set();
+const wbUnreadChats = new Set();
 const WB_PIN_SVG = "<svg class='wb-tab-pin' aria-hidden='true' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M12 17v5'/><path d='M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16h14v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z'/></svg>";
+const WB_SPIN_SVG = "<svg class='wb-tab-spin' aria-hidden='true' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round'><circle cx='12' cy='12' r='9' stroke-opacity='0.22'/><path d='M21 12a9 9 0 0 0-9-9'/></svg>";
+
+function isChatVisibleNow(chatId) {
+  if (!chatId) { return false; }
+  const fv = document.getElementById("center-file-view"), sh = document.getElementById("workspace-shell");
+  if ((fv && !fv.hidden) || (sh && sh.classList.contains("hidden"))) { return false; }
+  const cur = centerChatTabs.find(function (tb) { return tb.id === activeCenterTabId; });
+  return Boolean(cur && cur.kind !== "file" && cur.chatId === chatId);
+}
+
+function setChatTabActivity(chatId, state) {
+  if (!chatId) { return; }
+  if (state === "working") { wbUnreadChats.delete(chatId); wbWorkingChats.add(chatId); }
+  else if (state === "done") { wbWorkingChats.delete(chatId); if (!isChatVisibleNow(chatId)) { wbUnreadChats.add(chatId); } }
+  else { wbWorkingChats.delete(chatId); }
+  renderCenterChatTabs();
+  if (typeof renderRecentChats === "function") { renderRecentChats(); }
+}
+
+function clearWorkingChats() {
+  if (!wbWorkingChats.size) { return; }
+  wbWorkingChats.clear();
+  renderCenterChatTabs();
+  if (typeof renderRecentChats === "function") { renderRecentChats(); }
+}
 
 function defaultChatTabLabel() {
   return t("new_chat").replace(/^\+\s*/, "");
@@ -32,15 +59,19 @@ function renderChatTabStrip(listId, tabs, activeId, attrPrefix, onActivate, onCl
     const sel = tb.id === selId;
     const isFile = tb.kind === "file";
     const label = tb.title || fallbackLabel;
+    const working = !isFile && tb.chatId && wbWorkingChats.has(tb.chatId);
+    const unread = !isFile && tb.chatId && !working && wbUnreadChats.has(tb.chatId);
     const pinHtml = tb.pinned ? WB_PIN_SVG : "";
-    const iconHtml = !tb.pinned && isFile && typeof FT_FILE_SVG !== "undefined" ? FT_FILE_SVG : "";
-    const dirtyHtml = isFile && tb.dirty ? "<span class='wb-tab-dirty' aria-label='Unsaved'>•</span>" : "";
+    const statusLead = working ? ("<span title='" + escapeHtml(t("st_chat_working")) + "' aria-label='" + escapeHtml(t("st_chat_working")) + "' class='inline-flex items-center'>" + WB_SPIN_SVG + "</span>")
+      : (unread ? ("<span class='wb-tab-unread' title='" + escapeHtml(t("st_chat_unread")) + "' aria-label='" + escapeHtml(t("st_chat_unread")) + "'></span>") : "");
+    const iconHtml = !statusLead && !tb.pinned && isFile && typeof FT_FILE_SVG !== "undefined" ? FT_FILE_SVG : "";
+    const dirtyHtml = isFile && tb.dirty ? "<span class='wb-tab-dirty-dot' title='" + escapeHtml(t("st_file_modified")) + "' aria-label='" + escapeHtml(t("st_file_modified")) + "'></span>" : "";
     const closeAria = isFile ? "Close file tab" : "Close chat tab";
     const closeX = tabs.length > 1 && !tb.pinned
       ? "<span class='wb-tab-x' data-" + attrPrefix + "-close='" + escapeHtml(tb.id) + "' role='button' aria-label='" + closeAria + "'>✕</span>"
       : "";
-    const pvCls = (isFile && tb.preview ? " is-preview" : "") + (tb.pinned ? " is-pinned" : "");
-    return "<button type='button' role='tab' aria-selected='" + String(sel) + "' tabindex='" + (sel ? "0" : "-1") + "' data-" + attrPrefix + "-tab='" + escapeHtml(tb.id) + "' class='wb-zone-tab" + pvCls + "'>" + pinHtml + iconHtml + "<span>" + escapeHtml(label) + "</span>" + dirtyHtml + closeX + "</button>";
+    const pvCls = (isFile && tb.preview ? " is-preview" : "") + (tb.pinned ? " is-pinned" : "") + (isFile && tb.dirty ? " is-dirty" : "");
+    return "<button type='button' role='tab' aria-selected='" + String(sel) + "' tabindex='" + (sel ? "0" : "-1") + "' data-" + attrPrefix + "-tab='" + escapeHtml(tb.id) + "' class='wb-zone-tab" + pvCls + "'>" + pinHtml + statusLead + iconHtml + "<span>" + escapeHtml(label) + "</span>" + dirtyHtml + closeX + "</button>";
   }).join("");
   list.querySelectorAll("[data-" + attrPrefix + "-tab]").forEach(function (btn) {
     btn.addEventListener("click", function (e) {
@@ -183,7 +214,6 @@ function activateCenterChatTab(tabId) {
   activeCenterTabId = tb.id;
   const fv = document.getElementById("center-file-view");
   if (tb.kind === "file") {
-    if (typeof abortActiveRequest === "function") { abortActiveRequest(); }
     if (typeof stopActiveAudio === "function") { stopActiveAudio(); }
     if (typeof stopGraphSimulation === "function") { stopGraphSimulation(); }
     if (typeof closeWorkBoardView === "function") { closeWorkBoardView(); }
@@ -204,10 +234,11 @@ function activateCenterChatTab(tabId) {
     return;
   }
   if (fv) { fv.hidden = true; }
+  if (tb.chatId) { wbUnreadChats.delete(tb.chatId); }
   if (typeof setActiveRailSection === "function") { setActiveRailSection("chat", false); }
   if (tb.chatId) {
     if (tb.chatId !== currentChatId && typeof openSavedChat === "function") { openSavedChat(tb.chatId); }
-    else if (typeof setViewMode === "function") { setViewMode(Boolean(currentTurns && currentTurns.length)); }
+    else if (typeof setViewMode === "function") { setViewMode(Boolean(currentTurns && currentTurns.length)); if (typeof renderRecentChats === "function") { renderRecentChats(); } }
   } else if (typeof resetHome === "function") {
     resetHome();
     if (typeof queryEl !== "undefined" && queryEl && tb.draft) {
