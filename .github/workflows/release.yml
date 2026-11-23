@@ -26,7 +26,7 @@ jobs:
       version: ${{ steps.ver.outputs.version }}
       is_tag: ${{ steps.ver.outputs.is_tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: astral-sh/setup-uv@v6
         with:
@@ -74,7 +74,7 @@ jobs:
           - runner: macos-15-intel
             arch_label: intel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: astral-sh/setup-uv@v6
         with:
@@ -174,7 +174,7 @@ jobs:
     needs: verify
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: astral-sh/setup-uv@v6
         with:
