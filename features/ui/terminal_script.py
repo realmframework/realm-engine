@@ -8,6 +8,27 @@ const termBuffers = new Map();
 const termCmdHistory = [];
 let termHistIdx = -1;
 let termResizeTimer = null;
+let termSyncTheme = safeStorageGet("realm_term_theme_sync") !== "0";
+
+function setTerminalThemeSync(enabled, persist) {
+  termSyncTheme = enabled !== false;
+  const pane = document.getElementById("bottom-terminal-pane");
+  if (pane) { pane.setAttribute("data-term-theme", termSyncTheme ? "sync" : "neutral"); }
+  const btn = document.getElementById("term-theme-btn");
+  if (btn) {
+    btn.setAttribute("aria-pressed", String(termSyncTheme));
+    const lbl = termSyncTheme ? t("term_theme_btn_on") : t("term_theme_btn_off");
+    btn.title = lbl;
+    btn.setAttribute("aria-label", lbl);
+  }
+  const chk = document.getElementById("theme-terminal-sync-toggle");
+  if (chk) { chk.checked = termSyncTheme; }
+  if (typeof workspaceConfig === "object" && workspaceConfig) { workspaceConfig.sync_terminal_theme = termSyncTheme; }
+  if (persist !== false) {
+    safeStorageSet("realm_term_theme_sync", termSyncTheme ? "1" : "0");
+    if (typeof persistAppearancePatch === "function") { persistAppearancePatch({ sync_terminal_theme: termSyncTheme }); }
+  }
+}
 
 function termCleanControlText(raw) {
   let out = String(raw || "");
@@ -249,7 +270,10 @@ function sendTerminalOutputToCopilot() {
 function bindTerminalUX() {
   if (typeof IS_EMBED !== "undefined" && IS_EMBED) { return; }
   const form = document.getElementById("term-form"), inp = document.getElementById("term-input"), out = document.getElementById("term-output");
-  const newBtn = document.getElementById("term-new-btn"), intBtn = document.getElementById("term-int-btn"), clrBtn = document.getElementById("term-clear-btn"), cpBtn = document.getElementById("term-copilot-btn");
+  const newBtn = document.getElementById("term-new-btn"), intBtn = document.getElementById("term-int-btn"), clrBtn = document.getElementById("term-clear-btn"), cpBtn = document.getElementById("term-copilot-btn"), thBtn = document.getElementById("term-theme-btn"), thChk = document.getElementById("theme-terminal-sync-toggle");
+  setTerminalThemeSync(termSyncTheme, false);
+  if (thBtn) { thBtn.addEventListener("click", function () { setTerminalThemeSync(!termSyncTheme, true); }); }
+  if (thChk) { thChk.addEventListener("change", function () { setTerminalThemeSync(Boolean(thChk.checked), true); }); }
   if (form && inp) {
     form.addEventListener("submit", function (e) {
       e.preventDefault();

@@ -54,6 +54,7 @@ class AppearanceUpdate(StrictModel):
     agent_name: str = Field(default="Saga", min_length=1, max_length=40)
     active_agent: str = Field(default="saga", min_length=1, max_length=64)
     sync_agent_palette: bool = True
+    sync_terminal_theme: bool = True
     language: Literal["en", "de", "es"] = "en"
     web_search_enabled: bool = False
     web_search_provider: Literal["duckduckgo", "ollama", "searxng"] = "duckduckgo"
@@ -77,8 +78,7 @@ class WorkspaceConfig(BudgetLimits, AppearanceUpdate):
     excluded_subfolders: dict[str, list[str]] = Field(default_factory=dict)
     @model_validator(mode="after")
     def synchronize_areas(self) -> "WorkspaceConfig":
-        raw = self.active_dirs if "active_dirs" in self.model_fields_set else ([self.knowledge_dir] if self.knowledge_dir else [])
-        self.active_dirs, self.knowledge_dir = (vals := list(dict.fromkeys(d for d in raw if d))), (vals[0] if vals else "")
+        self.active_dirs, self.knowledge_dir = (vals := list(dict.fromkeys(d for d in (self.active_dirs if "active_dirs" in self.model_fields_set else ([self.knowledge_dir] if self.knowledge_dir else [])) if d))), (vals[0] if vals else "")
         return self
 class ChatTurnBase(SearchQuery):
     query: str = Field(...)

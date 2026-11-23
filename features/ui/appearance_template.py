@@ -46,6 +46,10 @@ APPEARANCE_FIELDS = r"""    <div class="flex flex-col gap-3 text-sm">
         <span><span data-i18n="ambient_toggle" class="block text-sm font-medium text-[#EEF2F8]">Ambient Background</span><span data-i18n="ambient_desc" class="block text-xs text-[#A0B0C8] mt-0.5">Subtle animated light gradient and interactive dot grid.</span></span>
         <input id="theme-ambient-toggle" type="checkbox" switch role="switch" checked class="shrink-0" />
       </label>
+      <label for="theme-terminal-sync-toggle" class="flex items-center justify-between gap-3 rounded-xl bg-[#04060F] border border-[rgba(238,242,248,0.10)] px-4 py-3 cursor-pointer select-none">
+        <span><span data-i18n="term_theme_sync" class="block text-sm font-medium text-[#EEF2F8]">Sync Terminal Theme</span><span data-i18n="term_theme_sync_desc" class="block text-xs text-[#A0B0C8] mt-0.5">Match the integrated terminal to the active agent or global theme. Turn off for a classic neutral terminal.</span></span>
+        <input id="theme-terminal-sync-toggle" type="checkbox" switch role="switch" checked class="shrink-0" />
+      </label>
     </div>
     <div class="flex flex-col gap-3 pt-3 border-t border-[rgba(238,242,248,0.08)] text-sm">
       <div class="flex items-center justify-between gap-2"><span data-i18n="a11y_section_title" class="text-xs uppercase tracking-wider text-[#738196] font-mono">Accessibility &amp; Reading Comfort</span></div>

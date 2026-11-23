@@ -48,18 +48,18 @@ def test_custom_logo_upload_validation_and_reset(area_client: TestClient, tmp_pa
 def test_appearance_endpoint_persists_theme_and_rejects_invalid_hex(area_client: TestClient) -> None:
     saved = area_client.post(
         "/api/workspace/appearance",
-        json={"theme_mode": "light", "theme_accent": "#A855F7", "theme_glow": "#38BDF8", "ambient_effects": False, "language": "de", "agent_name": "Lisbeth"},
+        json={"theme_mode": "light", "theme_accent": "#A855F7", "theme_glow": "#38BDF8", "ambient_effects": False, "sync_terminal_theme": False, "language": "de", "agent_name": "Lisbeth"},
     )
     assert saved.status_code == 200
     cfg = saved.json()["config"]
     assert cfg["theme_mode"] == "light" and cfg["theme_accent"] == "#A855F7" and cfg["theme_glow"] == "#38BDF8"
-    assert cfg["ambient_effects"] is False and cfg["language"] == "de" and cfg["agent_name"] == "Lisbeth"
+    assert cfg["ambient_effects"] is False and cfg["sync_terminal_theme"] is False and cfg["language"] == "de" and cfg["agent_name"] == "Lisbeth"
 
     # Partial update preserves previously saved theme/ambient fields
     lang_only = area_client.post("/api/workspace/appearance", json={"language": "es"})
     assert lang_only.status_code == 200
     merged = lang_only.json()["config"]
-    assert merged["language"] == "es" and merged["theme_accent"] == "#A855F7" and merged["ambient_effects"] is False
+    assert merged["language"] == "es" and merged["theme_accent"] == "#A855F7" and merged["ambient_effects"] is False and merged["sync_terminal_theme"] is False
 
     invalid = area_client.post(
         "/api/workspace/appearance",
@@ -97,7 +97,7 @@ def test_ui_exposes_adaptive_color_scheme_and_custom_theme_controls(area_client:
     for marker in (
         'id="hero-logo"', 'id="workspace-logo-input"', 'id="agent-studio-modal"', 'id="theme-accent-picker"', 'id="theme-glow-picker"',
         'data-theme-mode="system"', 'data-theme-mode="light"', 'id="ambient-aurora-canvas"', 'id="ambient-dots-canvas"', 'class="supernova-beam',
-        'id="theme-ambient-toggle"', 'data-lang-choice="de"', 'data-lang-choice="es"',
+        'id="theme-ambient-toggle"', 'id="theme-terminal-sync-toggle"', 'id="term-theme-btn"', 'data-lang-choice="de"', 'data-lang-choice="es"',
         'id="onboarding-step-1"', 'id="onboarding-step-4"', 'id="onboarding-skip-btn"',
         '"Realm"', '"Lisbeth"', '"Salander"', '"Wasp"', '"Plague"', '"Blomkvist"', '"Millennium"', '"Erika"', '"Harriet"',
         'id="cfg-new-folder-btn" type="button" data-i18n="new_area_btn"', 'openNewAreaDialog();', 'chat_err_badge',

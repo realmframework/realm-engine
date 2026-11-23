@@ -58,7 +58,11 @@ const I18N_IDE = {
     term_clear: "Clear",
     term_copilot_t: "Send terminal output to Copilot",
     term_ph: "Run a command (Enter to send, ↑/↓ history, Ctrl+C interrupt)…",
-    term_empty_copilot: "Run a command first to send terminal output to Copilot."
+    term_empty_copilot: "Run a command first to send terminal output to Copilot.",
+    term_theme_sync: "Sync Terminal Theme",
+    term_theme_sync_desc: "Match the integrated terminal to the active agent or global theme. Turn off for a classic neutral terminal.",
+    term_theme_btn_on: "Terminal synced with active theme (click for classic neutral)",
+    term_theme_btn_off: "Classic neutral terminal (click to sync with active theme)"
   },
   de: {
     ft_filter_ph: "Dateien filtern…",
@@ -116,7 +120,11 @@ const I18N_IDE = {
     term_clear: "Leeren",
     term_copilot_t: "Terminal-Ausgabe an Copilot senden",
     term_ph: "Befehl ausführen (Enter senden, ↑/↓ Verlauf, Strg+C abbrechen)…",
-    term_empty_copilot: "Führe zuerst einen Befehl aus, um Ausgabe an Copilot zu senden."
+    term_empty_copilot: "Führe zuerst einen Befehl aus, um Ausgabe an Copilot zu senden.",
+    term_theme_sync: "Terminal-Theme synchronisieren",
+    term_theme_sync_desc: "Passt das integrierte Terminal an das aktive Agenten- oder globale Theme an. Ausschalten für ein klassisch neutrales Terminal.",
+    term_theme_btn_on: "Terminal folgt aktivem Theme (klicken für klassisch neutral)",
+    term_theme_btn_off: "Klassisch neutrales Terminal (klicken für Theme-Synchronisation)"
   },
   es: {
     ft_filter_ph: "Filtrar archivos…",
@@ -174,7 +182,11 @@ const I18N_IDE = {
     term_clear: "Limpiar",
     term_copilot_t: "Enviar salida de terminal a Copilot",
     term_ph: "Ejecuta un comando (Enter enviar, ↑/↓ historial, Ctrl+C interrumpir)…",
-    term_empty_copilot: "Ejecuta un comando primero para enviar la salida a Copilot."
+    term_empty_copilot: "Ejecuta un comando primero para enviar la salida a Copilot.",
+    term_theme_sync: "Sincronizar tema de la terminal",
+    term_theme_sync_desc: "Adapta la terminal integrada al tema del agente activo o al tema global. Desactívalo para una terminal neutra clásica.",
+    term_theme_btn_on: "Terminal sincronizada con el tema activo (clic para neutra clásica)",
+    term_theme_btn_off: "Terminal neutra clásica (clic para sincronizar con el tema activo)"
   }
 };
 Object.keys(I18N_IDE).forEach(function (k) { Object.assign(I18N[k], I18N_IDE[k]); });

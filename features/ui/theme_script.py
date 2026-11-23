@@ -220,6 +220,9 @@ function syncThemeFromWorkspace(cfg) {
   if (typeof setAmbientEffects === "function" && cfg && typeof cfg.ambient_effects === "boolean") {
     setAmbientEffects(cfg.ambient_effects, !isEmbed);
   }
+  if (typeof setTerminalThemeSync === "function" && cfg && typeof cfg.sync_terminal_theme === "boolean") {
+    setTerminalThemeSync(cfg.sync_terminal_theme, false);
+  }
   if (typeof applyLanguage === "function" && cfg && cfg.language) {
     applyLanguage(cfg.language, !isEmbed);
   }
@@ -235,9 +238,10 @@ function applyFixedGlobalColors(accent, glow) {
   persistAppearancePatch({ theme_mode: mode, theme_accent: accent, theme_glow: glow, sync_agent_palette: false });
 }
 function resetDynamicThemeDefaults() {
-  if (typeof workspaceConfig === "object" && workspaceConfig) { workspaceConfig.theme_mode = "system"; workspaceConfig.theme_accent = "#4BB8E8"; workspaceConfig.theme_glow = "#6366F1"; workspaceConfig.sync_agent_palette = true; }
+  if (typeof workspaceConfig === "object" && workspaceConfig) { workspaceConfig.theme_mode = "system"; workspaceConfig.theme_accent = "#4BB8E8"; workspaceConfig.theme_glow = "#6366F1"; workspaceConfig.sync_agent_palette = true; workspaceConfig.sync_terminal_theme = true; }
   setFixedGlobalTheme(false, false);
   if (typeof setAmbientEffects === "function") { setAmbientEffects(true, true); }
+  if (typeof setTerminalThemeSync === "function") { setTerminalThemeSync(true, false); safeStorageRemove("realm_term_theme_sync"); }
 }
 function renderPresetBars() {
   const markup = THEME_PRESETS.map(function (p) {
@@ -280,7 +284,7 @@ function bindAppearanceControls() {
   if (resetThemeBtn) {
     resetThemeBtn.addEventListener("click", function () {
       resetDynamicThemeDefaults();
-      persistAppearancePatch({ theme_mode: "system", theme_accent: "#4BB8E8", theme_glow: "#6366F1", sync_agent_palette: true, ambient_effects: true });
+      persistAppearancePatch({ theme_mode: "system", theme_accent: "#4BB8E8", theme_glow: "#6366F1", sync_agent_palette: true, sync_terminal_theme: true, ambient_effects: true });
     });
   }
   const resetAppearanceBtn = document.getElementById("reset-appearance-btn");
@@ -288,7 +292,7 @@ function bindAppearanceControls() {
     resetAppearanceBtn.addEventListener("click", async function () {
       syncAgentNameUI("Saga"); resetDynamicThemeDefaults();
       if (typeof applyReadingComfort === "function") { applyReadingComfort({ reading_font: "default", reading_scale: "md", reading_width: "standard", high_contrast_focus: false, reduce_motion: false }, true); }
-      persistAppearancePatch({ theme_mode: "system", theme_accent: "#4BB8E8", theme_glow: "#6366F1", sync_agent_palette: true, ambient_effects: true, agent_name: "Saga", reading_font: "default", reading_scale: "md", reading_width: "standard", high_contrast_focus: false, reduce_motion: false });
+      persistAppearancePatch({ theme_mode: "system", theme_accent: "#4BB8E8", theme_glow: "#6366F1", sync_agent_palette: true, sync_terminal_theme: true, ambient_effects: true, agent_name: "Saga", reading_font: "default", reading_scale: "md", reading_width: "standard", high_contrast_focus: false, reduce_motion: false });
       await resetCustomLogo();
     });
   }
@@ -303,7 +307,7 @@ function bindAppearanceControls() {
         const res = await areaFetch("/api/workspace/reset-defaults", { method: "POST" });
         const data = await safeJson(res);
         if (!res.ok) { throw new Error(data.detail || "Could not reset settings."); }
-        for (const k of ["color-scheme", "realm_theme_accent", "realm_theme_glow", "realm_ambient_effects", "realm_lang", "preferred_local_model"]) { safeStorageRemove(k); }
+        for (const k of ["color-scheme", "realm_theme_accent", "realm_theme_glow", "realm_ambient_effects", "realm_term_theme_sync", "realm_lang", "preferred_local_model"]) { safeStorageRemove(k); }
         if (typeof resetReadingComfortLocal === "function") { resetReadingComfortLocal(); }
         ragConfig = { retrieval_mode: "hybrid", top_k: 5, rrf_k: 60, temperature: 0.2 }; syncRagStudioUI();
         applyLogoUrl(data.logo_url || "/static/logo-512.png", false);
