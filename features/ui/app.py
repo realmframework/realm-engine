@@ -25,6 +25,8 @@ from features.search.router import route_query_intent
 from features.search.service import hybrid_search
 from features.slides import router as slides_router
 from features.slides import service as slides_service
+from features.terminal import router as terminal_router
+from features.terminal import service as terminal_service
 from features.tutor_agent import budget, key_verify
 from features.tutor_agent.models_discovery import discover_models
 from features.tutor_agent.providers import list_provider_models
@@ -33,6 +35,7 @@ from features.tutor_agent.streaming import stream_messages_events, stream_tutor_
 from features.ui import (
     public_config,
     public_rate_limit,
+    route_helpers,
     selection,
     slides_source,
     ui_routers,
@@ -63,13 +66,11 @@ def _load_area(target: Path) -> list[contracts.KnowledgeChunk]:
     chunks = embedder.hydrate_embeddings(ingest_directory(target, read_only=target.resolve().parent != workspace.REPO_ROOT.resolve()), cached, embed_missing=AUTO_EMBED, cached_model=str(meta.get("embedding_model") or ""))
     save_chunks(chunks, cache, embedding_model=embedder.DEFAULT_EMBED_MODEL, embedding_provider="ollama")
     return chunks
-
 def _reindex(target_dir: Path) -> list[contracts.KnowledgeChunk]:
     global INDEX, _INDEX_KEY
     INDEX = selection.merge(WORKSPACE_CONFIG, workspace.REPO_ROOT, _load_area) if len(WORKSPACE_CONFIG.active_dirs) > 1 else selection.filter_chunks(_load_area(target_dir), WORKSPACE_CONFIG.knowledge_dir, WORKSPACE_CONFIG)
     _INDEX_KEY = (str(workspace.REPO_ROOT), tuple(WORKSPACE_CONFIG.active_dirs), id(INDEX))
     return INDEX
-
 def get_index() -> list[contracts.KnowledgeChunk]:
     with workspace.STATE_LOCK:
         if not WORKSPACE_CONFIG.active_dirs:
@@ -86,7 +87,6 @@ def get_index() -> list[contracts.KnowledgeChunk]:
         except (HTTPException, ValueError):
             return []
         return _reindex(target)
-
 def activate_workspace(config: contracts.WorkspaceConfig) -> dict[str, object]:
     global WORKSPACE_CONFIG, INDEX, _INDEX_KEY
     with workspace.STATE_LOCK:
@@ -98,8 +98,6 @@ def activate_workspace(config: contracts.WorkspaceConfig) -> dict[str, object]:
         INDEX, WORKSPACE_CONFIG = chunks, config
         _INDEX_KEY = (str(workspace.REPO_ROOT), tuple(config.active_dirs), id(INDEX))
         return workspace.build_workspace_payload(config, chunks)
-
-
 def _set_workspace_config(config: contracts.WorkspaceConfig) -> None:
     global WORKSPACE_CONFIG
     WORKSPACE_CONFIG = config
@@ -109,11 +107,10 @@ def _invalidate_index(_changes: dict[str, list[str]]) -> None:
         INDEX, _INDEX_KEY = [], None
 def build_public_app(data_dir: Path | None = None, quota_check: public_rate_limit.QuotaChecker | None = None) -> FastAPI:
     return public_config.build_public_fastapi(lambda d: ingest_directory(d, read_only=True), route_query_intent, hybrid_search, lambda *a, **kw: embed_text(*a, **kw), lambda *a, **kw: run_tutor(*a, skip_local_budget=True, public_mode=True, **kw), budget.estimate_usage, data_dir=data_dir, quota_check=quota_check)
-
 def _build_local_app() -> FastAPI:
     cloud_guard = build_guard(lambda: WORKSPACE_CONFIG, budget.check_and_record_budget, budget.estimate_usage)
     wf_cbs = lambda cfg: workflow_bridge.build_workflow_callbacks(cfg, get_index, _reindex, hybrid_search, stream_messages_events, cloud_guard, slides_service.export_deck_bytes, work_board_service.add_tasks_from_text, impact_router.log_workflow_impact)  # noqa: E731
-    local = FastAPI(title="REALM Engine", version=APP_VERSION, lifespan=area_lifespan(converters.repair_directory_topics, _invalidate_index, lambda: WORKSPACE_CONFIG, lambda: workflow_engine.tick_scheduled_workflows(WORKSPACE_CONFIG, wf_cbs(WORKSPACE_CONFIG), workspace.REPO_ROOT)))
+    local = FastAPI(title="REALM Engine", version=APP_VERSION, lifespan=area_lifespan(converters.repair_directory_topics, _invalidate_index, lambda: WORKSPACE_CONFIG, lambda: workflow_engine.tick_scheduled_workflows(WORKSPACE_CONFIG, wf_cbs(WORKSPACE_CONFIG), workspace.REPO_ROOT), terminal_service.close_all_sessions))
     install_safe_error_handlers(local)
     local.add_middleware(upload_body_guard)
     local.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -129,6 +126,7 @@ def _build_local_app() -> FastAPI:
         workflow_router.build_router(lambda: WORKSPACE_CONFIG, wf_cbs, lambda: workspace.REPO_ROOT),
         copilot_router.build_router(lambda: WORKSPACE_CONFIG, stream_messages_events, lambda: workspace.REPO_ROOT),
         local_ai_router.build_router(lambda: workspace.REPO_ROOT),
+        terminal_router.build_router(lambda: route_helpers.safe_terminal_cwd(WORKSPACE_CONFIG, workspace.resolve_safe_knowledge_dir, workspace.REPO_ROOT)),
     )
     for router in routers:
         local.include_router(router)

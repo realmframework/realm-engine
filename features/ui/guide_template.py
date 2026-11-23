@@ -77,6 +77,7 @@ GUIDE_MODAL_HTML: str = r"""<dialog id="guide-modal" closedby="any" aria-labelle
         <div class="guide-row"><code id="guide-kbd-search" class="guide-kbd">⌘K</code><span data-i18n="guide_k_search">Search documents, chats &amp; actions</span></div>
         <div class="guide-row"><code id="guide-kbd-files" class="guide-kbd">⌘P</code><span data-i18n="guide_k_files">Quick open any Markdown or code file</span></div>
         <div class="guide-row"><code id="guide-kbd-copilot" class="guide-kbd">⌘J</code><span data-i18n="guide_k_copilot">Toggle Right Sidebar Copilot</span></div>
+        <div class="guide-row"><code class="guide-kbd">Ctrl + `</code><span data-i18n="guide_k_terminal">Toggle Bottom Panel Terminal</span></div>
         <div class="guide-row"><code id="guide-kbd-save" class="guide-kbd">⌘S</code><span data-i18n="guide_k_save">Save active file tab</span></div>
         <div class="guide-row"><code class="guide-kbd">Shift + Enter</code><span data-i18n="guide_k_newline">Add a new line in the prompt box</span></div>
         <div class="guide-row"><code class="guide-kbd">Esc</code><span data-i18n="guide_k_esc">Stop an answer or close a popup</span></div>

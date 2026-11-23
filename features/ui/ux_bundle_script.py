@@ -20,6 +20,7 @@ from features.ui.power_script import POWER_SCRIPT
 from features.ui.shell_script import SHELL_SCRIPT
 from features.ui.split_script import SPLIT_SCRIPT
 from features.ui.study_script import STUDY_SCRIPT
+from features.ui.terminal_script import TERMINAL_SCRIPT
 from features.ui.unsaved_guard_script import UNSAVED_GUARD_SCRIPT
 from features.ui.work_board_script import WORK_BOARD_SCRIPT
 from features.ui.workbench_tabs_script import WORKBENCH_TABS_SCRIPT
@@ -49,6 +50,7 @@ UX_BUNDLE_SCRIPT: str = (
     + FILE_EXPLORER_SCRIPT
     + FILE_TAB_SCRIPT
     + IDE_ACTIONS_SCRIPT
+    + TERMINAL_SCRIPT
     + UNSAVED_GUARD_SCRIPT
     + COPILOT_CONTROLS_SCRIPT
     + COPILOT_EXTRAS_SCRIPT
@@ -77,6 +79,7 @@ function bindAllUXBundles() {
     typeof bindFileExplorerUX === "function" && bindFileExplorerUX,
     typeof bindFileTabUX === "function" && bindFileTabUX,
     typeof bindIdeActionsUX === "function" && bindIdeActionsUX,
+    typeof bindTerminalUX === "function" && bindTerminalUX,
     typeof bindUnsavedGuardUX === "function" && bindUnsavedGuardUX,
     typeof bindCopilotControlsUX === "function" && bindCopilotControlsUX,
     typeof bindCopilotExtrasUX === "function" && bindCopilotExtrasUX,

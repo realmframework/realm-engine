@@ -30,6 +30,7 @@ function buildCommandPaletteItems() {
     { group: "cmd_grp_actions", id: "act-workflows", label: t("workflows_nav"), sub: "", kbd: "", run: () => { if (typeof openWorkflowsView === "function") { openWorkflowsView(); } } },
     { group: "cmd_grp_actions", id: "act-split-chat", label: t("sh_toggle_right"), sub: "", kbd: "", run: () => { if (typeof openSplitChat === "function") { if (typeof wbLayout !== "undefined" && wbLayout.splitOpen) { closeSplitChat(); } else { openSplitChat({}); } } } },
     { group: "cmd_grp_actions", id: "act-bottom-panel", label: t("sh_toggle_bottom"), sub: "", kbd: "", run: () => { if (typeof toggleBottomPanel === "function") { toggleBottomPanel(); } } },
+    { group: "cmd_grp_actions", id: "act-terminal", label: t("term_tab"), sub: "Ctrl+`", kbd: "", run: () => { if (typeof toggleBottomPanel === "function") { toggleBottomPanel("terminal"); } } },
     { group: "cmd_grp_actions", id: "act-right-sidebar", label: t("sh_toggle_right_sb"), sub: "", kbd: "", run: () => { if (typeof setRightSidebarOpen === "function" && typeof wbLayout !== "undefined") { setRightSidebarOpen(!wbLayout.rightOpen); } } },
     { group: "cmd_grp_actions", id: "act-graph", label: t("graph_view"), sub: "2D", kbd: "", run: () => { setActiveTag(null); openGraphView(); } },
     { group: "cmd_grp_actions", id: "act-agents", label: t("agents_nav"), sub: typeof activeAgentName === "function" ? activeAgentName() : "", kbd: "", run: () => { if (typeof openAgentStudio === "function") { openAgentStudio("roster"); } } },

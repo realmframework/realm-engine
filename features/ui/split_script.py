@@ -1,11 +1,11 @@
 """True-DRY VS Code 4-Zone Workbench controller: Split Chat, Bottom Work Tools & Docked Right Sidebar."""
 
 SPLIT_SCRIPT: str = r"""
-const BP_TOOLS = ["work", "focus", "impact", "workflows", "library"];
+const BP_TOOLS = ["terminal", "work", "focus", "impact", "workflows", "library"];
 const wbLayout = {
   splitOpen: false, splitRatio: 50,
-  bottomOpen: false, bottomMax: false, bottomTool: "work", editorHeightPct: 58,
-  bottomVisible: { work: true, focus: true, impact: true, workflows: true, library: true },
+  bottomOpen: false, bottomMax: false, bottomTool: "terminal", editorHeightPct: 58,
+  bottomVisible: { terminal: true, work: true, focus: true, impact: true, workflows: true, library: true },
   rightOpen: false, rightTab: "copilot", rightWidthPx: 348,
   splitAgentId: "lisbeth",
   splitTabs: [{ id: "sp_0", chatId: "", title: "" }],
@@ -209,26 +209,24 @@ function renderBottomPanelTabs() {
   });
 }
 
+function syncBottomPanelContent() {
+  const tp = document.getElementById("bottom-terminal-pane"), fr = document.getElementById("bottom-panel-frame"), isTerm = wbLayout.bottomTool === "terminal";
+  if (tp) { tp.hidden = !isTerm; }
+  if (fr) { fr.hidden = isTerm; }
+  if (isTerm) { if (typeof ensureTerminalReady === "function") { ensureTerminalReady(); } }
+  else { ensureEmbedFrame("bottom-panel-frame", "/?embed=1&role=bottom-panel&view=" + encodeURIComponent(wbLayout.bottomTool), { type: "realm:open-view", view: wbLayout.bottomTool }); }
+}
 function setBottomTool(tool) {
   if (!BP_TOOLS.includes(tool)) { return; }
-  wbLayout.bottomVisible[tool] = true;
-  wbLayout.bottomTool = tool;
-  saveBottomToolPrefs();
-  renderBottomPanelTabs();
-  if (wbLayout.bottomOpen) {
-    ensureEmbedFrame("bottom-panel-frame", "/?embed=1&role=bottom-panel&view=" + encodeURIComponent(tool), { type: "realm:open-view", view: tool });
-  }
+  wbLayout.bottomVisible[tool] = true; wbLayout.bottomTool = tool; saveBottomToolPrefs(); renderBottomPanelTabs();
+  if (wbLayout.bottomOpen) { syncBottomPanelContent(); }
   const activeTab = document.querySelector("[data-bp-tool='" + tool + "']");
   if (activeTab && activeTab.scrollIntoView) { activeTab.scrollIntoView({ block: "nearest", inline: "nearest" }); }
 }
-
 function openBottomPanel(tool) {
   if (tool && BP_TOOLS.includes(tool)) { wbLayout.bottomTool = tool; wbLayout.bottomVisible[tool] = true; saveBottomToolPrefs(); }
-  if (!wbLayout.bottomVisible[wbLayout.bottomTool]) { wbLayout.bottomTool = BP_TOOLS.find(function (k) { return wbLayout.bottomVisible[k]; }) || "work"; }
-  wbLayout.bottomOpen = true;
-  renderBottomPanelTabs();
-  applyWorkbenchGrid();
-  ensureEmbedFrame("bottom-panel-frame", "/?embed=1&role=bottom-panel&view=" + encodeURIComponent(wbLayout.bottomTool), { type: "realm:open-view", view: wbLayout.bottomTool });
+  if (!wbLayout.bottomVisible[wbLayout.bottomTool]) { wbLayout.bottomTool = BP_TOOLS.find(function (k) { return wbLayout.bottomVisible[k]; }) || "terminal"; }
+  wbLayout.bottomOpen = true; renderBottomPanelTabs(); applyWorkbenchGrid(); syncBottomPanelContent();
 }
 
 function closeBottomPanel() { wbLayout.bottomOpen = false; wbLayout.bottomMax = false; applyWorkbenchGrid(); }

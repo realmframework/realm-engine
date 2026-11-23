@@ -17,7 +17,9 @@ Open **Agents** in the left sidebar to browse, edit, duplicate, or create agents
 - **Plague** — Systems, debugging, and root-cause engineer.
 - **Palmgren** — Patient mentor, tutor, and Socratic coach.
 
-Optionally enable **Sync Theme Palette with Active Agent** under **Settings → Appearance** to subtly adapt workspace colors as you switch specialists.
+By default, workspace colors follow each active agent's palette automatically. To keep one palette everywhere regardless of agent switching, turn on **Fix Global Theme** under **Settings → Appearance**.
+
+Agents, their pinned models, and Answer Formats are also selectable directly inside the **Right Sidebar Copilot (`⌘J` / `Ctrl+J`)**, with per-reply provenance metadata showing which agent, model, and format generated the response.
 
 ---
 

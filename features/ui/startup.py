@@ -19,6 +19,7 @@ def area_lifespan(
     on_disk_change: Callable[[dict[str, list[str]]], None] | None = None,
     get_config: Callable[[], object] | None = None,
     workflow_tick: Callable[[], Awaitable[object]] | None = None,
+    on_shutdown: Callable[[], None] | None = None,
 ) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
@@ -66,5 +67,8 @@ def area_lifespan(
             join_vault_watcher(stop_event, timeout=2.0)
             with suppress(Exception):
                 shutdown_sidecar()
+            if on_shutdown is not None:
+                with suppress(Exception):
+                    on_shutdown()
 
     return lifespan

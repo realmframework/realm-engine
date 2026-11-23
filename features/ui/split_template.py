@@ -8,6 +8,7 @@ from features.ui.icons import (
     ICON_SIDEBAR_LEFT,
     ICON_SPLIT_EDITOR,
 )
+from features.ui.terminal_template import TERMINAL_PANE_HTML
 
 CENTER_TABBAR_HTML: str = (
     '<header id="center-tabbar" class="wb-zone-bar" aria-label="Workspace bar">'
@@ -51,7 +52,8 @@ BOTTOM_PANEL_HTML: str = (
     '<section id="bottom-panel" hidden aria-label="Work tools panel" data-i18n-aria-label="bp_panel_aria">'
     '<header class="wb-zone-bar">'
     '<div id="bottom-panel-tablist" role="tablist" aria-label="Bottom panel tools" data-i18n-aria-label="bp_tools_aria" class="wb-tab-strip">'
-    '<button type="button" role="tab" id="bp-tab-work" data-bp-tool="work" aria-selected="true" class="wb-zone-tab"><span data-i18n="work_board_nav">Board &amp; Calendar</span></button>'
+    '<button type="button" role="tab" id="bp-tab-terminal" data-bp-tool="terminal" aria-selected="true" class="wb-zone-tab"><span data-i18n="term_tab">Terminal</span></button>'
+    '<button type="button" role="tab" id="bp-tab-work" data-bp-tool="work" aria-selected="false" class="wb-zone-tab"><span data-i18n="work_board_nav">Board &amp; Calendar</span></button>'
     '<button type="button" role="tab" id="bp-tab-focus" data-bp-tool="focus" aria-selected="false" class="wb-zone-tab"><span data-i18n="focus_nav">Focus &amp; Goals</span></button>'
     '<button type="button" role="tab" id="bp-tab-impact" data-bp-tool="impact" aria-selected="false" class="wb-zone-tab"><span data-i18n="impact_nav">Time &amp; Impact</span></button>'
     '<button type="button" role="tab" id="bp-tab-workflows" data-bp-tool="workflows" aria-selected="false" class="wb-zone-tab"><span data-i18n="workflows_nav">Workflows</span></button>'
@@ -61,6 +63,7 @@ BOTTOM_PANEL_HTML: str = (
     f'<button id="bottom-panel-more-btn" type="button" popovertarget="bottom-panel-more-menu" aria-expanded="false" aria-label="Show or hide bottom panel tools" title="Show or hide tools" data-i18n-aria-label="bp_manage_tools" data-i18n-title="bp_manage_tools" class="wb-icon-btn">{ICON_MORE}</button>'
     '<div id="bottom-panel-more-menu" popover="auto" class="rail-popover" aria-label="Bottom panel tools">'
     '<div focusgroup="menu nomemory" class="bp-menu-group" aria-label="Toggle visible tools">'
+    '<button type="button" role="menuitemcheckbox" aria-checked="true" data-bp-vis="terminal" class="shell-pop-item bp-check-item"><span data-i18n="term_tab">Terminal</span></button>'
     '<button type="button" role="menuitemcheckbox" aria-checked="true" data-bp-vis="work" class="shell-pop-item bp-check-item"><span data-i18n="work_board_nav">Board &amp; Calendar</span></button>'
     '<button type="button" role="menuitemcheckbox" aria-checked="true" data-bp-vis="focus" class="shell-pop-item bp-check-item"><span data-i18n="focus_nav">Focus &amp; Goals</span></button>'
     '<button type="button" role="menuitemcheckbox" aria-checked="true" data-bp-vis="impact" class="shell-pop-item bp-check-item"><span data-i18n="impact_nav">Time &amp; Impact</span></button>'
@@ -72,7 +75,8 @@ BOTTOM_PANEL_HTML: str = (
     '<button id="bottom-panel-close-btn" type="button" aria-label="Close panel" title="Close panel" data-i18n-aria-label="bp_close_aria" data-i18n-title="bp_close_aria" class="wb-icon-btn">✕</button>'
     "</div>"
     "</header>"
-    '<iframe id="bottom-panel-frame" class="wb-embed-frame" title="Work tools panel"></iframe>'
+    + TERMINAL_PANE_HTML
+    + '<iframe id="bottom-panel-frame" class="wb-embed-frame" title="Work tools panel"></iframe>'
     "</section>"
 )
 

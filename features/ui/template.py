@@ -35,6 +35,7 @@ from features.ui.split_template import (
 )
 from features.ui.study_template import STUDY_MODAL_HTML, STUDY_STYLES_CSS
 from features.ui.surface_styles import SURFACE_STYLES_CSS
+from features.ui.terminal_styles import TERMINAL_STYLES_CSS
 from features.ui.theme_styles import THEME_BRIDGE_CSS
 from features.ui.work_board_modals import WORK_BOARD_MODALS_HTML
 from features.ui.work_board_styles import WORK_BOARD_STYLES_CSS
@@ -183,6 +184,7 @@ input[type="range"].rag-slider:focus-visible { outline: 2px solid var(--slider-f
     + WORK_BOARD_STYLES_CSS
     + SPLIT_STYLES_CSS
     + IDE_STYLES_CSS
+    + TERMINAL_STYLES_CSS
     + IMPACT_FOCUS_STYLES_CSS
     + WORKFLOW_STUDIO_STYLES_CSS
     + SHELL_STYLES_CSS

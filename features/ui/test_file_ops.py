@@ -101,3 +101,11 @@ def test_code_upload_backup_restore_and_file_watcher(area_client: TestClient, tm
     restored = area_client.post("/api/backup/import", files={"file": ("backup.zip", zbytes, "application/zip")})
     assert restored.status_code == 200
     assert (tmp_path / "restored_code/worker.py").is_file()
+
+
+def test_public_mode_never_exposes_terminal_routes(tmp_path: Path) -> None:
+    from features.ui.app import build_public_app
+
+    pub = TestClient(build_public_app(data_dir=tmp_path))
+    assert pub.get("/api/terminal/sessions").status_code == 404
+    assert pub.post("/api/terminal/sessions", json={}).status_code == 404

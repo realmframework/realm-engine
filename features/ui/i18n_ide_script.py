@@ -50,7 +50,15 @@ const I18N_IDE = {
     guide_copilot_d: "Press ⌘J / Ctrl+J to open Copilot beside any document, code file, board, or workflow. Highlight text to ask or edit selections, type # to attach extra files, and review diffs with 1-click Apply & Undo.",
     guide_k_files: "Quick open any Markdown or code file",
     guide_k_copilot: "Toggle Right Sidebar Copilot",
-    guide_k_save: "Save active file tab"
+    guide_k_terminal: "Toggle Bottom Panel Terminal",
+    guide_k_save: "Save active file tab",
+    term_tab: "Terminal",
+    term_new: "New terminal",
+    term_stop: "Ctrl+C",
+    term_clear: "Clear",
+    term_copilot_t: "Send terminal output to Copilot",
+    term_ph: "Run a command (Enter to send, ↑/↓ history, Ctrl+C interrupt)…",
+    term_empty_copilot: "Run a command first to send terminal output to Copilot."
   },
   de: {
     ft_filter_ph: "Dateien filtern…",
@@ -100,7 +108,15 @@ const I18N_IDE = {
     guide_copilot_d: "Drücke ⌘J / Strg+J für den Copilot neben jeder Datei, jedem Code, Board oder Workflow. Text markieren für Auswahl-Aktionen, # tippen um weitere Dateien anzuhängen, und Vorschläge mit 1-Klick übernehmen oder rückgängig machen.",
     guide_k_files: "Beliebige Markdown- oder Code-Datei schnell öffnen",
     guide_k_copilot: "Copilot-Seitenleiste ein-/ausblenden",
-    guide_k_save: "Aktive Datei speichern"
+    guide_k_terminal: "Unteres Terminal ein-/ausblenden",
+    guide_k_save: "Aktive Datei speichern",
+    term_tab: "Terminal",
+    term_new: "Neues Terminal",
+    term_stop: "Strg+C",
+    term_clear: "Leeren",
+    term_copilot_t: "Terminal-Ausgabe an Copilot senden",
+    term_ph: "Befehl ausführen (Enter senden, ↑/↓ Verlauf, Strg+C abbrechen)…",
+    term_empty_copilot: "Führe zuerst einen Befehl aus, um Ausgabe an Copilot zu senden."
   },
   es: {
     ft_filter_ph: "Filtrar archivos…",
@@ -150,7 +166,15 @@ const I18N_IDE = {
     guide_copilot_d: "Pulsa ⌘J / Ctrl+J para abrir Copilot junto a cualquier documento, código, tablero o flujo. Selecciona texto para preguntar o editar, escribe # para adjuntar archivos extra y aplica o deshaz cambios en 1 clic.",
     guide_k_files: "Abrir rápido cualquier archivo Markdown o de código",
     guide_k_copilot: "Mostrar u ocultar Copilot lateral",
-    guide_k_save: "Guardar pestaña de archivo activa"
+    guide_k_terminal: "Mostrar u ocultar Terminal inferior",
+    guide_k_save: "Guardar pestaña de archivo activa",
+    term_tab: "Terminal",
+    term_new: "Nueva terminal",
+    term_stop: "Ctrl+C",
+    term_clear: "Limpiar",
+    term_copilot_t: "Enviar salida de terminal a Copilot",
+    term_ph: "Ejecuta un comando (Enter enviar, ↑/↓ historial, Ctrl+C interrumpir)…",
+    term_empty_copilot: "Ejecuta un comando primero para enviar la salida a Copilot."
   }
 };
 Object.keys(I18N_IDE).forEach(function (k) { Object.assign(I18N[k], I18N_IDE[k]); });
